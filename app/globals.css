@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+    --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+    --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-paper text-ink font-sans antialiased;
+    font-feature-settings: "cv05" 1, "ss01" 1;
+  }
+
+  /* Fraunces variable axes — soft, wonky, low-contrast optical sizing.
+     This is what keeps the display face humane rather than editorial. */
+  .font-display {
+    font-variation-settings: "SOFT" 60, "WONK" 1, "opsz" 36;
+    letter-spacing: -0.015em;
+  }
+
+  ::selection {
+    background: #e9f0ea;
+    color: #1c2b3a;
+  }
+
+  /* Visible keyboard focus everywhere. Non-negotiable for this audience. */
+  :focus-visible {
+    outline: 2px solid #3f6b57;
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl bg-paper-card shadow-card;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider;
+  }
+
+  .label {
+    @apply font-mono text-[10px] uppercase tracking-[0.14em] text-ink-faint;
+  }
+
+  /* Minimum tap target of 44px for the member surface. */
+  .tap {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  .scroll-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scroll-hide {
+    scrollbar-width: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

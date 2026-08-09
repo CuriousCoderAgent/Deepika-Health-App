@@ -1,0 +1,901 @@
+import type {
+  CoachModule,
+  DailyAction,
+  Feedback,
+  Member,
+  Message,
+  NotificationTemplate,
+  PulseEntry,
+  Provenance,
+  Session,
+  WeeklyReflection,
+  Workout,
+  WorkoutLog,
+} from "./types";
+
+const p = (
+  source: Provenance["source"],
+  enteredBy: string,
+  at = "2026-08-09"
+): Provenance => ({ source, enteredBy, at });
+
+/* ------------------------------------------------------------------ */
+/* Members                                                             */
+/* ------------------------------------------------------------------ */
+
+export const members: Member[] = [
+  {
+    id: "radhika",
+    name: "Radhika Menon",
+    age: 44,
+    city: "Bengaluru",
+    initials: "RM",
+    week: 5,
+    phase: "Stabilise",
+    lifeStage: "Perimenopause — cycle irregular for ~10 months",
+    goals: [
+      "Stop feeling wiped out by 4pm",
+      "Be able to lift my own suitcase again",
+      "Sleep through the night",
+    ],
+    constraints: [
+      "Two school runs daily",
+      "Travels to Chennai most alternate weeks",
+      "No gym membership — home equipment only",
+    ],
+    wontDo: "I will not give up my evening chai and I will not count calories.",
+    medical: ["Borderline high LDL (2025 panel)", "Occasional lower-back stiffness"],
+    medications: ["Vitamin D 60k weekly"],
+    engagement: "slipping",
+    weeklyFocus: ["Protect sleep on non-travel nights", "Two strength sessions, any length"],
+    activeModuleIds: ["mv-strength-a", "sl-reset", "nu-protein", "bh-minimum-day"],
+    lastPlanChange: {
+      at: "2 days ago",
+      rationale:
+        "You reported low energy three days running and slept badly. I have taken Thursday's session out and made today's movement the 12-minute version. Nothing is behind.",
+    },
+    bodyComp: [
+      { label: "Weight", value: "68.7 kg", at: "Week 1", provenance: p("coach_on_behalf", "Deepika", "2026-07-06") },
+      { label: "Skeletal muscle", value: "23.1 kg", at: "Week 1", provenance: p("imported_document", "InBody report", "2026-07-06") },
+      { label: "Waist", value: "89 cm", at: "Week 4", provenance: p("coach_on_behalf", "Deepika", "2026-07-28") },
+    ],
+    assessmentComplete: 85,
+  },
+  {
+    id: "megha",
+    name: "Megha Sharma",
+    age: 41,
+    city: "Gurugram",
+    initials: "MS",
+    week: 1,
+    phase: "Stabilise",
+    lifeStage: "Cycle regular — tracking for baseline",
+    goals: ["Build a habit that survives a bad week", "Understand what strength training actually is"],
+    constraints: ["Works till 8pm most days", "Prefers mornings"],
+    wontDo: "I will not do anything that needs me to be at a gym at 6am.",
+    medical: [],
+    medications: [],
+    engagement: "strong",
+    weeklyFocus: ["Show up three times, any duration"],
+    activeModuleIds: ["mv-walk-base", "mv-mobility-10", "bh-if-then"],
+    bodyComp: [
+      { label: "Weight", value: "63.2 kg", at: "Week 1", provenance: p("member_manual", "Megha", "2026-08-03") },
+    ],
+    assessmentComplete: 100,
+  },
+  {
+    id: "anita",
+    name: "Anita Deshpande",
+    age: 47,
+    city: "Pune",
+    initials: "AD",
+    week: 7,
+    phase: "Build",
+    lifeStage: "Perimenopause — hot flushes most nights",
+    goals: ["Get my strength back after two years of nothing", "Stop waking at 3am"],
+    constraints: ["Caring for her mother — unpredictable evenings"],
+    wontDo: "I will not do early mornings. That is my mother's time.",
+    medical: ["Hypothyroidism — on treatment", "Perimenopausal night sweats"],
+    medications: ["Thyroxine 75mcg"],
+    engagement: "quiet",
+    weeklyFocus: ["Anything at all — we are restarting gently"],
+    activeModuleIds: ["mv-strength-a", "sl-winddown", "bh-comeback"],
+    bodyComp: [
+      { label: "Weight", value: "71.4 kg", at: "Week 5", provenance: p("member_manual", "Anita", "2026-07-20") },
+    ],
+    assessmentComplete: 70,
+  },
+  {
+    id: "shreya",
+    name: "Shreya Iyer",
+    age: 39,
+    city: "Mumbai",
+    initials: "SI",
+    week: 3,
+    phase: "Stabilise",
+    lifeStage: "Cycle regular — heavy, painful periods",
+    goals: ["More energy for my kids on weekends", "Understand my own body for once"],
+    constraints: ["Long commute", "Vegetarian — protein is the hard part"],
+    wontDo: "I will not eat eggs. Please stop suggesting eggs.",
+    medical: ["Low ferritin (2026 panel) — GP following up"],
+    medications: ["Iron supplement — prescribed by GP"],
+    engagement: "steady",
+    weeklyFocus: ["Protein at two meals a day", "One strength session"],
+    activeModuleIds: ["nu-protein", "nu-plate", "mv-strength-a"],
+    bodyComp: [],
+    assessmentComplete: 90,
+  },
+  {
+    id: "nidhi",
+    name: "Nidhi Kapoor",
+    age: 49,
+    city: "Delhi",
+    initials: "NK",
+    week: 9,
+    phase: "Build",
+    lifeStage: "Postmenopause — final period 18 months ago",
+    goals: ["Protect my bones — my mother had a hip fracture at 68", "Lift heavier than I ever have"],
+    constraints: ["Weekend travel for work"],
+    wontDo: "I will not go back to eating 1,200 calories a day. I did that for twenty years.",
+    medical: ["Family history of osteoporosis"],
+    medications: [],
+    engagement: "strong",
+    weeklyFocus: ["Progress the goblet squat load", "Keep the 3am wake-up log going"],
+    activeModuleIds: ["mv-strength-b", "hr-bone-muscle", "nu-protein"],
+    bodyComp: [
+      { label: "Weight", value: "64.8 kg", at: "Week 8", provenance: p("member_manual", "Nidhi", "2026-08-01") },
+      { label: "Goblet squat", value: "16 kg × 8", at: "Week 8", provenance: p("coach_on_behalf", "Deepika", "2026-08-01") },
+    ],
+    assessmentComplete: 100,
+  },
+  {
+    id: "priya",
+    name: "Priya Raghavan",
+    age: 43,
+    city: "Chennai",
+    initials: "PR",
+    week: 6,
+    phase: "Stabilise",
+    lifeStage: "Perimenopause — sleep disruption is the main symptom",
+    goals: ["Not abandon this the way I abandoned everything else"],
+    constraints: ["Single parent", "Works shifts"],
+    wontDo: "I will not pretend I can plan a whole week in advance.",
+    medical: [],
+    medications: [],
+    engagement: "steady",
+    weeklyFocus: ["Return gently — one action a day is a full week"],
+    activeModuleIds: ["bh-comeback", "mv-walk-base", "bh-minimum-day"],
+    bodyComp: [],
+    assessmentComplete: 60,
+  },
+];
+
+/* ------------------------------------------------------------------ */
+/* Module library — Deepika's IP layer                                 */
+/* ------------------------------------------------------------------ */
+
+export const modules: CoachModule[] = [
+  {
+    id: "mv-strength-a",
+    name: "Beginner Strength A",
+    category: "movement",
+    version: "1.2",
+    status: "active",
+    purpose:
+      "Build the first genuine strength base — hinge, squat, push, carry — in someone who has never trained.",
+    betterLooksLike:
+      "She can do a bodyweight sit-to-stand for 10 reps without using her hands, and knows what a hinge feels like.",
+    eligibility:
+      "Cleared movement screen. No acute back or knee pain. Has had at least two supervised sessions.",
+    keyIdeas: [
+      "Strength is a skill before it is an effort — technique first, load later.",
+      "Muscle mass declines from the late thirties. Resistance work is the direct intervention.",
+      "Soreness is not the goal and is not a measure of a good session.",
+    ],
+    minimum: { label: "One round, no added weight", minutes: 12 },
+    target: { label: "Two rounds as written", minutes: 25 },
+    stretch: { label: "Three rounds, add load where it felt easy", minutes: 40 },
+    tracking: "Completion level, RPE, load per exercise, pain flag.",
+    coachPlaybook: {
+      ask: [
+        "Which exercise did you feel most unsure about?",
+        "Where did you feel it the next day?",
+        "Did anything hurt — as opposed to being hard?",
+      ],
+      barriers: [
+        "Fear of injury from lifting",
+        "Not knowing what 'heavy enough' means",
+        "Believing 25 minutes is not worth doing",
+      ],
+      escalation:
+        "Any pain that is sharp, one-sided, or persists past 48 hours — stop the module and refer to a physiotherapist.",
+    },
+    notificationTemplates: [
+      "Your strength session is on the plan today. The 12-minute version is already written if the day runs over.",
+      "Two rounds is the plan, one round is a win.",
+    ],
+    progression:
+      "Progress load when RPE sits at or below 6 for two consecutive sessions with clean technique.",
+    reviewNote: "Exercise selection is Deepika's professional decision. Not clinically reviewed.",
+    reviewedOn: "2026-07-30",
+  },
+  {
+    id: "mv-strength-b",
+    name: "Beginner Strength B",
+    category: "movement",
+    version: "1.1",
+    status: "active",
+    purpose: "Second strength template — adds unilateral work and loaded carries.",
+    betterLooksLike: "She can carry shopping in one hand for 40m without setting it down.",
+    eligibility: "Completed at least four weeks of Strength A with stable technique.",
+    keyIdeas: [
+      "Single-leg work protects balance, which protects against falls later.",
+      "Carries build grip and trunk strength at the same time.",
+    ],
+    minimum: { label: "Carries and squats only", minutes: 15 },
+    target: { label: "Full session as written", minutes: 30 },
+    stretch: { label: "Full session, progress load on two lifts", minutes: 45 },
+    tracking: "Completion level, RPE, load, pain flag.",
+    coachPlaybook: {
+      ask: ["Which side felt weaker?", "Could you hold the carry without shrugging?"],
+      barriers: ["Balance confidence", "Grip gives out before legs do"],
+      escalation: "Any knee pain during single-leg work — regress to supported version, review in person.",
+    },
+    notificationTemplates: ["Strength B today. Start with the carries if you are short on time."],
+    progression: "Add load when both sides complete the prescribed reps at RPE 7 or below.",
+    reviewedOn: "2026-07-30",
+  },
+  {
+    id: "mv-mobility-10",
+    name: "10-minute Mobility",
+    category: "movement",
+    version: "1.0",
+    status: "active",
+    purpose: "A movement floor that is always achievable, including on the worst days.",
+    betterLooksLike: "On a bad day she still does something, and the week does not collapse.",
+    eligibility: "Anyone, any week, any phase.",
+    keyIdeas: [
+      "The purpose of this module is continuity, not adaptation.",
+      "Doing it badly on a bad day is the entire point.",
+    ],
+    minimum: { label: "Three movements", minutes: 4 },
+    target: { label: "Full sequence", minutes: 10 },
+    stretch: { label: "Full sequence plus a walk", minutes: 25 },
+    tracking: "Completion level only. No RPE.",
+    coachPlaybook: {
+      ask: ["What made today hard?"],
+      barriers: ["Believing 4 minutes is pointless"],
+      escalation: "None.",
+    },
+    notificationTemplates: [
+      "Today has only one non-negotiable: 10 minutes of mobility. Everything else is bonus.",
+    ],
+    progression: "This module does not progress. It is the floor.",
+  },
+  {
+    id: "mv-walk-base",
+    name: "Walking Base",
+    category: "movement",
+    version: "1.0",
+    status: "active",
+    purpose: "Establish daily movement volume before adding structured training.",
+    betterLooksLike: "Walking is no longer a decision, it is just something she does after dinner.",
+    eligibility: "Weeks 1–4, or as a rebuild after a lapse.",
+    keyIdeas: [
+      "Attaching a walk to an existing habit works better than scheduling it.",
+      "After-dinner walking helps blood glucose more than the same walk earlier.",
+    ],
+    minimum: { label: "10 minutes, any time", minutes: 10 },
+    target: { label: "20 minutes after dinner", minutes: 20 },
+    stretch: { label: "35 minutes, brisk", minutes: 35 },
+    tracking: "Completion level; steps if a device is connected.",
+    coachPlaybook: {
+      ask: ["What time of day actually worked?"],
+      barriers: ["Weather", "Not safe to walk after dark in her area"],
+      escalation: "None.",
+    },
+    notificationTemplates: ["A 10-minute walk after dinner counts as the whole thing."],
+    progression: "Move to Strength A once walking has held for two weeks.",
+  },
+  {
+    id: "nu-protein",
+    name: "Protein Basics",
+    category: "nutrition",
+    version: "1.3",
+    status: "active",
+    purpose:
+      "Raise protein at the two meals she already eats, without introducing tracking or restriction.",
+    betterLooksLike:
+      "She can look at a plate and say whether there is protein on it. No weighing, no logging.",
+    eligibility:
+      "Anyone. Adapt for vegetarian and Jain diets. Not for members with a history of disordered eating without prior discussion.",
+    keyIdeas: [
+      "Protein needs rise in midlife, not fall.",
+      "Most Indian breakfasts are the easiest meal to fix.",
+      "Dal, paneer, curd, soya and legumes carry this — meat is not required.",
+    ],
+    minimum: { label: "Protein at one meal", minutes: 0 },
+    target: { label: "Protein at two meals", minutes: 0 },
+    stretch: { label: "Protein at every meal", minutes: 0 },
+    tracking: "Self-reported meals with protein. No calorie logging in V0.",
+    coachPlaybook: {
+      ask: ["What did breakfast look like this week?", "Which meal is hardest?"],
+      barriers: ["Vegetarian protein feels repetitive", "Cooks separately for family"],
+      escalation:
+        "Specific gram targets, therapeutic diets or any suspicion of disordered eating — refer to a registered dietitian.",
+    },
+    notificationTemplates: ["One protein at breakfast changes the whole day. That is the only ask."],
+    progression: "Move to Plate Structure once two meals hold for ten days.",
+    reviewNote:
+      "General nutrition education only. Individualised prescription is outside health-coach scope — refer to an RD.",
+    reviewedOn: "2026-08-02",
+  },
+  {
+    id: "nu-plate",
+    name: "Plate Structure",
+    category: "nutrition",
+    version: "1.0",
+    status: "active",
+    purpose: "A visual rule for building a meal without measuring anything.",
+    betterLooksLike: "She builds the plate without thinking about it.",
+    eligibility: "After Protein Basics is stable.",
+    keyIdeas: ["Half the plate vegetables, a quarter protein, a quarter grain.", "Order of eating matters less than composition."],
+    minimum: { label: "One meal built this way", minutes: 0 },
+    target: { label: "Two meals built this way", minutes: 0 },
+    stretch: { label: "Most meals, including when eating out", minutes: 0 },
+    tracking: "Self-report only.",
+    coachPlaybook: {
+      ask: ["Which meal is easiest to build this way?"],
+      barriers: ["Family eats differently", "Restaurant meals"],
+      escalation: "Refer to an RD for any therapeutic requirement.",
+    },
+    notificationTemplates: ["Half the plate vegetables. That is the whole rule."],
+    progression: "Introduce Eating Out once home meals are consistent.",
+    reviewNote: "General education only.",
+  },
+  {
+    id: "sl-reset",
+    name: "Sleep Reset Week",
+    category: "sleep",
+    version: "1.1",
+    status: "active",
+    purpose: "Stabilise sleep timing before attempting to improve sleep quality.",
+    betterLooksLike: "Wake time is within a 45-minute band, including weekends.",
+    eligibility: "Self-reported sleep 2 or below for three or more days.",
+    keyIdeas: [
+      "A consistent wake time does more than a consistent bedtime.",
+      "Night waking in perimenopause is common and is not a personal failure.",
+      "Morning light is the strongest available lever and it is free.",
+    ],
+    minimum: { label: "Same wake time, one day", minutes: 0 },
+    target: { label: "Same wake time, five days", minutes: 0 },
+    stretch: { label: "Same wake time all week plus morning light", minutes: 0 },
+    tracking: "Daily Pulse sleep rating; wake time if a device is connected.",
+    coachPlaybook: {
+      ask: [
+        "What time did you actually wake, not what time did you plan to?",
+        "Are you waking hot, or waking anxious? They need different responses.",
+      ],
+      barriers: ["Night waking with flushes", "Shift work", "Caregiving at night"],
+      escalation:
+        "Suspected sleep apnoea, severe insomnia, or flushes disrupting sleep nightly — refer to a physician. Do not advise on hormone therapy.",
+    },
+    notificationTemplates: [
+      "A low-sleep night does not cancel the day. Deepika has kept today lighter.",
+    ],
+    progression: "Move to Evening Wind-down once wake time is stable.",
+    reviewNote:
+      "Educational. Sleep disorders and menopausal symptom treatment require medical referral.",
+    reviewedOn: "2026-08-02",
+  },
+  {
+    id: "sl-winddown",
+    name: "Evening Wind-down",
+    category: "sleep",
+    version: "1.0",
+    status: "active",
+    purpose: "Create a repeatable 20-minute signal that the day has ended.",
+    betterLooksLike: "There is a boundary between the day and the night.",
+    eligibility: "After wake time has stabilised.",
+    keyIdeas: ["Consistency of the cue matters more than what the cue is."],
+    minimum: { label: "Lights down, 5 minutes", minutes: 5 },
+    target: { label: "Full 20-minute wind-down", minutes: 20 },
+    stretch: { label: "Wind-down plus no screens for the last 30 minutes", minutes: 30 },
+    tracking: "Self-report.",
+    coachPlaybook: {
+      ask: ["What is realistically the last thing you do at night?"],
+      barriers: ["Only quiet time she gets is late at night"],
+      escalation: "Refer if insomnia persists beyond four weeks.",
+    },
+    notificationTemplates: ["Five minutes with the lights down still counts."],
+    progression: "Hold indefinitely.",
+  },
+  {
+    id: "hr-perimenopause",
+    name: "Understanding Perimenopause",
+    category: "hormonal",
+    version: "1.2",
+    status: "active",
+    purpose:
+      "Replace Instagram-level understanding with an accurate picture of what is happening and why.",
+    betterLooksLike:
+      "She can describe the transition in her own words and no longer thinks something is wrong with her.",
+    eligibility: "Any member in or approaching the transition.",
+    keyIdeas: [
+      "Perimenopause can run for several years before periods stop.",
+      "Symptoms fluctuate because hormone levels fluctuate — this is why one week feels fine and the next does not.",
+      "A single blood test rarely diagnoses this. Symptom pattern over time matters more.",
+      "Treatment decisions, including hormone therapy, belong with a doctor.",
+    ],
+    minimum: { label: "Read the summary", minutes: 4 },
+    target: { label: "Read and note your own symptom pattern", minutes: 10 },
+    stretch: { label: "Prepare questions for your doctor", minutes: 20 },
+    tracking: "Marked understood; questions saved for the 1:1.",
+    coachPlaybook: {
+      ask: ["What have you been told about this so far, and by whom?"],
+      barriers: ["Shame", "Family dismissiveness", "Fear of hormone therapy"],
+      escalation:
+        "Any question about starting, stopping or dosing hormone therapy goes to a physician. Coach does not advise.",
+    },
+    notificationTemplates: ["A four-minute read that will make your next doctor visit much more useful."],
+    progression: "Follow with Preparing Questions for Your Doctor.",
+    reviewNote:
+      "EDUCATION ONLY. This module must never infer a hormonal state from age, symptoms or a lab value.",
+    reviewedOn: "2026-08-05",
+  },
+  {
+    id: "hr-bone-muscle",
+    name: "Bone & Muscle Health",
+    category: "hormonal",
+    version: "1.0",
+    status: "active",
+    purpose: "Explain why strength and loading matter more now than they did at thirty.",
+    betterLooksLike: "She understands why she is lifting, so she keeps lifting.",
+    eligibility: "Peri and postmenopausal members.",
+    keyIdeas: [
+      "Bone responds to load. Walking alone is not enough loading.",
+      "Muscle is protective for far more than appearance.",
+    ],
+    minimum: { label: "Read the summary", minutes: 4 },
+    target: { label: "Read and connect it to your own plan", minutes: 10 },
+    stretch: { label: "Prepare bone-health questions for your doctor", minutes: 20 },
+    tracking: "Marked understood.",
+    coachPlaybook: {
+      ask: ["Is there fracture or osteoporosis history in your family?"],
+      barriers: ["Belief that lifting is unsafe at this age"],
+      escalation: "Known osteoporosis or prior fragility fracture — medical clearance before loading.",
+    },
+    notificationTemplates: ["Four minutes on why we are lifting, not just walking."],
+    progression: "Pairs with Strength B.",
+    reviewNote: "Education only. Screening and diagnosis are medical decisions.",
+    reviewedOn: "2026-08-05",
+  },
+  {
+    id: "hr-doctor-questions",
+    name: "Preparing Questions for Your Doctor",
+    category: "hormonal",
+    version: "1.0",
+    status: "active",
+    purpose: "Turn a symptom log into a productive ten-minute consultation.",
+    betterLooksLike: "She walks into the appointment with a written pattern, not a vague complaint.",
+    eligibility: "Any member with symptoms needing medical input.",
+    keyIdeas: [
+      "Take a pattern, not a feeling — how often, how long, how disruptive.",
+      "Write the questions down beforehand. Consultations are short.",
+    ],
+    minimum: { label: "Note your top symptom", minutes: 3 },
+    target: { label: "Build the full question list", minutes: 12 },
+    stretch: { label: "Question list plus symptom summary to print", minutes: 20 },
+    tracking: "Question list generated.",
+    coachPlaybook: {
+      ask: ["What do you most want them to take seriously?"],
+      barriers: ["Being dismissed previously", "Not wanting to seem difficult"],
+      escalation: "This module IS the referral pathway. Use it whenever a question exceeds coaching scope.",
+    },
+    notificationTemplates: ["Your appointment is Thursday. Ten minutes now will make it count."],
+    progression: "Use before each medical appointment.",
+    reviewNote: "Referral support tool.",
+  },
+  {
+    id: "bh-minimum-day",
+    name: "Minimum Day",
+    category: "behaviour",
+    version: "1.1",
+    status: "active",
+    purpose: "Give the member a pre-agreed plan for the days when the plan will not happen.",
+    betterLooksLike:
+      "A bad day produces a 10-minute action instead of a three-day disappearance.",
+    eligibility: "Everyone. Assign in week one, before it is needed.",
+    keyIdeas: [
+      "Deciding in advance beats deciding in the moment.",
+      "Missing one day predicts nothing. Missing three predicts a lot.",
+    ],
+    minimum: { label: "Name your Minimum Day action", minutes: 2 },
+    target: { label: "Use it once this week", minutes: 10 },
+    stretch: { label: "Use it and note what triggered it", minutes: 15 },
+    tracking: "Minimum-level completions; comeback events.",
+    coachPlaybook: {
+      ask: ["What is the smallest thing you would still do on your worst day?"],
+      barriers: ["Feeling that the minimum is not worth doing"],
+      escalation: "None.",
+    },
+    notificationTemplates: ["Today can be a Minimum Day. Your 10-minute version is already waiting."],
+    progression: "Permanent. This module never retires.",
+  },
+  {
+    id: "bh-if-then",
+    name: "If-Then Planning",
+    category: "behaviour",
+    version: "1.0",
+    status: "active",
+    purpose: "Attach the intended behaviour to a specific cue and time.",
+    betterLooksLike: "'I will walk after dinner' replaces 'I will walk more'.",
+    eligibility: "Week 1–2 for everyone.",
+    keyIdeas: [
+      "Specify when and where, not how much.",
+      "Attach the new behaviour to something that already happens reliably.",
+    ],
+    minimum: { label: "Write one if-then", minutes: 3 },
+    target: { label: "Write one and use it three times", minutes: 10 },
+    stretch: { label: "Write a backup if-then for disrupted days", minutes: 15 },
+    tracking: "Plan text saved; adherence on cued days.",
+    coachPlaybook: {
+      ask: ["What already happens at the same time every day?"],
+      barriers: ["No reliable anchor in the day"],
+      escalation: "None.",
+    },
+    notificationTemplates: ["Your plan says: after dinner, shoes on. That is the whole thing."],
+    progression: "Revisit whenever the routine changes.",
+  },
+  {
+    id: "bh-comeback",
+    name: "Comeback Week",
+    category: "behaviour",
+    version: "1.2",
+    status: "active",
+    purpose: "Make returning after a gap structurally easy and emotionally uncharged.",
+    betterLooksLike: "She comes back in two days instead of not at all.",
+    eligibility: "Assign after three or more inactive days.",
+    keyIdeas: [
+      "Nothing resets. Progress is cumulative, not consecutive.",
+      "The week is deliberately smaller than the one before it.",
+    ],
+    minimum: { label: "One action, any day", minutes: 10 },
+    target: { label: "Three actions across the week", minutes: 30 },
+    stretch: { label: "Return to the previous plan", minutes: 60 },
+    tracking: "Comeback detected; days to return.",
+    coachPlaybook: {
+      ask: [
+        "What made it possible to come back today?",
+        "What would have made it possible two days earlier?",
+      ],
+      barriers: ["Shame about the gap", "Believing she has to start over"],
+      escalation: "None. Never escalate a lapse.",
+    },
+    notificationTemplates: ["Good to see you. Nothing reset — we are continuing from here."],
+    progression: "Return to the prior plan when three actions land in one week.",
+  },
+];
+
+/* ------------------------------------------------------------------ */
+/* Workouts                                                            */
+/* ------------------------------------------------------------------ */
+
+export const workouts: Workout[] = [
+  {
+    id: "wk-strength-a",
+    name: "Strength A",
+    intent: "Hinge, squat, push, carry. Technique before load.",
+    warmup: ["Cat-cow × 8", "Glute bridge × 10", "Wall slides × 10"],
+    exercises: [
+      {
+        name: "Goblet squat",
+        prescription: "3 × 8",
+        cue: "Elbows inside the knees. Sit down between the hips, not backwards.",
+      },
+      {
+        name: "Hip hinge with dowel",
+        prescription: "3 × 10",
+        cue: "Three points of contact on the dowel. Push the hips back, not down.",
+      },
+      {
+        name: "Incline push-up",
+        prescription: "3 × 6–10",
+        cue: "Higher surface is not easier cheating. It is the right load for now.",
+      },
+      {
+        name: "Suitcase carry",
+        prescription: "3 × 30m per side",
+        cue: "Do not lean away from the weight. Ribs stacked over hips.",
+      },
+    ],
+    minimum: { label: "One round, bodyweight only", minutes: 12 },
+    target: { label: "Two rounds as written", minutes: 25 },
+    stretch: { label: "Three rounds, add load where it felt easy", minutes: 40 },
+    supervision: "independent",
+    stopGuidance:
+      "Stop if you feel sharp pain, pain on one side only, or anything in your back that makes you catch your breath. Flag it and I will look at it before the next session.",
+  },
+  {
+    id: "wk-strength-b",
+    name: "Strength B",
+    intent: "Single-leg work and loaded carries. Balance and grip.",
+    warmup: ["Ankle rocks × 10", "Single-leg balance 20s per side", "Band pull-apart × 12"],
+    exercises: [
+      { name: "Split squat (supported)", prescription: "3 × 6 per side", cue: "Back knee down, not forward. Hold the chair as long as you need." },
+      { name: "Romanian deadlift", prescription: "3 × 8", cue: "Weight stays close to the legs the whole way down." },
+      { name: "Half-kneeling press", prescription: "3 × 8 per side", cue: "Squeeze the back glute. Ribs down." },
+      { name: "Farmer carry", prescription: "3 × 40m", cue: "Walk tall. Put it down before your form goes." },
+    ],
+    minimum: { label: "Carries and squats only", minutes: 15 },
+    target: { label: "Full session as written", minutes: 30 },
+    stretch: { label: "Full session, progress load on two lifts", minutes: 45 },
+    supervision: "check-in",
+    stopGuidance: "Any knee pain in the split squat — stop, use the supported version, and tell me.",
+  },
+  {
+    id: "wk-mobility",
+    name: "10-minute Mobility",
+    intent: "The floor. Always achievable.",
+    warmup: [],
+    exercises: [
+      { name: "Cat-cow", prescription: "10 slow", cue: "Move with the breath, not against it." },
+      { name: "90/90 hip switch", prescription: "8 per side", cue: "Go only as far as is comfortable." },
+      { name: "Thoracic opener", prescription: "8 per side", cue: "Follow your hand with your eyes." },
+      { name: "Standing calf and hamstring", prescription: "30s each", cue: "Breathe out into the stretch." },
+    ],
+    minimum: { label: "Any three movements", minutes: 4 },
+    target: { label: "Full sequence", minutes: 10 },
+    stretch: { label: "Full sequence plus a walk", minutes: 25 },
+    supervision: "independent",
+    stopGuidance: "Nothing here should hurt. If it does, skip that movement.",
+  },
+];
+
+/* ------------------------------------------------------------------ */
+/* Daily actions — the member's actual plan                            */
+/* ------------------------------------------------------------------ */
+
+export const dailyActions: DailyAction[] = [
+  // Radhika — today (plan already softened by Deepika)
+  {
+    id: "a-rad-1",
+    memberId: "radhika",
+    dayOffset: 0,
+    moduleId: "mv-strength-a",
+    title: "Strength A",
+    why: "You have had three low-energy days. This is the shortened version — one round, no added weight.",
+    minimum: { label: "One round, bodyweight only", minutes: 12 },
+    target: { label: "Two rounds as written", minutes: 25 },
+    stretch: { label: "Three rounds, add load", minutes: 40 },
+    completed: null,
+    workoutId: "wk-strength-a",
+  },
+  {
+    id: "a-rad-2",
+    memberId: "radhika",
+    dayOffset: 0,
+    moduleId: "nu-protein",
+    title: "Protein at lunch",
+    why: "Your breakfast has been solid this week. Lunch is the one that keeps slipping on travel days.",
+    minimum: { label: "Protein at one meal", minutes: 0 },
+    target: { label: "Protein at two meals", minutes: 0 },
+    stretch: { label: "Protein at every meal", minutes: 0 },
+    completed: null,
+  },
+  {
+    id: "a-rad-3",
+    memberId: "radhika",
+    dayOffset: 0,
+    moduleId: "sl-reset",
+    title: "Same wake time tomorrow",
+    why: "You are not travelling tonight. This is the easiest night of the week to hold the wake time.",
+    minimum: { label: "Within 45 minutes of target", minutes: 0 },
+    target: { label: "On target", minutes: 0 },
+    stretch: { label: "On target plus 10 minutes of morning light", minutes: 10 },
+    completed: null,
+  },
+  { id: "a-rad-p1", memberId: "radhika", dayOffset: -1, moduleId: "mv-mobility-10", title: "10-minute Mobility", why: "Keeping the floor.", minimum: { label: "Three movements", minutes: 4 }, target: { label: "Full sequence", minutes: 10 }, stretch: { label: "Sequence plus walk", minutes: 25 }, completed: "minimum", provenance: p("member_manual", "Radhika", "2026-08-08") },
+  { id: "a-rad-p2", memberId: "radhika", dayOffset: -2, moduleId: "mv-strength-a", title: "Strength A", why: "Planned session.", minimum: { label: "One round", minutes: 12 }, target: { label: "Two rounds", minutes: 25 }, stretch: { label: "Three rounds", minutes: 40 }, completed: "rest", skipReason: "Flight delayed, got home at 11pm", workoutId: "wk-strength-a", provenance: p("member_manual", "Radhika", "2026-08-07") },
+  { id: "a-rad-p3", memberId: "radhika", dayOffset: -3, moduleId: "nu-protein", title: "Protein at lunch", why: "Building the habit.", minimum: { label: "One meal", minutes: 0 }, target: { label: "Two meals", minutes: 0 }, stretch: { label: "Every meal", minutes: 0 }, completed: "target", provenance: p("member_manual", "Radhika", "2026-08-06") },
+  { id: "a-rad-p4", memberId: "radhika", dayOffset: -4, moduleId: "mv-strength-a", title: "Strength A", why: "Planned session.", minimum: { label: "One round", minutes: 12 }, target: { label: "Two rounds", minutes: 25 }, stretch: { label: "Three rounds", minutes: 40 }, completed: "rest", skipReason: "Too tired", workoutId: "wk-strength-a", provenance: p("member_manual", "Radhika", "2026-08-05") },
+  { id: "a-rad-p5", memberId: "radhika", dayOffset: -5, moduleId: "mv-walk-base", title: "Evening walk", why: "After dinner.", minimum: { label: "10 minutes", minutes: 10 }, target: { label: "20 minutes", minutes: 20 }, stretch: { label: "35 minutes", minutes: 35 }, completed: "minimum", provenance: p("member_manual", "Radhika", "2026-08-04") },
+  { id: "a-rad-p6", memberId: "radhika", dayOffset: -6, moduleId: "mv-strength-a", title: "Strength A", why: "Planned session.", minimum: { label: "One round", minutes: 12 }, target: { label: "Two rounds", minutes: 25 }, stretch: { label: "Three rounds", minutes: 40 }, completed: "target", workoutId: "wk-strength-a", provenance: p("member_manual", "Radhika", "2026-08-03") },
+
+  // Megha — week 1, doing well
+  { id: "a-meg-1", memberId: "megha", dayOffset: 0, moduleId: "mv-walk-base", title: "Walk after dinner", why: "Your if-then plan says: after dinner, shoes on.", minimum: { label: "10 minutes", minutes: 10 }, target: { label: "20 minutes", minutes: 20 }, stretch: { label: "35 minutes brisk", minutes: 35 }, completed: null },
+  { id: "a-meg-2", memberId: "megha", dayOffset: 0, moduleId: "mv-mobility-10", title: "10-minute Mobility", why: "Week one is about showing up, not intensity.", minimum: { label: "Three movements", minutes: 4 }, target: { label: "Full sequence", minutes: 10 }, stretch: { label: "Sequence plus walk", minutes: 25 }, completed: "target", provenance: p("member_manual", "Megha", "2026-08-09"), workoutId: "wk-mobility" },
+  { id: "a-meg-p1", memberId: "megha", dayOffset: -1, moduleId: "mv-walk-base", title: "Walk after dinner", why: "Cue practice.", minimum: { label: "10 minutes", minutes: 10 }, target: { label: "20 minutes", minutes: 20 }, stretch: { label: "35 minutes", minutes: 35 }, completed: "stretch", provenance: p("member_manual", "Megha", "2026-08-08") },
+  { id: "a-meg-p2", memberId: "megha", dayOffset: -2, moduleId: "mv-mobility-10", title: "10-minute Mobility", why: "Floor.", minimum: { label: "Three movements", minutes: 4 }, target: { label: "Full sequence", minutes: 10 }, stretch: { label: "Plus walk", minutes: 25 }, completed: "target", provenance: p("member_manual", "Megha", "2026-08-07") },
+  { id: "a-meg-p3", memberId: "megha", dayOffset: -3, moduleId: "bh-if-then", title: "Write your if-then", why: "Specify when and where.", minimum: { label: "Write one", minutes: 3 }, target: { label: "Write and use ×3", minutes: 10 }, stretch: { label: "Plus a backup plan", minutes: 15 }, completed: "target", provenance: p("member_manual", "Megha", "2026-08-06") },
+
+  // Anita — quiet, mid-lapse
+  { id: "a-ani-1", memberId: "anita", dayOffset: 0, moduleId: "bh-comeback", title: "One action, any action", why: "This week is deliberately smaller. Nothing reset.", minimum: { label: "One action", minutes: 10 }, target: { label: "Three actions this week", minutes: 30 }, stretch: { label: "Back to the previous plan", minutes: 60 }, completed: null },
+  { id: "a-ani-2", memberId: "anita", dayOffset: 0, moduleId: "sl-winddown", title: "Lights down at 10:30", why: "Your nights have been broken. Start with the boundary, not the sleep itself.", minimum: { label: "Five minutes", minutes: 5 }, target: { label: "Full 20 minutes", minutes: 20 }, stretch: { label: "Plus no screens", minutes: 30 }, completed: null },
+  { id: "a-ani-p1", memberId: "anita", dayOffset: -5, moduleId: "mv-strength-a", title: "Strength A", why: "Planned.", minimum: { label: "One round", minutes: 12 }, target: { label: "Two rounds", minutes: 25 }, stretch: { label: "Three rounds", minutes: 40 }, completed: "minimum", provenance: p("member_manual", "Anita", "2026-08-04") },
+
+  // Shreya
+  { id: "a-shr-1", memberId: "shreya", dayOffset: 0, moduleId: "nu-protein", title: "Protein at breakfast", why: "Breakfast is your easiest win. Curd, chana or paneer — your call.", minimum: { label: "One meal", minutes: 0 }, target: { label: "Two meals", minutes: 0 }, stretch: { label: "Every meal", minutes: 0 }, completed: "target", provenance: p("member_manual", "Shreya", "2026-08-09") },
+  { id: "a-shr-2", memberId: "shreya", dayOffset: 0, moduleId: "mv-strength-a", title: "Strength A", why: "Your second independent session. Take it slowly.", minimum: { label: "One round", minutes: 12 }, target: { label: "Two rounds", minutes: 25 }, stretch: { label: "Three rounds", minutes: 40 }, completed: null, workoutId: "wk-strength-a" },
+  { id: "a-shr-p1", memberId: "shreya", dayOffset: -1, moduleId: "nu-plate", title: "Build one plate", why: "Half vegetables.", minimum: { label: "One meal", minutes: 0 }, target: { label: "Two meals", minutes: 0 }, stretch: { label: "Most meals", minutes: 0 }, completed: "minimum", provenance: p("member_manual", "Shreya", "2026-08-08") },
+
+  // Nidhi
+  { id: "a-nid-1", memberId: "nidhi", dayOffset: 0, moduleId: "mv-strength-b", title: "Strength B", why: "Goblet squat goes to 18kg today if the first set feels like a 6 out of 10.", minimum: { label: "Carries and squats only", minutes: 15 }, target: { label: "Full session", minutes: 30 }, stretch: { label: "Progress load on two lifts", minutes: 45 }, completed: null, workoutId: "wk-strength-b" },
+  { id: "a-nid-2", memberId: "nidhi", dayOffset: 0, moduleId: "hr-bone-muscle", title: "Bone & Muscle Health", why: "Given your mother's fracture history, this one matters. Four minutes.", minimum: { label: "Read the summary", minutes: 4 }, target: { label: "Connect it to your plan", minutes: 10 }, stretch: { label: "Prepare doctor questions", minutes: 20 }, completed: null },
+  { id: "a-nid-p1", memberId: "nidhi", dayOffset: -2, moduleId: "mv-strength-b", title: "Strength B", why: "Planned.", minimum: { label: "Carries and squats", minutes: 15 }, target: { label: "Full session", minutes: 30 }, stretch: { label: "Progress load", minutes: 45 }, completed: "stretch", provenance: p("member_manual", "Nidhi", "2026-08-07") },
+
+  // Priya — just came back
+  { id: "a-pri-p1", memberId: "priya", dayOffset: -5, moduleId: "mv-walk-base", title: "Walk after dinner", why: "Building the cue.", minimum: { label: "10 minutes", minutes: 10 }, target: { label: "20 minutes", minutes: 20 }, stretch: { label: "35 minutes", minutes: 35 }, completed: "target", provenance: p("member_manual", "Priya", "2026-08-04") },
+  { id: "a-pri-1", memberId: "priya", dayOffset: 0, moduleId: "mv-walk-base", title: "Walk, any length", why: "You are back. That is the whole task today.", minimum: { label: "10 minutes", minutes: 10 }, target: { label: "20 minutes", minutes: 20 }, stretch: { label: "35 minutes", minutes: 35 }, completed: "minimum", provenance: p("member_manual", "Priya", "2026-08-09") },
+  { id: "a-pri-2", memberId: "priya", dayOffset: 0, moduleId: "bh-minimum-day", title: "Name your Minimum Day action", why: "So the next hard week has a plan already written.", minimum: { label: "Name it", minutes: 2 }, target: { label: "Use it once", minutes: 10 }, stretch: { label: "Note what triggered it", minutes: 15 }, completed: null },
+];
+
+/* ------------------------------------------------------------------ */
+/* Pulse entries                                                       */
+/* ------------------------------------------------------------------ */
+
+export const pulses: PulseEntry[] = [
+  { id: "p-rad-1", memberId: "radhika", dayOffset: -1, energy: 2, sleep: 2, stress: 4, symptoms: ["Night waking"], note: "Woke at 3 and again at 5.", provenance: p("member_manual", "Radhika", "2026-08-08") },
+  { id: "p-rad-2", memberId: "radhika", dayOffset: -2, energy: 2, sleep: 1, stress: 5, symptoms: ["Night waking", "Hot flush"], note: "Travel day. Rough.", provenance: p("member_manual", "Radhika", "2026-08-07") },
+  { id: "p-rad-3", memberId: "radhika", dayOffset: -3, energy: 2, sleep: 2, stress: 4, symptoms: [], provenance: p("coach_on_behalf", "Deepika", "2026-08-06") },
+  { id: "p-rad-4", memberId: "radhika", dayOffset: -4, energy: 3, sleep: 3, stress: 3, symptoms: [], provenance: p("member_manual", "Radhika", "2026-08-05") },
+  { id: "p-rad-5", memberId: "radhika", dayOffset: -5, energy: 3, sleep: 3, stress: 3, symptoms: [], provenance: p("member_manual", "Radhika", "2026-08-04") },
+  { id: "p-rad-6", memberId: "radhika", dayOffset: -6, energy: 4, sleep: 4, stress: 2, symptoms: [], provenance: p("member_manual", "Radhika", "2026-08-03") },
+  { id: "p-rad-7", memberId: "radhika", dayOffset: -7, energy: 3, sleep: 3, stress: 3, symptoms: [], provenance: p("member_manual", "Radhika", "2026-08-02") },
+
+  { id: "p-meg-1", memberId: "megha", dayOffset: 0, energy: 4, sleep: 4, stress: 2, symptoms: [], provenance: p("member_manual", "Megha", "2026-08-09") },
+  { id: "p-meg-2", memberId: "megha", dayOffset: -1, energy: 4, sleep: 4, stress: 2, symptoms: [], provenance: p("member_manual", "Megha", "2026-08-08") },
+  { id: "p-meg-3", memberId: "megha", dayOffset: -2, energy: 5, sleep: 4, stress: 1, symptoms: [], provenance: p("member_manual", "Megha", "2026-08-07") },
+  { id: "p-meg-4", memberId: "megha", dayOffset: -3, energy: 3, sleep: 3, stress: 3, symptoms: [], provenance: p("member_manual", "Megha", "2026-08-06") },
+
+  { id: "p-ani-1", memberId: "anita", dayOffset: -5, energy: 2, sleep: 2, stress: 4, symptoms: ["Hot flush", "Night waking"], note: "Amma had a bad night.", provenance: p("member_manual", "Anita", "2026-08-04") },
+
+  { id: "p-shr-1", memberId: "shreya", dayOffset: 0, energy: 3, sleep: 3, stress: 3, symptoms: [], provenance: p("member_manual", "Shreya", "2026-08-09") },
+  { id: "p-shr-2", memberId: "shreya", dayOffset: -1, energy: 3, sleep: 2, stress: 4, symptoms: ["Heavy bleeding"], provenance: p("member_manual", "Shreya", "2026-08-08") },
+  { id: "p-shr-3", memberId: "shreya", dayOffset: -2, energy: 2, sleep: 2, stress: 4, symptoms: ["Cramping"], provenance: p("member_manual", "Shreya", "2026-08-07") },
+
+  { id: "p-nid-1", memberId: "nidhi", dayOffset: 0, energy: 4, sleep: 3, stress: 2, symptoms: ["3am waking"], provenance: p("member_manual", "Nidhi", "2026-08-09") },
+  { id: "p-nid-2", memberId: "nidhi", dayOffset: -1, energy: 4, sleep: 3, stress: 2, symptoms: ["3am waking"], provenance: p("member_manual", "Nidhi", "2026-08-08") },
+  { id: "p-nid-3", memberId: "nidhi", dayOffset: -2, energy: 5, sleep: 4, stress: 1, symptoms: [], provenance: p("member_manual", "Nidhi", "2026-08-07") },
+
+  { id: "p-pri-1", memberId: "priya", dayOffset: 0, energy: 3, sleep: 3, stress: 3, symptoms: [], note: "Back after a rough stretch.", provenance: p("member_manual", "Priya", "2026-08-09") },
+];
+
+export const workoutLogs: WorkoutLog[] = [
+  { id: "wl-1", memberId: "radhika", workoutId: "wk-strength-a", dayOffset: -6, completedLevel: "target", rpe: 7, painFlag: false, feltLike: "Hard but fine", provenance: p("member_manual", "Radhika", "2026-08-03") },
+  { id: "wl-2", memberId: "nidhi", workoutId: "wk-strength-b", dayOffset: -2, completedLevel: "stretch", rpe: 6, painFlag: false, feltLike: "16kg felt easy", provenance: p("member_manual", "Nidhi", "2026-08-07") },
+  { id: "wl-3", memberId: "megha", workoutId: "wk-mobility", dayOffset: 0, completedLevel: "target", rpe: 3, painFlag: false, provenance: p("member_manual", "Megha", "2026-08-09") },
+];
+
+/* ------------------------------------------------------------------ */
+/* Messages                                                            */
+/* ------------------------------------------------------------------ */
+
+export const messages: Message[] = [
+  {
+    id: "m-rad-1",
+    memberId: "radhika",
+    from: "coach",
+    kind: "voice",
+    body: "Radhika, I looked at your week before you did. Three bad nights in a row is not a discipline problem, it is a sleep problem, and we treat those differently. I have pulled Thursday's session out entirely and made today's the twelve-minute version. Do that one thing and the week is intact. We will talk about the travel pattern on Monday.",
+    seconds: 47,
+    dayOffset: 0,
+    time: "7:12 am",
+    read: false,
+  },
+  {
+    id: "m-rad-2",
+    memberId: "radhika",
+    from: "system",
+    kind: "plan_update",
+    body: "Deepika changed your week. Thursday's strength session was removed and today's session is now the 12-minute version. Reason: three consecutive low-energy days and poor sleep.",
+    dayOffset: -2,
+    time: "9:40 pm",
+    read: true,
+  },
+  {
+    id: "m-rad-3",
+    memberId: "radhika",
+    from: "member",
+    kind: "text",
+    body: "Flight got delayed again, home at 11. I know I keep saying this.",
+    dayOffset: -2,
+    time: "11:20 pm",
+    read: true,
+  },
+  {
+    id: "m-rad-4",
+    memberId: "radhika",
+    from: "coach",
+    kind: "text",
+    body: "You are not apologising to me, you are apologising to a plan that did not account for your job. That is my error, not yours. I am rebuilding the travel weeks.",
+    dayOffset: -2,
+    time: "11:34 pm",
+    read: true,
+  },
+  { id: "m-meg-1", memberId: "megha", from: "coach", kind: "text", body: "Three for three in your first week. I am not going to make a fuss about it, but I did notice.", dayOffset: -1, time: "8:15 pm", read: true },
+  { id: "m-ani-1", memberId: "anita", from: "coach", kind: "voice", body: "Anita, no pressure at all in this message. I know your evenings are not yours right now. Whenever you are ready, the week I have written is much smaller than the last one. Nothing has reset.", seconds: 31, dayOffset: -1, time: "6:05 pm", read: false },
+  { id: "m-shr-1", memberId: "shreya", from: "member", kind: "text", body: "Question for Monday — my GP mentioned my ferritin again. Should I be changing anything in the plan?", dayOffset: -1, time: "7:50 am", read: false },
+  { id: "m-nid-1", memberId: "nidhi", from: "coach", kind: "text", body: "16kg at RPE 6 twice in a row. Go to 18 today if the first set feels the same.", dayOffset: -2, time: "9:00 am", read: true },
+  { id: "m-pri-1", memberId: "priya", from: "coach", kind: "text", body: "Good to see you. Nothing reset — we are continuing from here.", dayOffset: 0, time: "10:02 am", read: false },
+];
+
+/* ------------------------------------------------------------------ */
+/* Sessions                                                            */
+/* ------------------------------------------------------------------ */
+
+export const sessions: Session[] = [
+  {
+    id: "s-rad-1",
+    memberId: "radhika",
+    type: "1:1 coaching",
+    dayOffset: 1,
+    time: "6:00 pm",
+    mode: "Video",
+    status: "scheduled",
+    memberQuestions: ["Is it normal to wake at 3am every night now?", "Should I just stop planning sessions on travel weeks?"],
+    agenda: [
+      "Travel weeks — rebuild the plan around them rather than against them",
+      "Sleep pattern: waking hot vs waking anxious",
+      "Decide whether to refer for the sleep disruption",
+    ],
+    commitments: [],
+  },
+  {
+    id: "s-rad-0",
+    memberId: "radhika",
+    type: "1:1 coaching",
+    dayOffset: -6,
+    time: "6:00 pm",
+    mode: "Video",
+    status: "complete",
+    memberQuestions: [],
+    agenda: ["Week 4 review"],
+    privateNotes:
+      "Very high self-criticism when describing missed sessions. Watch for all-or-nothing framing. She used the phrase 'I've failed again' twice. Reframed toward Minimum Day. Consider assigning Comeback Week pre-emptively before the next travel block.",
+    memberRecap:
+      "We agreed the travel weeks need their own smaller plan rather than the same plan you cannot do. Two priorities for next week: protect sleep on the nights you are home, and two strength sessions of any length.",
+    commitments: [
+      { text: "Name a Minimum Day action before Wednesday", done: true },
+      { text: "Two strength sessions, any length", done: false },
+    ],
+  },
+  { id: "s-meg-1", memberId: "megha", type: "Supervised strength", dayOffset: 2, time: "7:30 am", mode: "In person", status: "scheduled", memberQuestions: ["Am I doing the hinge right?"], agenda: ["Technique: hinge and goblet squat", "Introduce load"], commitments: [] },
+  { id: "s-shr-1", memberId: "shreya", type: "1:1 coaching", dayOffset: 1, time: "8:00 pm", mode: "Video", status: "scheduled", memberQuestions: ["My GP mentioned ferritin again — does the plan change?"], agenda: ["Vegetarian protein without eggs", "Ferritin question — route to GP, stay in scope"], commitments: [] },
+  { id: "s-nid-1", memberId: "nidhi", type: "Supervised strength", dayOffset: 3, time: "6:30 am", mode: "In person", status: "scheduled", memberQuestions: [], agenda: ["Load progression check", "Split squat technique"], commitments: [] },
+  { id: "s-ani-1", memberId: "anita", type: "Follow-up", dayOffset: 4, time: "5:00 pm", mode: "Video", status: "scheduled", memberQuestions: [], agenda: ["Low-pressure reconnect", "Rebuild a smaller week"], commitments: [] },
+];
+
+export const reflections: WeeklyReflection[] = [
+  {
+    id: "r-rad-1",
+    memberId: "radhika",
+    weekOf: "Week 4",
+    biggestWin: "I did the mobility thing on the day I got home at midnight.",
+    hardestPart: "Travel weeks. I cannot make any of it work when I'm away.",
+    feltUnrealistic: "Three strength sessions. It was never going to be three.",
+    confidenceNextWeek: 2,
+    questions: "Is it normal to wake at 3am every night now?",
+    provenance: p("member_manual", "Radhika", "2026-08-03"),
+  },
+];
+
+/* ------------------------------------------------------------------ */
+/* Feedback + notifications                                            */
+/* ------------------------------------------------------------------ */
+
+export const feedbackItems: Feedback[] = [
+  { id: "f-1", reporter: "Deepika", role: "coach", screen: "Journey Builder", category: "idea", severity: "medium", text: "I need to see the member's constraints while I am assigning modules, not on a different tab. I keep assigning morning sessions to Anita.", status: "triaged" },
+  { id: "f-2", reporter: "Radhika", role: "member", screen: "Today", category: "confusing", severity: "low", text: "I wasn't sure whether tapping Minimum meant I was giving up.", easeScore: 4, status: "new" },
+  { id: "f-3", reporter: "Deepika", role: "coach", screen: "Radar", category: "idea", severity: "high", text: "Celebrate flags should be at the top some days. If I only ever open this to find problems I will start dreading it.", status: "building" },
+  { id: "f-4", reporter: "Megha", role: "member", screen: "Daily Pulse", category: "bug", severity: "low", text: "Submitted twice by accident and it counted both.", easeScore: 5, status: "fixed" },
+];
+
+export const notificationTemplates: NotificationTemplate[] = [
+  { id: "n-1", trigger: "Morning, day has a single priority", copy: "Today has only one non-negotiable: your 12-minute strength session. Everything else is bonus.", voice: "system", timing: "07:35 local", capped: true },
+  { id: "n-2", trigger: "90 minutes before a planned session", copy: "Your strength session is at 6. If the day runs over, the 12-minute Minimum version still counts.", voice: "system", timing: "T−90 min", capped: true },
+  { id: "n-3", trigger: "Sleep ≤2 or energy ≤2 reported this morning", copy: "A low-energy day can still be a healthy day. Deepika has kept today lighter.", voice: "system", timing: "Within 1h of Pulse", capped: true },
+  { id: "n-4", trigger: "First action after 3+ inactive days", copy: "Good to see you back. Nothing reset — we are continuing.", voice: "system", timing: "Immediate", capped: false },
+  { id: "n-5", trigger: "Coach records a voice note", copy: "Deepika left you a 47-second note about this week's plan.", voice: "coach", timing: "Immediate", capped: false },
+  { id: "n-6", trigger: "Evening before a 1:1", copy: "Two minutes tonight will make tomorrow's session with Deepika much more useful.", voice: "system", timing: "20:30 local", capped: true },
+];
