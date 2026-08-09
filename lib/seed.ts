@@ -60,6 +60,37 @@ export const members: Member[] = [
       { label: "Waist", value: "89 cm", at: "Week 4", provenance: p("coach_on_behalf", "Deepika", "2026-07-28") },
     ],
     assessmentComplete: 85,
+    notes: [
+      {
+        id: "note-radhika-1",
+        at: "2026-08-07",
+        text: "Reported low energy three days running and slept badly. Took Thursday's session out and made today's movement the 12-minute version. Nothing is behind — told her so directly.",
+      },
+      {
+        id: "note-radhika-2",
+        at: "2026-07-31",
+        text: "Felt better after the reset week. She responds well to small, named wins — kept this week's focus to consistency with protein rather than adding anything new.",
+      },
+      {
+        id: "note-radhika-3",
+        at: "2026-07-20",
+        text: "Week 1 of Stabilise. Main goal is energy, not weight — she's wiped out by 4pm most days. Two school runs plus alternate-week Chennai travel is the real constraint to design the week around.",
+      },
+    ],
+    weekPlans: [
+      { week: 1, phase: "Stabilise", focus: ["Show up, however small", "Protect sleep on non-travel nights"], moduleIds: ["mv-walk-base", "sl-reset", "bh-minimum-day"] },
+      { week: 2, phase: "Stabilise", focus: ["Show up, however small", "Protect sleep on non-travel nights"], moduleIds: ["mv-walk-base", "sl-reset", "bh-minimum-day"] },
+      { week: 3, phase: "Stabilise", focus: ["Introduce protein at one meal a day", "Protect sleep on non-travel nights"], moduleIds: ["mv-walk-base", "sl-reset", "nu-protein", "bh-minimum-day"] },
+      { week: 4, phase: "Stabilise", focus: ["Introduce protein at one meal a day", "Protect sleep on non-travel nights"], moduleIds: ["mv-walk-base", "sl-reset", "nu-protein", "bh-minimum-day"] },
+      { week: 5, phase: "Build", focus: ["Protect sleep on non-travel nights", "Two strength sessions, any length"], moduleIds: ["mv-strength-a", "sl-reset", "nu-protein", "bh-minimum-day"] },
+      { week: 6, phase: "Build", focus: ["Two strength sessions, any length", "Protein at two meals a day"], moduleIds: ["mv-strength-a", "sl-reset", "nu-protein", "bh-minimum-day"] },
+      { week: 7, phase: "Build", focus: ["Add load — Strength B", "Protein at two meals a day"], moduleIds: ["mv-strength-b", "sl-reset", "nu-protein", "bh-if-then"] },
+      { week: 8, phase: "Build", focus: ["Add load — Strength B", "Understand why we are lifting"], moduleIds: ["mv-strength-b", "sl-reset", "nu-protein", "hr-bone-muscle"] },
+      { week: 9, phase: "Consolidate", focus: ["Consolidate the habits that held", "Build the plate, not just the protein"], moduleIds: ["mv-strength-b", "nu-plate", "sl-reset", "hr-bone-muscle"] },
+      { week: 10, phase: "Consolidate", focus: ["Consolidate the habits that held", "Prepare doctor questions on the transition"], moduleIds: ["mv-strength-b", "nu-plate", "hr-perimenopause", "bh-if-then"] },
+      { week: 11, phase: "Consolidate", focus: ["Hold the plan through a travel week", "If-then plan for missed sessions"], moduleIds: ["mv-strength-b", "nu-plate", "bh-if-then"] },
+      { week: 12, phase: "Consolidate", focus: ["Review what held without daily coaching"], moduleIds: ["mv-strength-b", "nu-plate", "sl-reset", "bh-if-then"] },
+    ],
   },
   {
     id: "megha",

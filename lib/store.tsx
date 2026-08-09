@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import * as seed from "./seed";
 import { evaluateRadar, radarRules, type RadarRule } from "./radar";
+import { draftWeekPlansFor, weekPlansFor } from "./plan";
 import type {
   CoachModule,
   DailyAction,
@@ -12,6 +13,7 @@ import type {
   Message,
   PulseEntry,
   Session,
+  WeekPlan,
   Workout,
   WorkoutLog,
 } from "./types";
@@ -62,9 +64,13 @@ interface Ctx extends State {
   updateAction: (id: string, patch: Partial<DailyAction>) => void;
   addAction: (a: DailyAction) => void;
   removeAction: (id: string) => void;
-  assignModule: (memberId: string, moduleId: string) => void;
-  unassignModule: (memberId: string, moduleId: string) => void;
-  publishPlan: (memberId: string, rationale: string, focus: string[]) => void;
+  updateDraftWeek: (
+    memberId: string,
+    week: number,
+    changes: Partial<Pick<WeekPlan, "focus" | "moduleIds">>
+  ) => void;
+  publishWeek: (memberId: string, week: number, rationale: string) => void;
+  addCoachNote: (memberId: string, text: string) => void;
   sendMessage: (memberId: string, m: Omit<Message, "id" | "memberId">) => void;
   markRead: (memberId: string) => void;
   toggleRule: (id: string) => void;
@@ -181,47 +187,81 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
       removeAction: (id) => patch((s) => ({ ...s, actions: s.actions.filter((a) => a.id !== id) })),
 
-      assignModule: (memberId, moduleId) =>
+      updateDraftWeek: (memberId, week, changes) =>
         patch((s) => ({
           ...s,
-          members: s.members.map((m) =>
-            m.id === memberId && !m.activeModuleIds.includes(moduleId)
-              ? { ...m, activeModuleIds: [...m.activeModuleIds, moduleId] }
-              : m
-          ),
+          members: s.members.map((m) => {
+            if (m.id !== memberId) return m;
+            const draftWeekPlans = draftWeekPlansFor(m).map((w) =>
+              w.week === week ? { ...w, ...changes } : w
+            );
+            return { ...m, draftWeekPlans };
+          }),
         })),
 
-      unassignModule: (memberId, moduleId) =>
+      // Publishing a week is the only way a plan change reaches the member,
+      // and it always carries a reason. Publishing the *current* week also
+      // mirrors into the live fields every other screen reads, and lands a
+      // plan-change card on her Today screen.
+      publishWeek: (memberId, week, rationale) =>
+        patch((s) => {
+          let announce: string | null = null;
+          const members = s.members.map((m) => {
+            if (m.id !== memberId) return m;
+            const rawTarget = draftWeekPlansFor(m).find((w) => w.week === week);
+            if (!rawTarget) return m;
+            const target = { ...rawTarget, focus: rawTarget.focus.filter(Boolean) };
+            const weekPlans = weekPlansFor(m).map((w) => (w.week === week ? target : w));
+            const isCurrent = week === m.week;
+            if (isCurrent) announce = `Deepika changed your week. ${rationale}`;
+            return {
+              ...m,
+              weekPlans,
+              draftWeekPlans: weekPlans,
+              ...(isCurrent
+                ? {
+                    activeModuleIds: target.moduleIds,
+                    weeklyFocus: target.focus,
+                    lastPlanChange: { at: "just now", rationale },
+                  }
+                : {}),
+            };
+          });
+          return {
+            ...s,
+            members,
+            messages: announce
+              ? [
+                  {
+                    id: `m-${Date.now()}`,
+                    memberId,
+                    from: "system",
+                    kind: "plan_update",
+                    body: announce,
+                    dayOffset: 0,
+                    time: "just now",
+                    read: false,
+                  },
+                  ...s.messages,
+                ]
+              : s.messages,
+          };
+        }),
+
+      addCoachNote: (memberId, text) =>
         patch((s) => ({
           ...s,
           members: s.members.map((m) =>
             m.id === memberId
-              ? { ...m, activeModuleIds: m.activeModuleIds.filter((x) => x !== moduleId) }
+              ? {
+                  ...m,
+                  notes: [
+                    { id: `note-${Date.now()}`, at: new Date().toISOString().slice(0, 10), text },
+                    ...(m.notes ?? []),
+                  ],
+                }
               : m
           ),
-        })),
-
-      publishPlan: (memberId, rationale, focus) =>
-        patch((s) => ({
-          ...s,
-          members: s.members.map((m) =>
-            m.id === memberId
-              ? { ...m, weeklyFocus: focus, lastPlanChange: { at: "just now", rationale } }
-              : m
-          ),
-          messages: [
-            {
-              id: `m-${Date.now()}`,
-              memberId,
-              from: "system",
-              kind: "plan_update",
-              body: `Deepika changed your week. ${rationale}`,
-              dayOffset: 0,
-              time: "just now",
-              read: false,
-            },
-            ...s.messages,
-          ],
         })),
 
       sendMessage: (memberId, m) =>

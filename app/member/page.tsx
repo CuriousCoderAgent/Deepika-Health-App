@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Mic, Play, CalendarClock, ChevronRight } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { EffortRamp, EffortLabel } from "@/components/ui";
+import { EffortRamp, EffortLabel, ConsistencyBand, CategoryIcon } from "@/components/ui";
 import PulseCard from "@/components/PulseCard";
 
 /** Greeting adapts to what the last few days actually looked like. */
@@ -15,7 +15,7 @@ function greetingFor(energy: number | null, poorSleep: boolean, name: string) {
 }
 
 export default function Today() {
-  const { activeMember: m, actions, pulses, messages, sessions } = useStore();
+  const { activeMember: m, actions, pulses, messages, sessions, modules } = useStore();
   const [playing, setPlaying] = useState(false);
 
   const first = m.name.split(" ")[0];
@@ -34,10 +34,21 @@ export default function Today() {
     .sort((a, b) => a.dayOffset - b.dayOffset)[0];
 
   // Progress cue — a count, deliberately not a streak.
-  const last12 = actions.filter((a) => a.memberId === m.id && a.dayOffset > -12);
-  const activeDays = new Set(
-    last12.filter((a) => a.completed && a.completed !== "rest").map((a) => a.dayOffset)
-  ).size;
+  const last14days = Array.from({ length: 14 }).map((_, i) => {
+    const off = i - 13;
+    const day = actions.filter((a) => a.memberId === m.id && a.dayOffset === off);
+    const level = day.find((a) => a.completed === "stretch")
+      ? "stretch"
+      : day.find((a) => a.completed === "target")
+      ? "target"
+      : day.find((a) => a.completed === "minimum")
+      ? "minimum"
+      : day.find((a) => a.completed === "rest")
+      ? "rest"
+      : null;
+    return { level: level as any, dayOffset: off };
+  });
+  const activeDays = last14days.filter((d) => d.level && d.level !== "rest").length;
 
   return (
     <div className="animate-rise px-5 pt-8">
@@ -106,12 +117,19 @@ export default function Today() {
               <p className="text-sm text-ink-soft">Nothing scheduled today. That is intentional.</p>
             </div>
           )}
-          {todays.map((a) => (
+          {todays.map((a) => {
+            const mod = modules.find((x) => x.id === a.moduleId);
+            return (
             <Link
               key={a.id}
               href={`/member/action/${a.id}`}
               className="card flex items-center gap-3 p-4 transition-shadow hover:shadow-lift"
             >
+              {mod && (
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-paper-sunk">
+                  <CategoryIcon category={mod.category} />
+                </span>
+              )}
               <div className="min-w-0 flex-1">
                 <p className="font-medium leading-snug">{a.title}</p>
                 <p className="mt-0.5 truncate text-[13px] text-ink-faint">
@@ -138,7 +156,8 @@ export default function Today() {
               </div>
               <ChevronRight size={16} className="shrink-0 text-ink-faint" />
             </Link>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -168,9 +187,13 @@ export default function Today() {
       {/* 6 — One progress cue. A count, never a streak. */}
       <div className="mt-5 rounded-2xl bg-effort-tint px-4 py-3.5">
         <p className="text-[13px] leading-relaxed text-effort-stretch">
-          You found a way to move on{" "}
-          <span className="font-medium">{activeDays} of the last 12 days</span>.
+          You&rsquo;re building consistency — {" "}
+          <span className="font-medium">{activeDays} of the last 14 days</span> included
+          at least one healthy action.
         </p>
+        <div className="mt-3">
+          <ConsistencyBand days={last14days} showDayLetters />
+        </div>
       </div>
 
       <p className="mt-6 px-1 text-[11px] leading-relaxed text-ink-faint">

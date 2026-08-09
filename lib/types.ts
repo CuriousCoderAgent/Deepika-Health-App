@@ -62,6 +62,25 @@ export interface Member {
   lastPlanChange?: { at: string; rationale: string };
   bodyComp?: { label: string; value: string; at: string; provenance: Provenance }[];
   assessmentComplete: number; // 0–100
+  /** Dated, appendable coach log. Private — never surfaced to the member. */
+  notes?: CoachNote[];
+  /** The published 12-week plan. Falls back to a synthesis of live state — see lib/plan.ts. */
+  weekPlans?: WeekPlan[];
+  /** Pending edits not yet assigned to the member. Mirrors weekPlans until touched. */
+  draftWeekPlans?: WeekPlan[];
+}
+
+export interface CoachNote {
+  id: string;
+  at: string; // ISO date
+  text: string;
+}
+
+export interface WeekPlan {
+  week: number; // 1–12
+  phase: "Stabilise" | "Build" | "Consolidate";
+  focus: string[];
+  moduleIds: string[];
 }
 
 export interface DailyAction {

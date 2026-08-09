@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, CalendarClock } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { ProgressRing, CategoryIcon } from "@/components/ui";
 
 const PHASES = ["Stabilise", "Build", "Consolidate"] as const;
 
@@ -20,6 +21,11 @@ export default function Journey() {
   const nextReview = sessions
     .filter((s) => s.memberId === m.id && s.type === "1:1 coaching" && s.status === "scheduled")
     .sort((a, b) => a.dayOffset - b.dayOffset)[0];
+  const upcoming = sessions
+    .filter((s) => s.memberId === m.id && s.status === "scheduled" && s.dayOffset >= 0)
+    .sort((a, b) => a.dayOffset - b.dayOffset)
+    .slice(0, 2);
+  const pct = Math.min(1, m.week / 12);
 
   const grouped = active.reduce<Record<string, typeof active>>((acc, mod) => {
     (acc[mod.category] ||= []).push(mod);
@@ -30,6 +36,35 @@ export default function Journey() {
     <div className="animate-rise px-5 pt-8">
       <p className="label">Week {m.week}</p>
       <h1 className="mt-2 font-display text-[1.7rem] leading-tight">Your journey</h1>
+
+      {/* 12-week orientation — where you are, not how well you are doing */}
+      <div className="card mt-5 flex items-center gap-4 p-4">
+        <ProgressRing value={pct} label={`${Math.round(pct * 100)}%`} />
+        <div className="min-w-0">
+          <p className="font-medium leading-snug">12-week foundation journey</p>
+          <p className="mt-0.5 text-[13px] text-ink-soft">Week {m.week} of 12</p>
+        </div>
+      </div>
+
+      {upcoming.length > 0 && (
+        <div className="mt-4">
+          <p className="label mb-2">Upcoming milestones</p>
+          <div className="space-y-2">
+            {upcoming.map((s) => (
+              <div key={s.id} className="card flex items-center gap-3 p-3.5">
+                <CalendarClock size={16} className="shrink-0 text-ink-soft" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[14px] font-medium leading-snug">{s.type}</p>
+                  <p className="text-[13px] text-ink-faint">
+                    {s.dayOffset === 0 ? "Today" : s.dayOffset === 1 ? "Tomorrow" : `In ${s.dayOffset} days`} ·{" "}
+                    {s.time}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Phase ribbon — order carries real information here, so it is numbered */}
       <div className="mt-6 flex gap-1.5">
@@ -114,6 +149,9 @@ export default function Journey() {
                     href={`/member/module/${mod.id}`}
                     className="card flex items-center gap-3 p-3.5 transition-shadow hover:shadow-lift"
                   >
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-paper-sunk">
+                      <CategoryIcon category={mod.category} />
+                    </span>
                     <div className="min-w-0 flex-1">
                       <p className="font-medium leading-snug">{mod.name}</p>
                       <p className="mt-0.5 line-clamp-1 text-[13px] text-ink-faint">

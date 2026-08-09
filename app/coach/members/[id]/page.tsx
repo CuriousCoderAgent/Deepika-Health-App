@@ -10,7 +10,8 @@ import {
   Minus,
   AlertTriangle,
   ArrowUpRight,
-  Sparkles,
+  CheckCircle2,
+  Circle,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import {
@@ -19,12 +20,23 @@ import {
   Sparkline,
   ScopeNotice,
   ConsistencyBand,
+  CategoryIcon,
 } from "@/components/ui";
 import PulseCard from "@/components/PulseCard";
-import type { EffortLevel } from "@/lib/types";
+import { draftWeekPlansFor, PHASE_WEEKS } from "@/lib/plan";
+import type { EffortLevel, WeekPlan } from "@/lib/types";
 
-const TABS = ["Overview", "Assessment", "Journey builder", "Week planner", "Session prep"] as const;
+const TABS = [
+  "Overview",
+  "Assessment",
+  "Journey builder",
+  "Week planner",
+  "Notes",
+  "Session prep",
+] as const;
 type Tab = (typeof TABS)[number];
+
+const PHASE_ORDER: WeekPlan["phase"][] = ["Stabilise", "Build", "Consolidate"];
 
 export default function Member360({ params }: { params: { id: string } }) {
   const store = useStore();
@@ -36,9 +48,9 @@ export default function Member360({ params }: { params: { id: string } }) {
     messages,
     sessions,
     radar,
-    assignModule,
-    unassignModule,
-    publishPlan,
+    updateDraftWeek,
+    publishWeek,
+    addCoachNote,
     sendMessage,
     updateAction,
     saveSessionNotes,
@@ -47,12 +59,14 @@ export default function Member360({ params }: { params: { id: string } }) {
   const m = members.find((x) => x.id === params.id);
   const [tab, setTab] = useState<Tab>("Overview");
   const [rationale, setRationale] = useState("");
-  const [focus, setFocus] = useState<string[]>([]);
   const [published, setPublished] = useState(false);
+  const [draftSaved, setDraftSaved] = useState(false);
+  const [selectedWeek, setSelectedWeek] = useState<number | null>(null);
   const [note, setNote] = useState("");
   const [voiceMode, setVoiceMode] = useState(false);
   const [privateNotes, setPrivateNotes] = useState("");
   const [recap, setRecap] = useState("");
+  const [newNote, setNewNote] = useState("");
 
   if (!m) {
     return (
@@ -73,13 +87,18 @@ export default function Member360({ params }: { params: { id: string } }) {
   const lastSession = sessions
     .filter((s) => s.memberId === m.id && s.status === "complete")
     .sort((a, b) => b.dayOffset - a.dayOffset)[0];
-  const active = modules.filter((x) => m.activeModuleIds.includes(x.id));
-  const available = modules.filter((x) => !m.activeModuleIds.includes(x.id));
+  const week = selectedWeek ?? m.week;
+  const draftPlans = draftWeekPlansFor(m);
+  const weekDraft = draftPlans.find((w) => w.week === week) ?? draftPlans[0];
+  const weekActive = modules.filter((x) => weekDraft.moduleIds.includes(x.id));
+  const weekAvailable = modules.filter((x) => !weekDraft.moduleIds.includes(x.id));
+  const myNotes = m.notes ?? [];
 
   const days14 = Array.from({ length: 14 }).map((_, i) => {
     const off = i - 13;
     const day = mine.filter((a) => a.dayOffset === off);
     return {
+      dayOffset: off,
       level: (day.find((a) => a.completed === "stretch")
         ? "stretch"
         : day.find((a) => a.completed === "target")
@@ -176,7 +195,7 @@ export default function Member360({ params }: { params: { id: string } }) {
           <div className="card p-5">
             <p className="label">Last 14 days</p>
             <div className="mt-3">
-              <ConsistencyBand days={days14} />
+              <ConsistencyBand days={days14} showDayLetters />
             </div>
             <p className="mt-2.5 text-[14px] text-ink-soft">
               Active on{" "}
@@ -393,13 +412,95 @@ export default function Member360({ params }: { params: { id: string } }) {
             </p>
           </div>
 
+          {/* Phase groups — the calendar structure, not necessarily where she actually is today */}
+          <div className="grid grid-cols-3 gap-2.5">
+            {PHASE_ORDER.map((ph) => {
+              const [start, end] = PHASE_WEEKS[ph];
+              const isPast = m.week > end;
+              const isCurrentRange = m.week >= start && m.week <= end;
+              return (
+                <button
+                  key={ph}
+                  onClick={() => setSelectedWeek(start)}
+                  className={`rounded-2xl border p-3.5 text-left transition-colors ${
+                    week >= start && week <= end
+                      ? "border-ink-soft bg-paper-card"
+                      : "border-ink-line bg-paper-sunk/50 hover:bg-paper-sunk"
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    {isPast ? (
+                      <CheckCircle2 size={14} className="text-effort-target" />
+                    ) : (
+                      <Circle
+                        size={14}
+                        className={isCurrentRange ? "text-effort-target" : "text-ink-faint"}
+                      />
+                    )}
+                    <p className="text-[13px] font-medium">{ph}</p>
+                  </div>
+                  <p className="mt-1 text-[12px] text-ink-faint">
+                    Weeks {start}–{end}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Week 1–12 navigator */}
+          <div className="scroll-hide flex gap-1.5 overflow-x-auto pb-1">
+            {Array.from({ length: 12 }, (_, i) => i + 1).map((w) => (
+              <button
+                key={w}
+                onClick={() => setSelectedWeek(w)}
+                className={`tap shrink-0 rounded-xl border px-3 text-[13px] transition-colors ${
+                  w === week
+                    ? "border-ink-soft bg-paper-card font-medium"
+                    : "border-transparent bg-paper-sunk/70 text-ink-soft hover:bg-paper-sunk"
+                }`}
+              >
+                <span className="flex items-center gap-1">
+                  Week {w}
+                  {w < m.week && <CheckCircle2 size={12} className="text-effort-target" />}
+                </span>
+                <span className="block text-[10px] text-ink-faint">
+                  {w === m.week ? "This week" : w === m.week + 1 ? "Next week" : " "}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <p className="text-[13px] text-ink-faint">
+            Editing week {week} of 12{week === m.week ? " — her current week" : ""}
+          </p>
+
+          <div className="card p-5">
+            <p className="label">Week {week} focus</p>
+            <div className="mt-2.5 space-y-2">
+              {[0, 1, 2].map((i) => (
+                <input
+                  key={i}
+                  value={weekDraft.focus[i] ?? ""}
+                  onChange={(e) => {
+                    const n = [weekDraft.focus[0] ?? "", weekDraft.focus[1] ?? "", weekDraft.focus[2] ?? ""];
+                    n[i] = e.target.value;
+                    updateDraftWeek(m.id, week, { focus: n });
+                  }}
+                  placeholder={i === 0 ? "First priority" : `Priority ${i + 1} (optional)`}
+                  className="tap w-full rounded-xl border border-ink-line bg-paper px-3 text-[14px] placeholder:text-ink-faint focus:border-effort-target focus:outline-none"
+                />
+              ))}
+            </div>
+          </div>
+
           <div className="grid gap-5 md:grid-cols-2">
             <div>
-              <p className="label mb-2.5">Assigned ({active.length})</p>
+              <p className="label mb-2.5">Assigned ({weekActive.length})</p>
               <div className="space-y-2">
-                {active.map((mod) => (
+                {weekActive.map((mod) => (
                   <div key={mod.id} className="card p-3.5">
                     <div className="flex items-start gap-2">
+                      <CategoryIcon category={mod.category} className="mt-0.5 shrink-0 text-ink-faint" />
                       <div className="min-w-0 flex-1">
                         <p className="text-[15px] font-medium leading-snug">{mod.name}</p>
                         <p className="mt-0.5 text-[13px] text-ink-faint">
@@ -407,7 +508,11 @@ export default function Member360({ params }: { params: { id: string } }) {
                         </p>
                       </div>
                       <button
-                        onClick={() => unassignModule(m.id, mod.id)}
+                        onClick={() =>
+                          updateDraftWeek(m.id, week, {
+                            moduleIds: weekDraft.moduleIds.filter((x) => x !== mod.id),
+                          })
+                        }
                         className="tap -mr-1 -mt-1 rounded-lg px-2 text-ink-faint hover:bg-paper-sunk hover:text-ink"
                         aria-label={`Remove ${mod.name}`}
                       >
@@ -419,18 +524,26 @@ export default function Member360({ params }: { params: { id: string } }) {
                     </p>
                   </div>
                 ))}
+                {weekActive.length === 0 && (
+                  <p className="text-[13px] text-ink-faint">Nothing assigned this week.</p>
+                )}
               </div>
             </div>
 
             <div>
-              <p className="label mb-2.5">Library ({available.length})</p>
+              <p className="label mb-2.5">Library ({weekAvailable.length})</p>
               <div className="max-h-[26rem] space-y-2 overflow-y-auto pr-1">
-                {available.map((mod) => (
+                {weekAvailable.map((mod) => (
                   <button
                     key={mod.id}
-                    onClick={() => assignModule(m.id, mod.id)}
+                    onClick={() =>
+                      updateDraftWeek(m.id, week, {
+                        moduleIds: [...weekDraft.moduleIds, mod.id],
+                      })
+                    }
                     className="flex w-full items-start gap-2 rounded-xl bg-paper-sunk/70 p-3.5 text-left transition-colors hover:bg-paper-sunk"
                   >
+                    <CategoryIcon category={mod.category} className="mt-0.5 shrink-0 text-ink-faint" />
                     <div className="min-w-0 flex-1">
                       <p className="text-[15px] font-medium leading-snug">{mod.name}</p>
                       <p className="mt-0.5 text-[13px] text-ink-faint">
@@ -444,28 +557,9 @@ export default function Member360({ params }: { params: { id: string } }) {
             </div>
           </div>
 
-          {/* Publish — a plan change must always carry a reason */}
+          {/* Draft vs published — nothing reaches her until you assign it */}
           <div className="card p-5">
-            <p className="label">This week&rsquo;s focus</p>
-            <div className="mt-2.5 space-y-2">
-              {[0, 1, 2].map((i) => (
-                <input
-                  key={i}
-                  value={focus[i] ?? m.weeklyFocus[i] ?? ""}
-                  onChange={(e) =>
-                    setFocus((p) => {
-                      const n = [...(p.length ? p : m.weeklyFocus)];
-                      n[i] = e.target.value;
-                      return n;
-                    })
-                  }
-                  placeholder={i === 0 ? "First priority" : `Priority ${i + 1} (optional)`}
-                  className="tap w-full rounded-xl border border-ink-line bg-paper px-3 text-[14px] placeholder:text-ink-faint focus:border-effort-target focus:outline-none"
-                />
-              ))}
-            </div>
-
-            <p className="label mt-5">Why it changed — she will see this</p>
+            <p className="label">Why it changed — she will see this</p>
             <textarea
               value={rationale}
               onChange={(e) => setRationale(e.target.value)}
@@ -474,26 +568,41 @@ export default function Member360({ params }: { params: { id: string } }) {
               className="mt-2 w-full resize-none rounded-xl border border-ink-line bg-paper px-3 py-2.5 text-[14px] placeholder:text-ink-faint focus:border-effort-target focus:outline-none"
             />
 
-            <button
-              disabled={!rationale.trim()}
-              onClick={() => {
-                publishPlan(
-                  m.id,
-                  rationale.trim(),
-                  (focus.length ? focus : m.weeklyFocus).filter(Boolean)
-                );
-                setRationale("");
-                setPublished(true);
-              }}
-              className="tap mt-3 inline-flex items-center gap-2 rounded-xl bg-ink px-4 text-sm font-medium text-white disabled:opacity-30"
-            >
-              <Sparkles size={14} /> Publish to her app
-            </button>
+            <div className="mt-3 flex flex-wrap items-center gap-2.5">
+              <button
+                onClick={() => {
+                  setDraftSaved(true);
+                  setPublished(false);
+                }}
+                className="tap inline-flex items-center gap-2 rounded-xl bg-paper-sunk px-4 text-sm font-medium text-ink-soft hover:bg-ink-line hover:text-ink"
+              >
+                Save draft
+              </button>
+              <button
+                disabled={!rationale.trim()}
+                onClick={() => {
+                  publishWeek(m.id, week, rationale.trim());
+                  setRationale("");
+                  setPublished(true);
+                  setDraftSaved(false);
+                }}
+                className="tap inline-flex items-center gap-2 rounded-xl bg-ink px-4 text-sm font-medium text-white disabled:opacity-30"
+              >
+                <Send size={14} /> Assign to member
+              </button>
+            </div>
 
+            {draftSaved && (
+              <p className="mt-3 text-[14px] text-ink-soft">
+                Saved as a draft. She won&rsquo;t see week {week} until you assign it.
+              </p>
+            )}
             {published && (
               <p className="mt-3 text-[14px] text-effort-stretch">
-                Published. Open her app from the top of this page — the change and
-                your reason are on her Today screen.
+                Assigned.{" "}
+                {week === m.week
+                  ? "Open her app from the top of this page — the change and your reason are on her Today screen."
+                  : `Week ${week} is on her Journey now.`}
               </p>
             )}
           </div>
@@ -573,6 +682,53 @@ export default function Member360({ params }: { params: { id: string } }) {
                 </button>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ---------------- Notes ---------------- */}
+      {tab === "Notes" && (
+        <div className="mt-7 space-y-5">
+          <div className="card p-5">
+            <div className="flex items-center gap-2">
+              <p className="label">Add a note</p>
+              <span className="chip bg-paper-sunk text-ink-faint">she never sees this</span>
+            </div>
+            <textarea
+              value={newNote}
+              onChange={(e) => setNewNote(e.target.value)}
+              rows={3}
+              placeholder="Clinical-style observations, patterns, things to watch — dated automatically."
+              className="mt-2.5 w-full resize-none rounded-xl border border-ink-line bg-paper px-3 py-2.5 text-[14px] placeholder:text-ink-faint focus:border-effort-target focus:outline-none"
+            />
+            <button
+              disabled={!newNote.trim()}
+              onClick={() => {
+                addCoachNote(m.id, newNote.trim());
+                setNewNote("");
+              }}
+              className="tap mt-3 rounded-xl bg-ink px-4 text-sm font-medium text-white disabled:opacity-30"
+            >
+              Add note
+            </button>
+          </div>
+
+          <div>
+            <p className="label mb-2.5">History ({myNotes.length})</p>
+            {myNotes.length === 0 ? (
+              <p className="text-[14px] text-ink-faint">Nothing logged yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {myNotes.map((n) => (
+                  <div key={n.id} className="card p-4">
+                    <p className="label">
+                      {new Date(n.at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                    </p>
+                    <p className="mt-1.5 text-[14px] leading-relaxed">{n.text}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
