@@ -11,6 +11,19 @@ const SCALES = [
   { key: "stress", label: "Mental load", low: "Light", high: "Heavy" },
 ] as const;
 
+/**
+ * One-tap mood — a lower-friction first rung than three separate 1–5 taps.
+ * It only ever pre-fills energy and stress. Sleep is deliberately left for
+ * the full Pulse below: R03/R04 need energy and sleep recorded separately,
+ * so a mood tap can never stand in for a sleep rating.
+ */
+const MOODS = [
+  { key: "good", label: "Good", energy: 4, stress: 2, cls: "bg-effort-tint text-effort-stretch" },
+  { key: "okay", label: "Okay", energy: 3, stress: 3, cls: "bg-paper-sunk text-ink-soft" },
+  { key: "tired", label: "Tired", energy: 2, stress: 3, cls: "bg-rest-tint text-ink-soft" },
+  { key: "stressed", label: "Stressed", energy: 2, stress: 4, cls: "bg-attention-tint text-attention" },
+] as const;
+
 const SYMPTOMS = ["Hot flush", "Night waking", "Bloating", "Joint aches", "Low mood", "Cramping"];
 
 /**
@@ -29,6 +42,7 @@ export default function PulseCard({
 
   const [open, setOpen] = useState(false);
   const [v, setV] = useState({ energy: 0, sleep: 0, stress: 0 });
+  const [mood, setMood] = useState<string | null>(null);
   const [symptoms, setSymptoms] = useState<string[]>([]);
   const [note, setNote] = useState("");
 
@@ -69,6 +83,29 @@ export default function PulseCard({
       <div className="flex items-baseline justify-between">
         <p className="text-sm font-medium">How is today?</p>
         <span className="font-mono text-[10px] text-ink-faint">ABOUT 15 SECONDS</span>
+      </div>
+
+      <div className="mt-4">
+        <p className="text-[13px] text-ink-soft">How are you feeling?</p>
+        <div className="mt-1.5 grid grid-cols-4 gap-1.5">
+          {MOODS.map((mo) => (
+            <button
+              key={mo.key}
+              onClick={() => {
+                setMood(mo.key);
+                setV((p) => ({ ...p, energy: mo.energy, stress: mo.stress }));
+              }}
+              className={`tap flex h-11 items-center justify-center rounded-xl text-[13px] font-medium transition-all ${
+                mood === mo.key ? mo.cls : "bg-paper-sunk text-ink-faint hover:bg-ink-line"
+              }`}
+            >
+              {mo.label}
+            </button>
+          ))}
+        </div>
+        <p className="mt-2 text-[12px] text-ink-faint">
+          {mood ? "Good start — just add sleep below to finish." : "Or answer all three below."}
+        </p>
       </div>
 
       <div className="mt-4 space-y-4">
@@ -138,6 +175,7 @@ export default function PulseCard({
         onClick={() => {
           submitPulse(memberId, { ...v, symptoms, note: note || undefined }, asCoach);
           setOpen(false);
+          setMood(null);
         }}
         className="tap mt-3 w-full rounded-xl bg-ink text-sm font-medium text-white transition-opacity disabled:opacity-30"
       >

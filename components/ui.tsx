@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import type { EffortLevel, Provenance, SourceType } from "@/lib/types";
+import { Dumbbell, Apple, Moon, HeartPulse, Repeat, type LucideIcon } from "lucide-react";
+import type { EffortLevel, ModuleCategory, Provenance, SourceType } from "@/lib/types";
 
 /* ------------------------------------------------------------------ */
 /* Effort Ramp — the signature element                                 */
@@ -85,6 +86,31 @@ export function ProvenanceChip({ p, showWho = false }: { p?: Provenance; showWho
 /* Primitives                                                          */
 /* ------------------------------------------------------------------ */
 
+/* ------------------------------------------------------------------ */
+/* Category icon — helps a 38–50 audience scan a list.                 */
+/* ------------------------------------------------------------------ */
+
+const CATEGORY_ICON: Record<ModuleCategory, LucideIcon> = {
+  movement: Dumbbell,
+  nutrition: Apple,
+  sleep: Moon,
+  hormonal: HeartPulse,
+  behaviour: Repeat,
+};
+
+export function CategoryIcon({
+  category,
+  size = 15,
+  className = "text-ink-faint",
+}: {
+  category: ModuleCategory;
+  size?: number;
+  className?: string;
+}) {
+  const Icon = CATEGORY_ICON[category];
+  return <Icon size={size} className={className} aria-hidden="true" />;
+}
+
 export function Eyebrow({ children }: { children: React.ReactNode }) {
   return <p className="label mb-2">{children}</p>;
 }
@@ -143,17 +169,19 @@ export function Sparkline({
   values,
   color = "#6E8F73",
   height = 36,
+  min = 1,
+  max = 5,
 }: {
   values: number[];
   color?: string;
   height?: number;
+  min?: number;
+  max?: number;
 }) {
   if (values.length < 2) {
     return <p className="text-xs text-ink-faint">Not enough days yet.</p>;
   }
   const w = 100;
-  const max = 5;
-  const min = 1;
   const pts = values.map((v, i) => {
     const x = (i / (values.length - 1)) * w;
     const y = height - ((v - min) / (max - min)) * (height - 6) - 3;
@@ -183,29 +211,90 @@ export function Sparkline({
 /* Shows "9 of the last 14 days", never "17-day streak at risk".       */
 /* ------------------------------------------------------------------ */
 
+/** Sunday, 9 August 2026 is "today" throughout this prototype's seed data. */
+const WEEKDAY_LETTERS = ["S", "M", "T", "W", "T", "F", "S"];
+function letterForOffset(offset: number) {
+  return WEEKDAY_LETTERS[((offset % 7) + 7) % 7];
+}
+
 export function ConsistencyBand({
   days,
+  showDayLetters = false,
 }: {
-  days: { level: EffortLevel | "rest" | null }[];
+  days: { level: EffortLevel | "rest" | null; dayOffset?: number }[];
+  showDayLetters?: boolean;
 }) {
   return (
-    <div className="flex gap-1" aria-hidden="true">
-      {days.map((d, i) => (
-        <span
-          key={i}
-          className={`h-6 flex-1 rounded-[3px] ${
-            d.level === "stretch"
-              ? "bg-effort-stretch"
-              : d.level === "target"
-              ? "bg-effort-target"
-              : d.level === "minimum"
-              ? "bg-effort-min"
-              : d.level === "rest"
-              ? "bg-rest-tint"
-              : "bg-paper-sunk"
-          }`}
+    <div>
+      <div className="flex gap-1" aria-hidden="true">
+        {days.map((d, i) => (
+          <span
+            key={i}
+            className={`h-6 flex-1 rounded-[3px] ${
+              d.level === "stretch"
+                ? "bg-effort-stretch"
+                : d.level === "target"
+                ? "bg-effort-target"
+                : d.level === "minimum"
+                ? "bg-effort-min"
+                : d.level === "rest"
+                ? "bg-rest-tint"
+                : "bg-paper-sunk"
+            }`}
+          />
+        ))}
+      </div>
+      {showDayLetters && (
+        <div className="mt-1 flex gap-1">
+          {days.map((d, i) => (
+            <span key={i} className="flex-1 text-center font-mono text-[9px] text-ink-faint">
+              {d.dayOffset !== undefined ? letterForOffset(d.dayOffset) : ""}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Progress ring — orientation, not a dashboard metric.                */
+/* ------------------------------------------------------------------ */
+
+export function ProgressRing({
+  value,
+  size = 76,
+  stroke = 7,
+  label,
+}: {
+  /** 0–1 */
+  value: number;
+  size?: number;
+  stroke?: number;
+  label?: string;
+}) {
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const offset = c * (1 - Math.min(1, Math.max(0, value)));
+  return (
+    <div className="relative inline-flex shrink-0 items-center justify-center" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90" aria-hidden="true">
+        <circle cx={size / 2} cy={size / 2} r={r} strokeWidth={stroke} className="stroke-paper-sunk" fill="none" />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          strokeWidth={stroke}
+          className="stroke-effort-target transition-all duration-700"
+          fill="none"
+          strokeDasharray={c}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
         />
-      ))}
+      </svg>
+      {label && (
+        <span className="absolute font-display text-lg leading-none">{label}</span>
+      )}
     </div>
   );
 }

@@ -19,7 +19,7 @@ export default function Progress() {
       : day.find((a) => a.completed === "rest")
       ? "rest"
       : null;
-    return { level: best as any };
+    return { level: best as any, dayOffset: offset };
   });
   const activeDays = days.filter((d) => d.level && d.level !== "rest").length;
 
@@ -59,11 +59,7 @@ export default function Progress() {
           You did something on {activeDays} of the last fourteen days.
         </p>
         <div className="mt-4">
-          <ConsistencyBand days={days} />
-          <div className="mt-1.5 flex justify-between font-mono text-[10px] text-ink-faint">
-            <span>14 DAYS AGO</span>
-            <span>TODAY</span>
-          </div>
+          <ConsistencyBand days={days} showDayLetters />
         </div>
       </div>
 
