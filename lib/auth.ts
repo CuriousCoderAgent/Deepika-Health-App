@@ -1,20 +1,21 @@
 /**
  * Authentication for the pilot.
  *
- * Deliberately small: two accounts, a signed session cookie, no external
- * auth service. That is the right size for a closed pilot and it keeps the
- * app deployable with nothing but environment variables.
+ * One coach account and any number of member accounts, all defined by
+ * environment variables. No external auth service and no database — that is
+ * the right size for a closed pilot and keeps the app deployable with nothing
+ * but env vars.
  *
- * How credentials work:
- *   - Set AUTH_SECRET, COACH_PASSWORD and MEMBER_PASSWORD in the environment
- *     (Vercel → Settings → Environment Variables) and those are used.
- *   - Set none of them and the app falls back to the documented demo
- *     credentials below, so a preview deployment still opens.
+ * Configuration:
+ *   AUTH_SECRET      random string, signs the session cookie
+ *   COACH_PASSWORD   Deepika's password
+ *   MEMBERS          the cohort, as "username:password:Display Name" entries
+ *                    separated by commas or newlines. Example:
+ *                      radhika:someword:Radhika,priya:otherword:Priya
  *
- * The fallback exists because this build currently holds only fictional
- * data. Before a real member signs in, set the environment variables — a
- * password committed to a public repo is not a password. `sessionsAreSecure`
- * reports which mode is live so the UI can say so honestly.
+ * With none of these set the app falls back to the demo accounts below so a
+ * preview deployment still opens. That fallback is only defensible while the
+ * data is fictional — a password in a public repo is not a password.
  */
 
 const SESSION_COOKIE = "dw_session";
@@ -23,7 +24,7 @@ const SESSION_MAX_AGE = 60 * 60 * 24 * 30; // 30 days — this cohort should not
 export type Role = "coach" | "member";
 
 export interface SessionUser {
-  /** Matches a Member.id in lib/seed.ts for members; "deepika" for the coach. */
+  /** Also the storage namespace for this account's data. */
   sub: string;
   role: Role;
   name: string;
@@ -34,20 +35,56 @@ interface Account extends SessionUser {
   password: string;
 }
 
-/** Demo passwords. Only ever used when the environment sets nothing. */
+/**
+ * The one account that carries the seeded demo history, so Deepika has
+ * something populated to look at. Every other member starts empty.
+ */
+export const DEMO_MEMBER_ID = "radhika";
+
 const DEMO_COACH_PASSWORD = "deepika2026";
 const DEMO_MEMBER_PASSWORD = "radhika2026";
 
 export function sessionsAreSecure(): boolean {
-  return Boolean(
-    process.env.AUTH_SECRET && process.env.COACH_PASSWORD && process.env.MEMBER_PASSWORD
-  );
+  return Boolean(process.env.AUTH_SECRET && process.env.COACH_PASSWORD && process.env.MEMBERS);
 }
 
 export const demoCredentials = {
   coach: { username: "deepika", password: DEMO_COACH_PASSWORD },
-  member: { username: "radhika", password: DEMO_MEMBER_PASSWORD },
+  member: { username: DEMO_MEMBER_ID, password: DEMO_MEMBER_PASSWORD },
 };
+
+/** Parses MEMBERS into accounts. Malformed entries are skipped, not fatal. */
+function memberAccounts(): Account[] {
+  const raw = process.env.MEMBERS?.trim();
+  if (!raw) {
+    return [
+      {
+        sub: DEMO_MEMBER_ID,
+        role: "member",
+        name: "Radhika",
+        username: DEMO_MEMBER_ID,
+        password: DEMO_MEMBER_PASSWORD,
+      },
+    ];
+  }
+  return raw
+    .split(/[\n,]+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [username, password, ...rest] = line.split(":");
+      if (!username || !password) return null;
+      const name = rest.join(":").trim() || username.charAt(0).toUpperCase() + username.slice(1);
+      return {
+        sub: username.toLowerCase(),
+        role: "member" as const,
+        name,
+        username: username.toLowerCase(),
+        password,
+      };
+    })
+    .filter(Boolean) as Account[];
+}
 
 function accounts(): Account[] {
   return [
@@ -58,19 +95,11 @@ function accounts(): Account[] {
       username: "deepika",
       password: process.env.COACH_PASSWORD || DEMO_COACH_PASSWORD,
     },
-    {
-      sub: "radhika",
-      role: "member",
-      name: "Radhika",
-      username: "radhika",
-      password: process.env.MEMBER_PASSWORD || DEMO_MEMBER_PASSWORD,
-    },
+    ...memberAccounts(),
   ];
 }
 
 function secret(): string {
-  // A stable fallback keeps preview deployments working; it is not a secret,
-  // which is exactly why sessionsAreSecure() reports false without the env var.
   return process.env.AUTH_SECRET || "dev-only-unsafe-secret-set-AUTH_SECRET";
 }
 
@@ -103,7 +132,6 @@ async function hmac(payload: string): Promise<string> {
   return b64url(new Uint8Array(sig));
 }
 
-/** Constant-time-ish comparison. Both inputs are already fixed-length digests. */
 function safeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   let diff = 0;

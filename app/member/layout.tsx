@@ -17,14 +17,20 @@ const tabs = [
 export default function MemberLayout({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const router = useRouter();
-  const { activeMember, messages, hydrated } = useStore();
+  const { activeMember, messages, hydrated, session } = useStore();
 
   // A member who has never been through the first-run flow gets sent to it.
-  // Waits for hydration, or it would bounce someone already onboarded on the
-  // first frame, before their stored record has been read.
+  //
+  // Two conditions, both load-bearing. It waits for hydration, or it would act
+  // on the seed defaults for a frame and bounce someone already onboarded. And
+  // it only applies to members: Deepika opens this same route to see a member's
+  // app, and she must not be dropped into that member's welcome questions.
+  const needsOnboarding =
+    hydrated && session?.role !== "coach" && !activeMember.onboardedAt;
+
   useEffect(() => {
-    if (hydrated && !activeMember.onboardedAt) router.replace("/onboarding");
-  }, [hydrated, activeMember.onboardedAt, router]);
+    if (needsOnboarding) router.replace("/onboarding");
+  }, [needsOnboarding, router]);
 
   const unread = messages.filter(
     (m) => m.memberId === activeMember.id && m.from !== "member" && !m.read
@@ -51,7 +57,10 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
           style={{ maxWidth: "var(--phone-reference)" }}
         >
           <div className="scroll-hide min-h-0 flex-1 overflow-y-auto overscroll-contain">
-            {children}
+            {/* Held back for the frame between hydration and the redirect
+                landing, so a first-time member never catches a glimpse of a
+                Today screen built from someone else's plan. */}
+            {needsOnboarding ? null : children}
           </div>
 
           {/* Bottom sheets portal in here, so they stay inside the phone frame

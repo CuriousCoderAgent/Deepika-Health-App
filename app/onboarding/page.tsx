@@ -56,7 +56,7 @@ const TOTAL_STEPS = 6;
 
 export default function Onboarding() {
   const router = useRouter();
-  const { activeMember: m, completeOnboarding, hydrated } = useStore();
+  const { activeMember: m, completeOnboarding, hydrated, session } = useStore();
 
   const [step, setStep] = useState(0);
   const [age, setAge] = useState<number>(m.age || 42);
@@ -70,10 +70,14 @@ export default function Onboarding() {
   const [consentReports, setConsentReports] = useState(false);
 
   // Someone who has already been through this should not be able to land back
-  // on it by typing the URL.
+  // on it by typing the URL. Nor should Deepika: these are the member's own
+  // answers, and a coach filling them in on the member's record — even by
+  // accident, from a stray URL — is not a thing this product should allow.
   useEffect(() => {
-    if (hydrated && m.onboardedAt) router.replace("/member");
-  }, [hydrated, m.onboardedAt, router]);
+    if (!hydrated) return;
+    if (session?.role === "coach") router.replace("/member");
+    else if (m.onboardedAt) router.replace("/member");
+  }, [hydrated, session?.role, m.onboardedAt, router]);
 
   // Age gets a sensible starting number. Goals, boundaries and constraints
   // deliberately start empty: this is a first run, and pre-ticking boxes from
