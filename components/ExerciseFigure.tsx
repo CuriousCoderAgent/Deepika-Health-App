@@ -268,6 +268,19 @@ function Figure({ figure }: { figure: MovementFigure }) {
   }
 }
 
+/**
+ * Movements that have a supplied artwork file in `public/exercises/`.
+ *
+ * Add a key here once `public/exercises/<key>.png` exists and that movement
+ * renders the image instead of the drawing. Anything not listed keeps its
+ * SVG, so the set can be swapped over one at a time without a half-finished
+ * screen — and if a supplied image ever turns out wrong, deleting one line
+ * puts the drawing back.
+ */
+const HAS_ARTWORK: Partial<Record<MovementFigure, true>> = {
+  // "goblet-squat": true,
+};
+
 export default function ExerciseFigure({
   figure = "generic",
   size = 56,
@@ -277,6 +290,22 @@ export default function ExerciseFigure({
   size?: number;
   className?: string;
 }) {
+  if (HAS_ARTWORK[figure]) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={`/exercises/${figure}.png`}
+        alt=""
+        width={size}
+        height={size}
+        loading="lazy"
+        decoding="async"
+        className="object-contain"
+        style={{ width: size, height: size }}
+      />
+    );
+  }
+
   return (
     <svg
       viewBox="0 0 100 100"
