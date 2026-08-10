@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { Activity, CalendarHeart, Home, MessageCircle, TrendingUp } from "lucide-react";
 import { useStore } from "@/lib/store";
 
@@ -15,7 +16,15 @@ const tabs = [
 
 export default function MemberLayout({ children }: { children: React.ReactNode }) {
   const path = usePathname();
-  const { activeMember, messages } = useStore();
+  const router = useRouter();
+  const { activeMember, messages, hydrated } = useStore();
+
+  // A member who has never been through the first-run flow gets sent to it.
+  // Waits for hydration, or it would bounce someone already onboarded on the
+  // first frame, before their stored record has been read.
+  useEffect(() => {
+    if (hydrated && !activeMember.onboardedAt) router.replace("/onboarding");
+  }, [hydrated, activeMember.onboardedAt, router]);
 
   const unread = messages.filter(
     (m) => m.memberId === activeMember.id && m.from !== "member" && !m.read

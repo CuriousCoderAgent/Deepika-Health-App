@@ -62,6 +62,19 @@ export interface Member {
   lastPlanChange?: { at: string; rationale: string };
   bodyComp?: { label: string; value: string; at: string; provenance: Provenance }[];
   assessmentComplete: number; // 0–100
+  /**
+   * Set when she finishes the first-run flow. Absent means she has never been
+   * through it, which is what sends her to /onboarding instead of Today.
+   */
+  onboardedAt?: string;
+  /**
+   * What she agreed to, and when. `health` is required to use the product at
+   * all; `reports` is separate and genuinely optional, because uploading blood
+   * work is a different decision from logging how you slept.
+   */
+  consent?: { health: boolean; reports: boolean; at: string };
+  /** When she'd rather hear from the app. Shapes notification timing later. */
+  checkInPreference?: "morning" | "evening";
   /** Dated, appendable coach log. Private — never surfaced to the member. */
   notes?: CoachNote[];
   /** The published 12-week plan. Falls back to a synthesis of live state — see lib/plan.ts. */
