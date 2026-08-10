@@ -87,6 +87,24 @@ interface Ctx extends State {
   publishWeek: (memberId: string, week: number, rationale: string) => void;
   addCoachNote: (memberId: string, text: string) => void;
   addReport: (r: Omit<Report, "id">) => void;
+  completeOnboarding: (
+    memberId: string,
+    data: {
+      age: number;
+      lifeStage: string;
+      goals: string[];
+      wontDo: string;
+      constraints: string[];
+      checkInPreference: "morning" | "evening";
+      consent: { health: boolean; reports: boolean };
+    }
+  ) => void;
+  /**
+   * False until localStorage has been read. Anything that redirects on stored
+   * state has to wait for this, or it will act on the seed defaults for a
+   * frame and bounce someone who was already onboarded.
+   */
+  hydrated: boolean;
   sendMessage: (memberId: string, m: Omit<Message, "id" | "memberId">) => void;
   markRead: (memberId: string) => void;
   toggleRule: (id: string) => void;
@@ -153,6 +171,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       ...state,
       radar,
       activeMember,
+      hydrated,
 
       setActiveMember: (id) => patch((s) => ({ ...s, activeMemberId: id })),
 
@@ -328,6 +347,26 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       saveSessionNotes: (id, p) =>
         patch((s) => ({ ...s, sessions: s.sessions.map((x) => (x.id === id ? { ...x, ...p } : x)) })),
 
+      completeOnboarding: (memberId, d) =>
+        patch((s) => ({
+          ...s,
+          members: s.members.map((m) =>
+            m.id === memberId
+              ? {
+                  ...m,
+                  age: d.age,
+                  lifeStage: d.lifeStage,
+                  goals: d.goals.filter(Boolean),
+                  wontDo: d.wontDo,
+                  constraints: d.constraints.filter(Boolean),
+                  checkInPreference: d.checkInPreference,
+                  consent: { ...d.consent, at: new Date().toISOString().slice(0, 10) },
+                  onboardedAt: new Date().toISOString().slice(0, 10),
+                }
+              : m
+          ),
+        })),
+
       reset: () => {
         try {
           window.localStorage.removeItem(KEY);
@@ -337,7 +376,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         setState(initial);
       },
     };
-  }, [state]);
+  }, [state, hydrated]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }
