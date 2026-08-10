@@ -31,10 +31,13 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
   );
 
   return (
-    <div className="min-h-dvh bg-paper-sunk/60">
+    /* h-dvh + overflow-hidden means the page itself never scrolls or pans.
+       All scrolling happens inside the phone's content area, which keeps the
+       navigation anchored and stops the whole document drifting sideways. */
+    <div className="flex h-dvh flex-col overflow-hidden bg-paper-sunk/60">
       {/* Persona switcher — sits outside the phone. It is a demo control,
           not part of the product, so it must not look like part of the product. */}
-      <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-2 px-4 pt-5 pb-3">
+      <div className="mx-auto flex w-full max-w-5xl shrink-0 flex-wrap items-center gap-2 px-4 pb-2.5 pt-4 sm:pb-3 sm:pt-5">
         <Link
           href="/"
           className="tap inline-flex items-center gap-1 rounded-lg px-2 text-xs text-ink-faint hover:text-ink"
@@ -60,14 +63,21 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
         ))}
       </div>
 
-      {/* Phone shell so Deepika reads this as a phone, not a website. */}
-      <div className="mx-auto w-full max-w-[430px] px-0 pb-6 sm:px-4">
-        <div className="relative overflow-hidden bg-paper shadow-lift sm:rounded-[2.25rem] sm:border-[10px] sm:border-ink">
-          <div className="scroll-hide h-[calc(100dvh-8.5rem)] overflow-y-auto pb-24 sm:h-[760px]">
+      {/* Phone shell so Deepika reads this as a phone, not a website.
+          On a real phone it fills whatever height is left; on a desktop it
+          becomes a fixed 760px frame. Width is capped at the design reference
+          viewport and fluid below it — a 360px Android gets the same layout in
+          less room, not a shrunken copy of a 412px canvas. */}
+      <div className="flex min-h-0 flex-1 justify-center sm:items-center sm:p-4">
+        <div
+          className="flex w-full flex-col overflow-hidden bg-paper shadow-lift sm:h-[760px] sm:max-h-full sm:rounded-[2.25rem] sm:border-[10px] sm:border-ink"
+          style={{ maxWidth: "var(--phone-reference)" }}
+        >
+          <div className="scroll-hide min-h-0 flex-1 overflow-y-auto overscroll-contain">
             {children}
           </div>
 
-          <nav className="absolute inset-x-0 bottom-0 border-t border-ink-line bg-paper-card/95 backdrop-blur">
+          <nav className="safe-bottom shrink-0 border-t border-ink-line bg-paper-card/95 backdrop-blur">
             <div className="flex">
               {tabs.map((t) => {
                 const active = path === t.href;

@@ -8,10 +8,26 @@ export const metadata: Metadata = {
     "Coaching software for women in midlife. The coach provides the intelligence and the relationship; the product provides memory, structure and continuity.",
 };
 
+/**
+ * Viewport behaviour is locked; physical size is not.
+ *
+ * `viewportFit: "cover"` lets the layout paint into the notch/home-indicator
+ * area and then reclaim it deliberately via env(safe-area-inset-*), which is
+ * what keeps the bottom navigation anchored correctly on a modern iPhone.
+ *
+ * Deliberately absent: `maximumScale: 1` / `userScalable: false`. The zoom
+ * this prototype actually suffers from is iOS auto-zooming on focus of a
+ * sub-16px input, which is fixed properly in globals.css. Locking scale would
+ * not have fixed it — iOS Safari has ignored those two directives since iOS
+ * 10, precisely so that people who need to magnify text still can. Doing it
+ * anyway would only take pinch-zoom away from Android users, in a product
+ * built for 38–50 year olds. One line here if that trade is ever wanted.
+ */
 export const viewport: Viewport = {
   themeColor: "#F7F6F3",
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover",
 };
 
 /**
