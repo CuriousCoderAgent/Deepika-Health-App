@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useStore } from "@/lib/store";
+import { memberCode } from "@/lib/display";
 import { ChevronRight, Video, MapPin } from "lucide-react";
 
 const LABEL = (o: number) =>
@@ -34,7 +35,7 @@ export default function SessionsPage() {
           {m.initials}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="font-medium">{m.name}</p>
+          <p className="font-mono text-[14px] font-medium">{memberCode(m)}</p>
           <p className="text-[13px] text-ink-soft">{s.type}</p>
         </div>
         <span className="hidden items-center gap-1.5 text-[13px] text-ink-faint sm:flex">

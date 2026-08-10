@@ -5,6 +5,7 @@ import { useState } from "react";
 import { ChevronRight, Check, SlidersHorizontal, X } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { bucketMeta } from "@/lib/radar";
+import { memberCode } from "@/lib/display";
 import { Sparkline } from "@/components/ui";
 import type { DailyAction, PulseEntry, RadarBucket } from "@/lib/types";
 
@@ -190,9 +191,9 @@ export default function RadarPage() {
                           <div className="flex flex-wrap items-baseline gap-x-1.5">
                             <Link
                               href={`/coach/members/${m.id}`}
-                              className="text-[14px] font-medium hover:underline"
+                              className="font-mono text-[13px] font-medium hover:underline"
                             >
-                              {m.name.split(" ")[0]}
+                              {memberCode(m)}
                             </Link>
                             <span className="text-[11px] text-ink-faint">Wk {m.week}</span>
                             <span

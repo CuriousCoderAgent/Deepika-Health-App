@@ -1,10 +1,13 @@
 "use client";
 
+import Link from "next/link";
+import { FileText, ChevronRight } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { ConsistencyBand, ProvenanceChip, Sparkline } from "@/components/ui";
 
 export default function Progress() {
-  const { activeMember: m, actions, pulses, workoutLogs } = useStore();
+  const { activeMember: m, actions, pulses, workoutLogs, reports } = useStore();
+  const myReports = reports.filter((r) => r.memberId === m.id);
 
   const mine = actions.filter((a) => a.memberId === m.id);
   const days = Array.from({ length: 14 }).map((_, i) => {
@@ -107,6 +110,22 @@ export default function Progress() {
           </p>
         </div>
       )}
+
+      <Link
+        href="/member/reports"
+        className="card mt-6 flex items-center gap-3 p-4 transition-shadow hover:shadow-lift"
+      >
+        <FileText size={17} className="shrink-0 text-ink-soft" />
+        <div className="min-w-0 flex-1">
+          <p className="text-[15px] font-medium leading-snug">Your reports</p>
+          <p className="text-[13px] text-ink-faint">
+            {myReports.length
+              ? `${myReports.length} stored · add blood work or a scan`
+              : "Add your blood work or body composition"}
+          </p>
+        </div>
+        <ChevronRight size={16} className="shrink-0 text-ink-faint" />
+      </Link>
 
       {m.bodyComp && m.bodyComp.length > 0 && (
         <div className="mt-6 card p-5">

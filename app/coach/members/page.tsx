@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Search, ChevronRight } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { memberCode } from "@/lib/display";
 import { EffortRamp } from "@/components/ui";
 import type { EngagementState } from "@/lib/types";
 
@@ -20,7 +21,7 @@ export default function MembersPage() {
   const [q, setQ] = useState("");
 
   const filtered = members.filter((m) =>
-    m.name.toLowerCase().includes(q.toLowerCase())
+    memberCode(m).toLowerCase().includes(q.toLowerCase())
   );
 
   return (
@@ -35,7 +36,7 @@ export default function MembersPage() {
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Find someone"
+          placeholder="Find by member ID"
           className="tap w-full rounded-xl border border-ink-line bg-paper-card pl-9 pr-3 text-sm placeholder:text-ink-faint focus:border-effort-target focus:outline-none"
         />
       </div>
@@ -72,7 +73,7 @@ export default function MembersPage() {
 
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-baseline gap-x-2">
-                  <p className="font-medium">{m.name}</p>
+                  <p className="font-mono text-[15px] font-medium">{memberCode(m)}</p>
                   <span className="text-[13px] text-ink-faint">
                     {m.age} · {m.city}
                   </span>

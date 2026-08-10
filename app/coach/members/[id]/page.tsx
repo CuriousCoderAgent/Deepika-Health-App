@@ -24,6 +24,7 @@ import {
 } from "@/components/ui";
 import PulseCard from "@/components/PulseCard";
 import { draftWeekPlansFor, PHASE_WEEKS } from "@/lib/plan";
+import { memberLabel } from "@/lib/display";
 import type { EffortLevel, WeekPlan } from "@/lib/types";
 
 const TABS = [
@@ -48,6 +49,7 @@ export default function Member360({ params }: { params: { id: string } }) {
     messages,
     sessions,
     radar,
+    reports,
     updateDraftWeek,
     publishWeek,
     addCoachNote,
@@ -93,6 +95,9 @@ export default function Member360({ params }: { params: { id: string } }) {
   const weekActive = modules.filter((x) => weekDraft.moduleIds.includes(x.id));
   const weekAvailable = modules.filter((x) => !weekDraft.moduleIds.includes(x.id));
   const myNotes = m.notes ?? [];
+  const myReports = reports
+    .filter((r) => r.memberId === m.id)
+    .sort((a, b) => b.collectedOn.localeCompare(a.collectedOn));
 
   const days14 = Array.from({ length: 14 }).map((_, i) => {
     const off = i - 13;
@@ -124,7 +129,7 @@ export default function Member360({ params }: { params: { id: string } }) {
 
       <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="font-display text-4xl leading-tight">{m.name}</h1>
+          <h1 className="font-mono text-3xl font-medium leading-tight">{memberLabel(m)}</h1>
           <p className="mt-1.5 text-[15px] text-ink-soft">
             {m.age} · {m.city} · Week {m.week} · {m.phase} phase
           </p>
@@ -390,8 +395,54 @@ export default function Member360({ params }: { params: { id: string } }) {
             </div>
           )}
 
+          <div className="card p-5">
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="label">Uploaded reports</p>
+              <span className="font-mono text-[11px] text-ink-faint">
+                {myReports.length} ON FILE
+              </span>
+            </div>
+            {myReports.length === 0 ? (
+              <p className="mt-2.5 text-[14px] text-ink-faint">
+                Nothing uploaded. She can add these herself from Progress → Your
+                reports, or you can enter them during a session.
+              </p>
+            ) : (
+              <div className="mt-3 space-y-4">
+                {myReports.map((r) => (
+                  <div key={r.id} className="border-t border-ink-line pt-3 first:border-0 first:pt-0">
+                    <div className="flex flex-wrap items-baseline gap-x-2">
+                      <p className="text-[15px] font-medium">{r.title}</p>
+                      <span className="text-[13px] text-ink-faint">{r.collectedOn}</span>
+                      <span className="ml-auto">
+                        <ProvenanceChip p={r.provenance} showWho />
+                      </span>
+                    </div>
+                    {r.lab && <p className="text-[13px] text-ink-faint">{r.lab}</p>}
+                    <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1">
+                      {r.values.map((v, i) => (
+                        <span key={i} className="text-[13px] text-ink-soft">
+                          {v.label}{" "}
+                          <span className="font-mono text-ink">
+                            {v.value}
+                            {v.unit ? ` ${v.unit}` : ""}
+                          </span>
+                        </span>
+                      ))}
+                    </div>
+                    {r.note && (
+                      <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">{r.note}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <ScopeNotice>
-            Reports are stored and trended here, never interpreted. If a value needs
+            Reports are stored and trended here, never interpreted. No value on this
+            screen is flagged high, low or concerning, because doing so would be a
+            clinical judgement and this is not a clinical product. If a value needs
             explaining, that conversation belongs with her doctor — use the
             &ldquo;Preparing Questions for Your Doctor&rdquo; module to make it a
             better appointment.

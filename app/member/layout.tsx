@@ -4,6 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Activity, CalendarHeart, Home, MessageCircle, TrendingUp, ChevronLeft } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { memberCode } from "@/lib/display";
+
+/** The one persona the prototype previews. See the note by the switcher. */
+const PREVIEW_MEMBER_ID = "radhika";
 
 const tabs = [
   { href: "/member", label: "Today", icon: Home },
@@ -21,6 +25,11 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
     (m) => m.memberId === activeMember.id && m.from !== "member" && !m.read
   ).length;
 
+  // Radhika always, plus whoever the coach console jumped into via "See her app".
+  const previewable = members.filter(
+    (m) => m.id === PREVIEW_MEMBER_ID || m.id === activeMember.id
+  );
+
   return (
     <div className="min-h-dvh bg-paper-sunk/60">
       {/* Persona switcher — sits outside the phone. It is a demo control,
@@ -33,17 +42,20 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
           <ChevronLeft size={14} /> Home
         </Link>
         <span className="label mr-1">Viewing as</span>
-        {members.map((m) => (
+        {/* One worked example. The other five personas still exist in the data —
+            the Radar needs them — they are simply not previewable here, so a
+            demo never puts six women's names and health logs on one screen. */}
+        {previewable.map((m) => (
           <button
             key={m.id}
             onClick={() => setActiveMember(m.id)}
-            className={`rounded-full px-3 py-1 text-xs transition-colors ${
+            className={`rounded-full px-3 py-1 font-mono text-xs transition-colors ${
               m.id === activeMember.id
                 ? "bg-ink text-white"
                 : "bg-paper-card text-ink-soft hover:bg-white"
             }`}
           >
-            {m.name.split(" ")[0]}
+            {memberCode(m)}
           </button>
         ))}
       </div>
