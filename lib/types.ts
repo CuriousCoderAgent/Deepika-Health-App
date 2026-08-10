@@ -137,12 +137,46 @@ export interface PulseEntry {
   provenance: Provenance;
 }
 
+/** Selects the line drawing in components/ExerciseFigure.tsx. */
+export type MovementFigure =
+  | "goblet-squat"
+  | "hip-hinge"
+  | "incline-push-up"
+  | "suitcase-carry"
+  | "split-squat"
+  | "romanian-deadlift"
+  | "half-kneeling-press"
+  | "farmer-carry"
+  | "cat-cow"
+  | "hip-switch"
+  | "thoracic-opener"
+  | "standing-stretch"
+  | "walk"
+  | "generic";
+
 export interface ExerciseSet {
   name: string;
   prescription: string;
   cue: string;
   /** Deepika's own repertoire — kept deliberately small in V0. */
   supervisedOnly?: boolean;
+  /**
+   * Everything below exists so a member can do the movement well on a day
+   * Deepika is not standing next to her. Strength work is the centre of this
+   * product, not a section of it, and a name plus a rep count is not enough
+   * to act on if you have never trained before.
+   */
+  figure?: MovementFigure;
+  /** How to get into position, before the first rep. */
+  setup?: string[];
+  /** The rep itself, in order. */
+  execute?: string[];
+  /** The specific things that go wrong, named plainly. */
+  watchFor?: string[];
+  /** Where it should be felt — the fastest check that it is working. */
+  feelItIn?: string;
+  /** The honest regression, so "too hard" never means "skip it". */
+  easier?: string;
 }
 
 export interface Workout {

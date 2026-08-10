@@ -23,7 +23,7 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
         <ChevronLeft size={16} /> Worth reading
       </Link>
 
-      <h1 className="mt-4 font-display text-[1.7rem] leading-tight">{a.title}</h1>
+      <h1 className="mt-4 font-display text-[1.55rem] leading-tight">{a.title}</h1>
       <p className="mt-2 text-[15px] leading-relaxed text-ink-soft">{a.standfirst}</p>
       <div className="mt-2.5 flex items-center gap-1.5 text-[12px] text-ink-faint">
         <Clock size={12} />

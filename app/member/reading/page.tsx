@@ -20,7 +20,7 @@ export default function Reading() {
         <ChevronLeft size={16} /> Journey
       </Link>
 
-      <h1 className="mt-4 font-display text-[1.7rem] leading-tight">Worth reading</h1>
+      <h1 className="mt-4 font-display text-[1.55rem] leading-tight">Worth reading</h1>
       <p className="mt-1.5 text-[15px] leading-relaxed text-ink-soft">
         Short pieces chosen from what you have told us about your stage, your
         goals and how you live. Every one says why it is here.

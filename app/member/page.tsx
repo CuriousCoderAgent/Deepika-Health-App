@@ -252,16 +252,27 @@ export default function Today() {
         </Link>
       )}
 
-      {/* 7 — One progress cue. A count, never a streak. */}
+      {/* 7 — One progress cue. A count, never a streak. In week one there is
+          nothing to count yet, so it says what it is for instead of showing
+          fourteen empty squares and reading as a scoreboard she is losing. */}
       <div className="mt-4 rounded-2xl bg-effort-tint px-4 py-3">
-        <p className="text-[13px] leading-relaxed text-effort-stretch">
-          You&rsquo;re building consistency —{" "}
-          <span className="font-medium">{activeDays} of the last 14 days</span> included
-          at least one healthy action.
-        </p>
-        <div className="mt-2.5">
-          <ConsistencyBand days={last14days} showDayLetters />
-        </div>
+        {activeDays === 0 ? (
+          <p className="text-[13px] leading-relaxed text-effort-stretch">
+            This is where your consistency will show — any day with at least one
+            healthy action counts. Nothing to catch up on yet.
+          </p>
+        ) : (
+          <>
+            <p className="text-[13px] leading-relaxed text-effort-stretch">
+              You&rsquo;re building consistency —{" "}
+              <span className="font-medium">{activeDays} of the last 14 days</span> included
+              at least one healthy action.
+            </p>
+            <div className="mt-2.5">
+              <ConsistencyBand days={last14days} showDayLetters />
+            </div>
+          </>
+        )}
       </div>
 
       <div className="h-6" />
