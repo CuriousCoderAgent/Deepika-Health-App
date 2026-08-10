@@ -106,9 +106,9 @@ export interface PulseEntry {
   id: string;
   memberId: string;
   dayOffset: number;
-  energy: number; // 1–5
-  sleep: number; // 1–5
-  stress: number; // 1–5
+  energy: number; // 1 drained – 5 energised
+  sleep: number; // 1 poor – 5 restorative
+  stress: number; // 1 overwhelmed – 5 calm. Higher is always better, same as the two above.
   symptoms: string[];
   note?: string;
   provenance: Provenance;
