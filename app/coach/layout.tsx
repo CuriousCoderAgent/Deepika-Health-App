@@ -85,7 +85,7 @@ export default function CoachLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* Mobile nav */}
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-ink-line bg-paper-card/95 backdrop-blur lg:hidden">
+      <div className="safe-bottom fixed inset-x-0 bottom-0 z-20 border-t border-ink-line bg-paper-card/95 backdrop-blur lg:hidden">
         <div className="scroll-hide flex overflow-x-auto">
           {nav.map((n) => {
             const active = path === n.href || (n.href !== "/coach" && path.startsWith(n.href));
