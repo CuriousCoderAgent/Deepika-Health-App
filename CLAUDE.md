@@ -19,8 +19,10 @@ midlife health practice in India. Two surfaces — a member app and a coach
 console — built so the founder (Deepika) can use them and react, rather than
 answer more discovery questions.
 
-It is **not** the Pilot MVP. No auth, no backend, no real data. State lives in
-`localStorage`. Do not add anything that implies otherwise.
+It is **not** the Pilot MVP, but it is no longer only a demo: it has real
+sign-in, per-account data, and optional durable storage, because the twenty
+pilot members are going to use it. There is still no AI in it — do not add UI
+implying otherwise.
 
 **Product thesis:** Deepika provides the intelligence and the human
 relationship. The software provides memory, structure, visibility,
@@ -102,8 +104,16 @@ being deliberate about which one this is before it ships either way.
 
 ## Stack and commands
 
-Next.js 14 (App Router) · TypeScript · Tailwind · React context + `localStorage`.
-No database, no env vars, no secrets.
+Next.js 14 (App Router) · TypeScript · Tailwind · React context, persisted to
+Postgres when `DATABASE_URL` is set and to `localStorage` when it is not.
+
+Storage is per account either way — one document per member, split and
+rejoined by `lib/persist.ts`. `lib/db.ts` is server-only; importing it from a
+client component would put the connection string in the browser bundle.
+
+Accounts come from the environment (`MEMBERS`, `COACH_PASSWORD`,
+`AUTH_SECRET`), all with fallbacks, so a deployment with nothing set still
+opens on demo credentials. See `docs/DEPLOYMENT.md`.
 
 ```bash
 npm install

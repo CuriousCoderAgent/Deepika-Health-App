@@ -154,9 +154,17 @@ export function evaluateRadar(
       ...myPulses.map((x) => x.dayOffset),
       ...myMessages.filter((x) => x.from === "member").map((x) => x.dayOffset),
     ];
-    const lastTouch = touched.length ? Math.max(...touched) : -99;
-    if (on("R01") && lastTouch <= -3) {
-      push(m.id, "R01", `Nothing recorded for ${Math.abs(lastTouch)} days.`);
+    // Someone who has never recorded anything has no gap to measure, and a
+    // sentinel dressed up as a day count ("nothing for 99 days") would send
+    // Deepika chasing a member who joined this morning. Say what is actually
+    // true instead, and only once she has had a few days to start.
+    const lastTouch = touched.length ? Math.max(...touched) : null;
+    if (on("R01")) {
+      if (lastTouch === null) {
+        if (m.week >= 1) push(m.id, "R01", "Nothing recorded yet.");
+      } else if (lastTouch <= -3) {
+        push(m.id, "R01", `Nothing recorded for ${Math.abs(lastTouch)} days.`);
+      }
     }
 
     // R02 — movement slipping
