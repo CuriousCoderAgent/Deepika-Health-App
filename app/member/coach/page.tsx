@@ -172,8 +172,10 @@ export default function CoachInbox() {
       </div>
 
       <p className="pb-4 text-[11px] leading-relaxed text-ink-faint">
-        For anything urgent or medical, contact your doctor rather than waiting for
-        a reply here.
+        Deepika is a health coach and personal trainer. She does not diagnose
+        conditions or advise on medication. For anything urgent or medical,
+        contact your doctor rather than waiting for a reply here — she will
+        help you prepare the questions.
       </p>
     </div>
   );

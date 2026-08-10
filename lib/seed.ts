@@ -768,28 +768,28 @@ export const dailyActions: DailyAction[] = [
 /* ------------------------------------------------------------------ */
 
 export const pulses: PulseEntry[] = [
-  { id: "p-rad-1", memberId: "radhika", dayOffset: -1, energy: 2, sleep: 2, stress: 4, symptoms: ["Night waking"], note: "Woke at 3 and again at 5.", provenance: p("member_manual", "Radhika", "2026-08-08") },
-  { id: "p-rad-2", memberId: "radhika", dayOffset: -2, energy: 2, sleep: 1, stress: 5, symptoms: ["Night waking", "Hot flush"], note: "Travel day. Rough.", provenance: p("member_manual", "Radhika", "2026-08-07") },
-  { id: "p-rad-3", memberId: "radhika", dayOffset: -3, energy: 2, sleep: 2, stress: 4, symptoms: [], provenance: p("coach_on_behalf", "Deepika", "2026-08-06") },
+  { id: "p-rad-1", memberId: "radhika", dayOffset: -1, energy: 2, sleep: 2, stress: 2, symptoms: ["Night waking"], note: "Woke at 3 and again at 5.", provenance: p("member_manual", "Radhika", "2026-08-08") },
+  { id: "p-rad-2", memberId: "radhika", dayOffset: -2, energy: 2, sleep: 1, stress: 1, symptoms: ["Night waking", "Hot flush"], note: "Travel day. Rough.", provenance: p("member_manual", "Radhika", "2026-08-07") },
+  { id: "p-rad-3", memberId: "radhika", dayOffset: -3, energy: 2, sleep: 2, stress: 2, symptoms: [], provenance: p("coach_on_behalf", "Deepika", "2026-08-06") },
   { id: "p-rad-4", memberId: "radhika", dayOffset: -4, energy: 3, sleep: 3, stress: 3, symptoms: [], provenance: p("member_manual", "Radhika", "2026-08-05") },
   { id: "p-rad-5", memberId: "radhika", dayOffset: -5, energy: 3, sleep: 3, stress: 3, symptoms: [], provenance: p("member_manual", "Radhika", "2026-08-04") },
-  { id: "p-rad-6", memberId: "radhika", dayOffset: -6, energy: 4, sleep: 4, stress: 2, symptoms: [], provenance: p("member_manual", "Radhika", "2026-08-03") },
+  { id: "p-rad-6", memberId: "radhika", dayOffset: -6, energy: 4, sleep: 4, stress: 4, symptoms: [], provenance: p("member_manual", "Radhika", "2026-08-03") },
   { id: "p-rad-7", memberId: "radhika", dayOffset: -7, energy: 3, sleep: 3, stress: 3, symptoms: [], provenance: p("member_manual", "Radhika", "2026-08-02") },
 
-  { id: "p-meg-1", memberId: "megha", dayOffset: 0, energy: 4, sleep: 4, stress: 2, symptoms: [], provenance: p("member_manual", "Megha", "2026-08-09") },
-  { id: "p-meg-2", memberId: "megha", dayOffset: -1, energy: 4, sleep: 4, stress: 2, symptoms: [], provenance: p("member_manual", "Megha", "2026-08-08") },
-  { id: "p-meg-3", memberId: "megha", dayOffset: -2, energy: 5, sleep: 4, stress: 1, symptoms: [], provenance: p("member_manual", "Megha", "2026-08-07") },
+  { id: "p-meg-1", memberId: "megha", dayOffset: 0, energy: 4, sleep: 4, stress: 4, symptoms: [], provenance: p("member_manual", "Megha", "2026-08-09") },
+  { id: "p-meg-2", memberId: "megha", dayOffset: -1, energy: 4, sleep: 4, stress: 4, symptoms: [], provenance: p("member_manual", "Megha", "2026-08-08") },
+  { id: "p-meg-3", memberId: "megha", dayOffset: -2, energy: 5, sleep: 4, stress: 5, symptoms: [], provenance: p("member_manual", "Megha", "2026-08-07") },
   { id: "p-meg-4", memberId: "megha", dayOffset: -3, energy: 3, sleep: 3, stress: 3, symptoms: [], provenance: p("member_manual", "Megha", "2026-08-06") },
 
-  { id: "p-ani-1", memberId: "anita", dayOffset: -5, energy: 2, sleep: 2, stress: 4, symptoms: ["Hot flush", "Night waking"], note: "Amma had a bad night.", provenance: p("member_manual", "Anita", "2026-08-04") },
+  { id: "p-ani-1", memberId: "anita", dayOffset: -5, energy: 2, sleep: 2, stress: 2, symptoms: ["Hot flush", "Night waking"], note: "Amma had a bad night.", provenance: p("member_manual", "Anita", "2026-08-04") },
 
   { id: "p-shr-1", memberId: "shreya", dayOffset: 0, energy: 3, sleep: 3, stress: 3, symptoms: [], provenance: p("member_manual", "Shreya", "2026-08-09") },
-  { id: "p-shr-2", memberId: "shreya", dayOffset: -1, energy: 3, sleep: 2, stress: 4, symptoms: ["Heavy bleeding"], provenance: p("member_manual", "Shreya", "2026-08-08") },
-  { id: "p-shr-3", memberId: "shreya", dayOffset: -2, energy: 2, sleep: 2, stress: 4, symptoms: ["Cramping"], provenance: p("member_manual", "Shreya", "2026-08-07") },
+  { id: "p-shr-2", memberId: "shreya", dayOffset: -1, energy: 3, sleep: 2, stress: 2, symptoms: ["Heavy bleeding"], provenance: p("member_manual", "Shreya", "2026-08-08") },
+  { id: "p-shr-3", memberId: "shreya", dayOffset: -2, energy: 2, sleep: 2, stress: 2, symptoms: ["Cramping"], provenance: p("member_manual", "Shreya", "2026-08-07") },
 
-  { id: "p-nid-1", memberId: "nidhi", dayOffset: 0, energy: 4, sleep: 3, stress: 2, symptoms: ["3am waking"], provenance: p("member_manual", "Nidhi", "2026-08-09") },
-  { id: "p-nid-2", memberId: "nidhi", dayOffset: -1, energy: 4, sleep: 3, stress: 2, symptoms: ["3am waking"], provenance: p("member_manual", "Nidhi", "2026-08-08") },
-  { id: "p-nid-3", memberId: "nidhi", dayOffset: -2, energy: 5, sleep: 4, stress: 1, symptoms: [], provenance: p("member_manual", "Nidhi", "2026-08-07") },
+  { id: "p-nid-1", memberId: "nidhi", dayOffset: 0, energy: 4, sleep: 3, stress: 4, symptoms: ["3am waking"], provenance: p("member_manual", "Nidhi", "2026-08-09") },
+  { id: "p-nid-2", memberId: "nidhi", dayOffset: -1, energy: 4, sleep: 3, stress: 4, symptoms: ["3am waking"], provenance: p("member_manual", "Nidhi", "2026-08-08") },
+  { id: "p-nid-3", memberId: "nidhi", dayOffset: -2, energy: 5, sleep: 4, stress: 5, symptoms: [], provenance: p("member_manual", "Nidhi", "2026-08-07") },
 
   { id: "p-pri-1", memberId: "priya", dayOffset: 0, energy: 3, sleep: 3, stress: 3, symptoms: [], note: "Back after a rough stretch.", provenance: p("member_manual", "Priya", "2026-08-09") },
 ];

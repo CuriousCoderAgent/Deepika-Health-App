@@ -11,13 +11,16 @@ const config: Config = {
       colors: {
         // Structure — deep indigo-slate. Reads as evening, not corporate black.
         ink: {
-          DEFAULT: "#1C2B3A",
-          soft: "#4A5D70",
-          faint: "#8595A5",
+          DEFAULT: "#15232F",
+          // Darkened from the original #4A5D70/#8595A5 pair — the Aug 2026
+          // design review flagged secondary/meta text as washed out. Three
+          // tones, each still visibly distinct from the next.
+          soft: "#3D4F60",
+          faint: "#6B7A8A",
           line: "#E2E0DA",
         },
         paper: {
-          DEFAULT: "#F7F6F3",
+          DEFAULT: "#F7F4EE",
           card: "#FFFFFF",
           sunk: "#EFEDE8",
         },
@@ -29,20 +32,40 @@ const config: Config = {
           stretch: "#3F6B57",
           tint: "#E9F0EA",
         },
-        // Reserved exclusively for Deepika's human voice.
+        // Reserved for Deepika's human voice — a deliberate choice, not a
+        // hard rule: it's the one signal that lets a member tell a human
+        // from the system at a glance, so nothing else claims this hue.
         marigold: {
           DEFAULT: "#D99A2B",
           deep: "#A9741A",
           tint: "#FBF1DC",
         },
-        // Rest / not-today. Deliberately neutral. Never red.
+        // Rest / not-today. Deliberately neutral, not a failure state.
         rest: {
           DEFAULT: "#B9B6AE",
           tint: "#F0EEE9",
         },
+        // Muted rust, not alarm-red — Radar "needs attention", self-reported
+        // "Stressed" mood. Warm enough to register, not saturated enough to
+        // read as a system failure.
         attention: {
           DEFAULT: "#B4674A",
           tint: "#F8EDE8",
+        },
+        // A cool, calm tone for self-reported "Tired" — distinct from
+        // attention/rust without borrowing marigold or introducing lavender.
+        // Shares a family with the sleep sparkline already used in Progress.
+        calm: {
+          DEFAULT: "#6E8FB0",
+          tint: "#EAF0F6",
+        },
+        // Genuine system errors only (a save that failed, a required field).
+        // Never used for a missed action or an honest "not today" — that
+        // distinction is the whole reason `rest` and `danger` are separate
+        // tokens instead of one red for everything.
+        danger: {
+          DEFAULT: "#C24A42",
+          tint: "#FBECEA",
         },
       },
       fontFamily: {
