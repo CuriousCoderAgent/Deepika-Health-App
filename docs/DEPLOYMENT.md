@@ -25,7 +25,7 @@ to an existing build.
 | `AUTH_SECRET` | Random string used to sign session cookies. Generate with `openssl rand -base64 32`. Changing it signs everyone out. |
 | `COACH_PASSWORD` | Deepika's password. Her username is always `deepika`. |
 | `MEMBERS` | The cohort. See below. |
-| `DATABASE_URL` | Postgres connection string. Optional, but required for self-signup — see Storage. |
+| `DATABASE_URL` | Postgres connection string. Optional, but required for self-signup — see Storage. `POSTGRES_URL` is read as an alternative. |
 | `SIGNUP_CODE` | Optional. When set, creating an account asks for this code. |
 
 The login screen stops showing the preview-credentials box once the first
@@ -96,10 +96,21 @@ phone, survives a cleared cache, and shows up in Deepika's console. Browser
 storage keeps being written as an offline mirror, so a dropped connection
 does not lose the current session's work.
 
-Any Postgres works — Supabase, Neon, Railway. Point `DATABASE_URL` at a
-**pooled** endpoint (Supabase's pooler port, Neon's `-pooler` host):
-serverless functions open many short-lived connections and a free-tier
-database will run out of direct ones.
+**The easy way: Vercel → Storage → Create Database.** Pick Neon or Supabase
+and Vercel provisions it, links it to the project, and injects the connection
+variables itself — no string to copy and nothing to paste wrong. Redeploy
+after linking.
+
+The variable name depends on which provider is behind it: Neon injects
+`DATABASE_URL`, Supabase and the older Vercel Postgres inject `POSTGRES_URL`.
+Both are read, and both are the pooled connection, so either works with no
+configuration.
+
+Setting it by hand works too — any Postgres will do (Supabase, Neon, Railway).
+Point it at a **pooled** endpoint (Supabase's pooler port, Neon's `-pooler`
+host): serverless functions open many short-lived connections and a free-tier
+database will run out of direct ones. Vercel's own integrations already give
+you the pooled one.
 
 The schema creates itself on first request. On a genuinely empty database the
 six demo personas are written once, so the Radar has all four buckets

@@ -3,11 +3,11 @@
  *
  * Two documents per row, one row per account: a member's own record and
  * history, or Deepika's practice-level settings. Plain Postgres over
- * DATABASE_URL, so this runs on Supabase, Neon, Railway or anything else
- * that speaks the protocol — no vendor SDK, nothing to migrate off.
+ * a connection string, so this runs on Supabase, Neon, Railway or anything
+ * else that speaks the protocol — no vendor SDK, nothing to migrate off.
  *
- * Without DATABASE_URL every function here reports "not configured" and the
- * app falls back to browser storage. That is not a degraded mode by accident:
+ * Without one, every function here reports "not configured" and the app falls
+ * back to browser storage. That is not a degraded mode by accident:
  * it is what lets the prototype keep being a prototype, deployable with no
  * infrastructure at all, right up until the moment real people need their data
  * to survive changing phones.
@@ -24,8 +24,23 @@ import { seedCoachDoc, seedMemberDocs } from "./persist";
 const BOOTSTRAP_KEY = "demo_cohort";
 const BOOTSTRAP_VERSION = "1";
 
+/**
+ * The connection string, under whichever name the provider used.
+ *
+ * Vercel's Storage tab provisions a database and injects the variables for
+ * you, which is the path most people take — but the name depends on which
+ * provider is behind it: Neon writes `DATABASE_URL`, Supabase and the older
+ * Vercel Postgres write `POSTGRES_URL`. Both are the pooled connection, which
+ * is the one this wants. Reading only the first name would leave someone
+ * staring at a correctly provisioned database and an app that says storage is
+ * not configured.
+ */
+function connectionString(): string | undefined {
+  return process.env.DATABASE_URL?.trim() || process.env.POSTGRES_URL?.trim() || undefined;
+}
+
 export function isConfigured(): boolean {
-  return Boolean(process.env.DATABASE_URL);
+  return Boolean(connectionString());
 }
 
 /**
@@ -36,7 +51,7 @@ export function isConfigured(): boolean {
  * connection outright, so honour what the URL says.
  */
 function sslOption(): false | { rejectUnauthorized: boolean } {
-  const url = process.env.DATABASE_URL ?? "";
+  const url = connectionString() ?? "";
   if (/[?&]sslmode=disable/.test(url)) return false;
   try {
     const host = new URL(url).hostname;
@@ -54,14 +69,15 @@ function sslOption(): false | { rejectUnauthorized: boolean } {
  * module-level pool survives between requests and a new connection is not paid
  * for on every call. Keep it small — many concurrent instances each holding a
  * handful of connections is how a free-tier database runs out of them. Point
- * DATABASE_URL at a pooled endpoint (Supabase's pooler, Neon's -pooler host)
- * and this stays comfortable.
+ * the connection string at a pooled endpoint (Supabase's pooler, Neon's
+ * -pooler host) and this stays comfortable. Vercel's own Storage integrations
+ * inject the pooled one by default.
  */
 let pool: Pool | null = null;
 function db(): Pool {
   if (!pool) {
     pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
+      connectionString: connectionString(),
       max: 3,
       idleTimeoutMillis: 30_000,
       connectionTimeoutMillis: 10_000,

@@ -28,6 +28,7 @@ export default async function Home() {
   // Self-signup needs somewhere to put the account. An environment variable is
   // read-only at runtime, so without storage there is nowhere for a new
   // account to go and the option is not offered rather than offered and broken.
+  // isConfigured() knows every name a provider might have used — see lib/db.ts.
   const canSignUp = isConfigured();
   const needsCode = Boolean(process.env.SIGNUP_CODE?.trim());
 
