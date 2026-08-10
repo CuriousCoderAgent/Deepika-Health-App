@@ -86,8 +86,8 @@ export const members: Member[] = [
       { week: 4, phase: "Stabilise", focus: ["Introduce protein at one meal a day", "Protect sleep on non-travel nights"], moduleIds: ["mv-walk-base", "sl-reset", "nu-protein", "bh-minimum-day"] },
       { week: 5, phase: "Build", focus: ["Protect sleep on non-travel nights", "Two strength sessions, any length"], moduleIds: ["mv-strength-a", "sl-reset", "nu-protein", "bh-minimum-day"] },
       { week: 6, phase: "Build", focus: ["Two strength sessions, any length", "Protein at two meals a day"], moduleIds: ["mv-strength-a", "sl-reset", "nu-protein", "bh-minimum-day"] },
-      { week: 7, phase: "Build", focus: ["Add load — Strength B", "Protein at two meals a day"], moduleIds: ["mv-strength-b", "sl-reset", "nu-protein", "bh-if-then"] },
-      { week: 8, phase: "Build", focus: ["Add load — Strength B", "Understand why we are lifting"], moduleIds: ["mv-strength-b", "sl-reset", "nu-protein", "hr-bone-muscle"] },
+      { week: 7, phase: "Build", focus: ["Add load — Balance & Carry", "Protein at two meals a day"], moduleIds: ["mv-strength-b", "sl-reset", "nu-protein", "bh-if-then"] },
+      { week: 8, phase: "Build", focus: ["Add load — Balance & Carry", "Understand why we are lifting"], moduleIds: ["mv-strength-b", "sl-reset", "nu-protein", "hr-bone-muscle"] },
       { week: 9, phase: "Consolidate", focus: ["Consolidate the habits that held", "Build the plate, not just the protein"], moduleIds: ["mv-strength-b", "nu-plate", "sl-reset", "hr-bone-muscle"] },
       { week: 10, phase: "Consolidate", focus: ["Consolidate the habits that held", "Prepare doctor questions on the transition"], moduleIds: ["mv-strength-b", "nu-plate", "hr-perimenopause", "bh-if-then"] },
       { week: 11, phase: "Consolidate", focus: ["Hold the plan through a travel week", "If-then plan for missed sessions"], moduleIds: ["mv-strength-b", "nu-plate", "bh-if-then"] },
@@ -210,7 +210,7 @@ export const members: Member[] = [
 export const modules: CoachModule[] = [
   {
     id: "mv-strength-a",
-    name: "Beginner Strength A",
+    name: "Strength Foundations",
     category: "movement",
     version: "1.2",
     status: "active",
@@ -254,13 +254,13 @@ export const modules: CoachModule[] = [
   },
   {
     id: "mv-strength-b",
-    name: "Beginner Strength B",
+    name: "Balance & Carry",
     category: "movement",
     version: "1.1",
     status: "active",
     purpose: "Second strength template — adds unilateral work and loaded carries.",
     betterLooksLike: "She can carry shopping in one hand for 40m without setting it down.",
-    eligibility: "Completed at least four weeks of Strength A with stable technique.",
+    eligibility: "Completed at least four weeks of Foundations with stable technique.",
     keyIdeas: [
       "Single-leg work protects balance, which protects against falls later.",
       "Carries build grip and trunk strength at the same time.",
@@ -274,7 +274,7 @@ export const modules: CoachModule[] = [
       barriers: ["Balance confidence", "Grip gives out before legs do"],
       escalation: "Any knee pain during single-leg work — regress to supported version, review in person.",
     },
-    notificationTemplates: ["Strength B today. Start with the carries if you are short on time."],
+    notificationTemplates: ["Balance & Carry today. Start with the carries if you are short on time."],
     progression: "Add load when both sides complete the prescribed reps at RPE 7 or below.",
     reviewedOn: "2026-07-30",
   },
@@ -328,7 +328,7 @@ export const modules: CoachModule[] = [
       escalation: "None.",
     },
     notificationTemplates: ["A 10-minute walk after dinner counts as the whole thing."],
-    progression: "Move to Strength A once walking has held for two weeks.",
+    progression: "Move to Foundations once walking has held for two weeks.",
   },
   {
     id: "nu-protein",
@@ -499,7 +499,7 @@ export const modules: CoachModule[] = [
       escalation: "Known osteoporosis or prior fragility fracture — medical clearance before loading.",
     },
     notificationTemplates: ["Four minutes on why we are lifting, not just walking."],
-    progression: "Pairs with Strength B.",
+    progression: "Pairs with Balance & Carry.",
     reviewNote: "Education only. Screening and diagnosis are medical decisions.",
     reviewedOn: "2026-08-05",
   },
@@ -617,7 +617,7 @@ export const modules: CoachModule[] = [
 export const workouts: Workout[] = [
   {
     id: "wk-strength-a",
-    name: "Strength A",
+    name: "Foundations",
     intent: "Hinge, squat, push, carry. Technique before load.",
     warmup: ["Cat-cow × 8", "Glute bridge × 10", "Wall slides × 10"],
     exercises: [
@@ -715,7 +715,7 @@ export const workouts: Workout[] = [
   },
   {
     id: "wk-strength-b",
-    name: "Strength B",
+    name: "Balance & Carry",
     intent: "Single-leg work and loaded carries. Balance and grip.",
     warmup: ["Ankle rocks × 10", "Single-leg balance 20s per side", "Band pull-apart × 12"],
     exercises: [
@@ -902,7 +902,7 @@ export const dailyActions: DailyAction[] = [
     memberId: "radhika",
     dayOffset: 0,
     moduleId: "mv-strength-a",
-    title: "Strength A",
+    title: "Foundations",
     why: "You have had three low-energy days. This is the shortened version — one round, no added weight.",
     minimum: { label: "One round, bodyweight only", minutes: 12 },
     target: { label: "Two rounds as written", minutes: 25 },
@@ -935,11 +935,11 @@ export const dailyActions: DailyAction[] = [
     completed: null,
   },
   { id: "a-rad-p1", memberId: "radhika", dayOffset: -1, moduleId: "mv-mobility-10", title: "10-minute Mobility", why: "Keeping the floor.", minimum: { label: "Three movements", minutes: 4 }, target: { label: "Full sequence", minutes: 10 }, stretch: { label: "Sequence plus walk", minutes: 25 }, completed: "minimum", provenance: p("member_manual", "Radhika", "2026-08-08") },
-  { id: "a-rad-p2", memberId: "radhika", dayOffset: -2, moduleId: "mv-strength-a", title: "Strength A", why: "Planned session.", minimum: { label: "One round", minutes: 12 }, target: { label: "Two rounds", minutes: 25 }, stretch: { label: "Three rounds", minutes: 40 }, completed: "rest", skipReason: "Flight delayed, got home at 11pm", workoutId: "wk-strength-a", provenance: p("member_manual", "Radhika", "2026-08-07") },
+  { id: "a-rad-p2", memberId: "radhika", dayOffset: -2, moduleId: "mv-strength-a", title: "Foundations", why: "Planned session.", minimum: { label: "One round", minutes: 12 }, target: { label: "Two rounds", minutes: 25 }, stretch: { label: "Three rounds", minutes: 40 }, completed: "rest", skipReason: "Flight delayed, got home at 11pm", workoutId: "wk-strength-a", provenance: p("member_manual", "Radhika", "2026-08-07") },
   { id: "a-rad-p3", memberId: "radhika", dayOffset: -3, moduleId: "nu-protein", title: "Protein at lunch", why: "Building the habit.", minimum: { label: "One meal", minutes: 0 }, target: { label: "Two meals", minutes: 0 }, stretch: { label: "Every meal", minutes: 0 }, completed: "target", provenance: p("member_manual", "Radhika", "2026-08-06") },
-  { id: "a-rad-p4", memberId: "radhika", dayOffset: -4, moduleId: "mv-strength-a", title: "Strength A", why: "Planned session.", minimum: { label: "One round", minutes: 12 }, target: { label: "Two rounds", minutes: 25 }, stretch: { label: "Three rounds", minutes: 40 }, completed: "rest", skipReason: "Too tired", workoutId: "wk-strength-a", provenance: p("member_manual", "Radhika", "2026-08-05") },
+  { id: "a-rad-p4", memberId: "radhika", dayOffset: -4, moduleId: "mv-strength-a", title: "Foundations", why: "Planned session.", minimum: { label: "One round", minutes: 12 }, target: { label: "Two rounds", minutes: 25 }, stretch: { label: "Three rounds", minutes: 40 }, completed: "rest", skipReason: "Too tired", workoutId: "wk-strength-a", provenance: p("member_manual", "Radhika", "2026-08-05") },
   { id: "a-rad-p5", memberId: "radhika", dayOffset: -5, moduleId: "mv-walk-base", title: "Evening walk", why: "After dinner.", minimum: { label: "10 minutes", minutes: 10 }, target: { label: "20 minutes", minutes: 20 }, stretch: { label: "35 minutes", minutes: 35 }, completed: "minimum", provenance: p("member_manual", "Radhika", "2026-08-04") },
-  { id: "a-rad-p6", memberId: "radhika", dayOffset: -6, moduleId: "mv-strength-a", title: "Strength A", why: "Planned session.", minimum: { label: "One round", minutes: 12 }, target: { label: "Two rounds", minutes: 25 }, stretch: { label: "Three rounds", minutes: 40 }, completed: "target", workoutId: "wk-strength-a", provenance: p("member_manual", "Radhika", "2026-08-03") },
+  { id: "a-rad-p6", memberId: "radhika", dayOffset: -6, moduleId: "mv-strength-a", title: "Foundations", why: "Planned session.", minimum: { label: "One round", minutes: 12 }, target: { label: "Two rounds", minutes: 25 }, stretch: { label: "Three rounds", minutes: 40 }, completed: "target", workoutId: "wk-strength-a", provenance: p("member_manual", "Radhika", "2026-08-03") },
 
   // Megha — week 1, doing well
   { id: "a-meg-1", memberId: "megha", dayOffset: 0, moduleId: "mv-walk-base", title: "Walk after dinner", why: "Your if-then plan says: after dinner, shoes on.", minimum: { label: "10 minutes", minutes: 10 }, target: { label: "20 minutes", minutes: 20 }, stretch: { label: "35 minutes brisk", minutes: 35 }, completed: null },
@@ -951,17 +951,17 @@ export const dailyActions: DailyAction[] = [
   // Anita — quiet, mid-lapse
   { id: "a-ani-1", memberId: "anita", dayOffset: 0, moduleId: "bh-comeback", title: "One action, any action", why: "This week is deliberately smaller. Nothing reset.", minimum: { label: "One action", minutes: 10 }, target: { label: "Three actions this week", minutes: 30 }, stretch: { label: "Back to the previous plan", minutes: 60 }, completed: null },
   { id: "a-ani-2", memberId: "anita", dayOffset: 0, moduleId: "sl-winddown", title: "Lights down at 10:30", why: "Your nights have been broken. Start with the boundary, not the sleep itself.", minimum: { label: "Five minutes", minutes: 5 }, target: { label: "Full 20 minutes", minutes: 20 }, stretch: { label: "Plus no screens", minutes: 30 }, completed: null },
-  { id: "a-ani-p1", memberId: "anita", dayOffset: -5, moduleId: "mv-strength-a", title: "Strength A", why: "Planned.", minimum: { label: "One round", minutes: 12 }, target: { label: "Two rounds", minutes: 25 }, stretch: { label: "Three rounds", minutes: 40 }, completed: "minimum", provenance: p("member_manual", "Anita", "2026-08-04") },
+  { id: "a-ani-p1", memberId: "anita", dayOffset: -5, moduleId: "mv-strength-a", title: "Foundations", why: "Planned.", minimum: { label: "One round", minutes: 12 }, target: { label: "Two rounds", minutes: 25 }, stretch: { label: "Three rounds", minutes: 40 }, completed: "minimum", provenance: p("member_manual", "Anita", "2026-08-04") },
 
   // Shreya
   { id: "a-shr-1", memberId: "shreya", dayOffset: 0, moduleId: "nu-protein", title: "Protein at breakfast", why: "Breakfast is your easiest win. Curd, chana or paneer — your call.", minimum: { label: "One meal", minutes: 0 }, target: { label: "Two meals", minutes: 0 }, stretch: { label: "Every meal", minutes: 0 }, completed: "target", provenance: p("member_manual", "Shreya", "2026-08-09") },
-  { id: "a-shr-2", memberId: "shreya", dayOffset: 0, moduleId: "mv-strength-a", title: "Strength A", why: "Your second independent session. Take it slowly.", minimum: { label: "One round", minutes: 12 }, target: { label: "Two rounds", minutes: 25 }, stretch: { label: "Three rounds", minutes: 40 }, completed: null, workoutId: "wk-strength-a" },
+  { id: "a-shr-2", memberId: "shreya", dayOffset: 0, moduleId: "mv-strength-a", title: "Foundations", why: "Your second independent session. Take it slowly.", minimum: { label: "One round", minutes: 12 }, target: { label: "Two rounds", minutes: 25 }, stretch: { label: "Three rounds", minutes: 40 }, completed: null, workoutId: "wk-strength-a" },
   { id: "a-shr-p1", memberId: "shreya", dayOffset: -1, moduleId: "nu-plate", title: "Build one plate", why: "Half vegetables.", minimum: { label: "One meal", minutes: 0 }, target: { label: "Two meals", minutes: 0 }, stretch: { label: "Most meals", minutes: 0 }, completed: "minimum", provenance: p("member_manual", "Shreya", "2026-08-08") },
 
   // Nidhi
-  { id: "a-nid-1", memberId: "nidhi", dayOffset: 0, moduleId: "mv-strength-b", title: "Strength B", why: "Goblet squat goes to 18kg today if the first set feels like a 6 out of 10.", minimum: { label: "Carries and squats only", minutes: 15 }, target: { label: "Full session", minutes: 30 }, stretch: { label: "Progress load on two lifts", minutes: 45 }, completed: null, workoutId: "wk-strength-b" },
+  { id: "a-nid-1", memberId: "nidhi", dayOffset: 0, moduleId: "mv-strength-b", title: "Balance & Carry", why: "Goblet squat goes to 18kg today if the first set feels like a 6 out of 10.", minimum: { label: "Carries and squats only", minutes: 15 }, target: { label: "Full session", minutes: 30 }, stretch: { label: "Progress load on two lifts", minutes: 45 }, completed: null, workoutId: "wk-strength-b" },
   { id: "a-nid-2", memberId: "nidhi", dayOffset: 0, moduleId: "hr-bone-muscle", title: "Bone & Muscle Health", why: "Given your mother's fracture history, this one matters. Four minutes.", minimum: { label: "Read the summary", minutes: 4 }, target: { label: "Connect it to your plan", minutes: 10 }, stretch: { label: "Prepare doctor questions", minutes: 20 }, completed: null },
-  { id: "a-nid-p1", memberId: "nidhi", dayOffset: -2, moduleId: "mv-strength-b", title: "Strength B", why: "Planned.", minimum: { label: "Carries and squats", minutes: 15 }, target: { label: "Full session", minutes: 30 }, stretch: { label: "Progress load", minutes: 45 }, completed: "stretch", provenance: p("member_manual", "Nidhi", "2026-08-07") },
+  { id: "a-nid-p1", memberId: "nidhi", dayOffset: -2, moduleId: "mv-strength-b", title: "Balance & Carry", why: "Planned.", minimum: { label: "Carries and squats", minutes: 15 }, target: { label: "Full session", minutes: 30 }, stretch: { label: "Progress load", minutes: 45 }, completed: "stretch", provenance: p("member_manual", "Nidhi", "2026-08-07") },
 
   // Priya — just came back
   { id: "a-pri-p1", memberId: "priya", dayOffset: -5, moduleId: "mv-walk-base", title: "Walk after dinner", why: "Building the cue.", minimum: { label: "10 minutes", minutes: 10 }, target: { label: "20 minutes", minutes: 20 }, stretch: { label: "35 minutes", minutes: 35 }, completed: "target", provenance: p("member_manual", "Priya", "2026-08-04") },
