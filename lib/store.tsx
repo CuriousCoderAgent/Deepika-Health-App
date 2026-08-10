@@ -4,6 +4,8 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from "
 import * as seed from "./seed";
 import { evaluateRadar, radarRules, type RadarRule } from "./radar";
 import { draftWeekPlansFor, weekPlansFor } from "./plan";
+import { emptyStateFor } from "./emptyState";
+import { DEMO_MEMBER_ID, readUserCookie, type ClientSession } from "./session-client";
 import type {
   Article,
   FoodEntry,
@@ -60,13 +62,28 @@ const initial: State = {
   activeMemberId: "radhika",
 };
 
-// Bumped when seeded member content changes shape, so an existing demo
-// browser picks up new seed data instead of showing a half-populated state.
-const KEY = "dw-v0-state-5";
+// Storage is namespaced per signed-in account, so two people using the same
+// browser never see each other's data, and signing out of one does not touch
+// the other. The version suffix is bumped when seeded content changes shape.
+const KEY_PREFIX = "dw-v0-state-6";
+const storageKey = (userId: string) => `${KEY_PREFIX}:${userId}`;
+
+/**
+ * Only the demo member carries the seeded history. Everyone else — including
+ * every real pilot member — starts from nothing and builds their own.
+ */
+function initialFor(session: ClientSession | null) {
+  if (!session) return initial;
+  if (session.role === "coach") return initial;
+  if (session.sub === DEMO_MEMBER_ID) return { ...initial, activeMemberId: DEMO_MEMBER_ID };
+  return { ...initial, ...emptyStateFor(session.sub, session.name) } as State;
+}
 
 interface Ctx extends State {
   radar: ReturnType<typeof evaluateRadar>;
   activeMember: Member;
+  /** Who is signed in, or null before the cookie has been read. */
+  session: ClientSession | null;
   setActiveMember: (id: string) => void;
   completeAction: (id: string, level: EffortLevel | "rest", reason?: string) => void;
   submitPulse: (
@@ -121,30 +138,40 @@ interface Ctx extends State {
   addFeedback: (f: Omit<Feedback, "id">) => void;
   updateFeedback: (id: string, patch: Partial<Feedback>) => void;
   saveSessionNotes: (id: string, patch: Partial<Session>) => void;
+  replayOnboarding: (memberId: string) => void;
   reset: () => void;
 }
 
 const StoreContext = createContext<Ctx | null>(null);
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
+  const [session, setSession] = useState<ClientSession | null>(null);
   const [state, setState] = useState<State>(initial);
   const [hydrated, setHydrated] = useState(false);
 
+  // Identity is read on the client from the readable companion cookie rather
+  // than threaded down from the server, so there is one code path and no
+  // chance of the server and client disagreeing about who is signed in.
   useEffect(() => {
+    const who = readUserCookie();
+    setSession(who);
+    const base = initialFor(who);
     try {
-      const raw = window.localStorage.getItem(KEY);
+      const raw = window.localStorage.getItem(storageKey(who?.sub ?? "anon"));
       if (raw) {
         const parsed = JSON.parse(raw);
         // Seeded content (modules, workouts) always comes from source, so
-        // content edits ship without wiping the demo state.
+        // content edits ship without wiping anyone's state.
         setState({
-          ...initial,
+          ...base,
           ...parsed,
           modules: seed.modules,
           workouts: seed.workouts,
           articles: seed.articles,
           foodItems: seed.foodItems,
         });
+      } else {
+        setState(base);
       }
     } catch {
       /* first run, or storage unavailable */
@@ -152,14 +179,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setHydrated(true);
   }, []);
 
+  const key = storageKey(session?.sub ?? "anon");
+
   useEffect(() => {
     if (!hydrated) return;
     try {
-      window.localStorage.setItem(KEY, JSON.stringify(state));
+      window.localStorage.setItem(key, JSON.stringify(state));
     } catch {
       /* storage full or blocked — the prototype still works in memory */
     }
-  }, [state, hydrated]);
+  }, [state, hydrated, key]);
 
   const patch = (fn: (s: State) => State) => setState((s) => fn(s));
 
@@ -181,6 +210,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       ...state,
       radar,
       activeMember,
+      session,
       hydrated,
 
       setActiveMember: (id) => patch((s) => ({ ...s, activeMemberId: id })),
@@ -409,14 +439,28 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
       reset: () => {
         try {
-          window.localStorage.removeItem(KEY);
+          window.localStorage.removeItem(key);
         } catch {
           /* ignore */
         }
-        setState(initial);
+        setState(initialFor(session));
       },
+
+      /**
+       * Clears the onboarded flag so the first-run flow can be walked again.
+       * Everything else — her history, logs and messages — is left alone, so
+       * the demo member can be shown the welcome journey without losing the
+       * five weeks of history that make the rest of the app worth looking at.
+       */
+      replayOnboarding: (memberId) =>
+        patch((s) => ({
+          ...s,
+          members: s.members.map((m) =>
+            m.id === memberId ? { ...m, onboardedAt: undefined } : m
+          ),
+        })),
     };
-  }, [state, hydrated]);
+  }, [state, session, hydrated, key]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

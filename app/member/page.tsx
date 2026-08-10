@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Mic, Play, CalendarClock, ChevronRight, RefreshCw, Check, Apple } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { CategoryIcon, ConsistencyBand } from "@/components/ui";
 import PulseCard from "@/components/PulseCard";
+import { DEMO_MEMBER_ID } from "@/lib/session-client";
 import type { EffortLevel } from "@/lib/types";
 
 /** Greeting adapts to what the last few days actually looked like. */
@@ -44,8 +46,17 @@ function FocusStatus({ level, rest }: { level: EffortLevel | null; rest?: boolea
 }
 
 export default function Today() {
-  const { activeMember: m, actions, pulses, messages, sessions, modules, foodEntries } =
-    useStore();
+  const {
+    activeMember: m,
+    actions,
+    pulses,
+    messages,
+    sessions,
+    modules,
+    foodEntries,
+    replayOnboarding,
+  } = useStore();
+  const router = useRouter();
   const [playing, setPlaying] = useState(false);
   const [planExpanded, setPlanExpanded] = useState(false);
 
@@ -315,6 +326,21 @@ export default function Today() {
           </>
         )}
       </div>
+
+      {/* Demo control, only on the seeded account. Lets the welcome flow be
+          walked again for someone watching, without resetting the five weeks
+          of history that make the rest of the app worth looking at. */}
+      {m.id === DEMO_MEMBER_ID && (
+        <button
+          onClick={() => {
+            replayOnboarding(m.id);
+            router.push("/onboarding");
+          }}
+          className="tap mt-5 w-full rounded-xl border border-dashed border-ink-line text-[12px] text-ink-faint hover:bg-paper-sunk hover:text-ink"
+        >
+          Replay the welcome flow (demo only — keeps your history)
+        </button>
+      )}
 
       <div className="h-6" />
     </div>

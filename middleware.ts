@@ -14,9 +14,8 @@ export async function middleware(req: NextRequest) {
 
   if (!session) {
     const url = req.nextUrl.clone();
-    url.pathname = "/login";
-    url.searchParams.set("as", pathname.startsWith("/coach") ? "coach" : "member");
-    url.searchParams.set("next", pathname);
+    url.pathname = "/";
+    url.search = "";
     return NextResponse.redirect(url);
   }
 
