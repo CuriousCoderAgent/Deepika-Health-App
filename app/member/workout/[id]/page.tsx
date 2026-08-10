@@ -4,12 +4,15 @@ import Link from "next/link";
 import { useState } from "react";
 import { ChevronLeft, AlertTriangle, Check } from "lucide-react";
 import { useStore } from "@/lib/store";
-import type { EffortLevel } from "@/lib/types";
+import ExerciseFigure from "@/components/ExerciseFigure";
+import ExerciseSheet from "@/components/ExerciseSheet";
+import type { EffortLevel, ExerciseSet } from "@/lib/types";
 
 export default function WorkoutDetail({ params }: { params: { id: string } }) {
   const { workouts, activeMember, logWorkout, actions, completeAction } = useStore();
   const w = workouts.find((x) => x.id === params.id);
 
+  const [openExercise, setOpenExercise] = useState<ExerciseSet | null>(null);
   const [stage, setStage] = useState<"view" | "finish" | "done">("view");
   const [level, setLevel] = useState<EffortLevel>("target");
   const [rpe, setRpe] = useState(6);
@@ -180,12 +183,12 @@ export default function WorkoutDetail({ params }: { params: { id: string } }) {
         <ChevronLeft size={16} /> Movement
       </Link>
 
-      <h1 className="mt-4 font-display text-[1.7rem] leading-tight">{w.name}</h1>
-      <p className="mt-1.5 text-[15px] leading-relaxed text-ink-soft">{w.intent}</p>
+      <h1 className="mt-3 font-display text-[1.55rem] leading-tight">{w.name}</h1>
+      <p className="mt-1 text-[14px] leading-relaxed text-ink-soft">{w.intent}</p>
 
-      <div className="mt-5 grid grid-cols-3 gap-2">
+      <div className="mt-4 grid grid-cols-3 gap-2">
         {(["minimum", "target", "stretch"] as EffortLevel[]).map((l) => (
-          <div key={l} className="rounded-xl bg-paper-sunk/70 p-3">
+          <div key={l} className="rounded-xl bg-paper-sunk/70 p-2.5">
             <span
               className={`block h-1 w-6 rounded-full ${
                 l === "minimum"
@@ -195,18 +198,18 @@ export default function WorkoutDetail({ params }: { params: { id: string } }) {
                   : "bg-effort-stretch"
               }`}
             />
-            <p className="mt-2 text-[11px] capitalize text-ink-soft">{l}</p>
+            <p className="mt-1.5 text-[11px] capitalize text-ink-soft">{l}</p>
             <p className="font-mono text-[13px]">{w[l].minutes} min</p>
           </div>
         ))}
       </div>
 
       {w.warmup.length > 0 && (
-        <div className="mt-7">
+        <div className="mt-5">
           <p className="label">Warm up</p>
-          <ul className="mt-2 space-y-1.5">
+          <ul className="mt-1.5 space-y-1">
             {w.warmup.map((x, i) => (
-              <li key={i} className="text-[14px] text-ink-soft">
+              <li key={i} className="text-[13px] text-ink-soft">
                 {x}
               </li>
             ))}
@@ -214,22 +217,38 @@ export default function WorkoutDetail({ params }: { params: { id: string } }) {
         </div>
       )}
 
-      <div className="mt-7">
-        <p className="label">The session</p>
-        <div className="mt-2.5 space-y-2.5">
+      <div className="mt-6">
+        <div className="flex items-baseline justify-between">
+          <p className="label">The session</p>
+          <span className="text-[11px] text-ink-faint">Tap any move to see how</span>
+        </div>
+        <div className="mt-2.5 space-y-2">
           {w.exercises.map((e, i) => (
-            <div key={i} className="card p-4">
-              <div className="flex items-baseline justify-between gap-3">
-                <p className="font-medium leading-snug">{e.name}</p>
-                <span className="shrink-0 font-mono text-[12px] text-ink-soft">
-                  {e.prescription}
+            <button
+              key={i}
+              onClick={() => setOpenExercise(e)}
+              className="card flex w-full items-center gap-3 px-3.5 py-3 text-left transition-shadow hover:shadow-lift"
+            >
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-paper-sunk/70">
+                <ExerciseFigure figure={e.figure} size={46} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="flex items-baseline justify-between gap-2">
+                  <span className="text-[15px] font-medium leading-snug">{e.name}</span>
+                  <span className="shrink-0 font-mono text-[12px] text-ink-soft">
+                    {e.prescription}
+                  </span>
                 </span>
-              </div>
-              <p className="mt-1.5 text-[13px] leading-relaxed text-ink-soft">{e.cue}</p>
-            </div>
+                <span className="mt-0.5 block text-[13px] leading-snug text-ink-faint">
+                  {e.cue}
+                </span>
+              </span>
+            </button>
           ))}
         </div>
       </div>
+
+      <ExerciseSheet exercise={openExercise} onClose={() => setOpenExercise(null)} />
 
       <div className="mt-6 rounded-2xl border border-attention/25 bg-attention-tint/60 p-4">
         <p className="label mb-1">When to stop</p>
