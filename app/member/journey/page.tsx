@@ -35,15 +35,14 @@ export default function Journey() {
   }, {});
 
   return (
-    <div className="animate-rise px-5 pt-8">
-      <p className="label">Week {m.week}</p>
-      <h1 className="mt-2 font-display text-[1.7rem] leading-tight">Your journey</h1>
+    <div className="animate-rise px-5 pt-6">
+      <h1 className="font-display text-[1.55rem] leading-tight">Your journey</h1>
 
       {/* 12-week orientation — where you are, not how well you are doing */}
-      <div className="card mt-5 flex items-center gap-4 p-4">
-        <ProgressRing value={pct} label={`${Math.round(pct * 100)}%`} />
+      <div className="card mt-4 flex items-center gap-3.5 p-3.5">
+        <ProgressRing value={pct} size={64} label={`${Math.round(pct * 100)}%`} />
         <div className="min-w-0">
-          <p className="font-medium leading-snug">12-week foundation journey</p>
+          <p className="text-[15px] font-medium leading-snug">12-week foundation journey</p>
           <p className="mt-0.5 text-[13px] text-ink-soft">Week {m.week} of 12</p>
         </div>
       </div>
@@ -51,13 +50,13 @@ export default function Journey() {
       {upcoming.length > 0 && (
         <div className="mt-4">
           <p className="label mb-2">Upcoming milestones</p>
-          <div className="space-y-2">
+          <div className="card divide-y divide-ink-line px-3.5">
             {upcoming.map((s) => (
-              <div key={s.id} className="card flex items-center gap-3 p-3.5">
-                <CalendarClock size={16} className="shrink-0 text-ink-soft" />
+              <div key={s.id} className="flex items-center gap-3 py-3">
+                <CalendarClock size={15} className="shrink-0 text-ink-faint" />
                 <div className="min-w-0 flex-1">
                   <p className="text-[14px] font-medium leading-snug">{s.type}</p>
-                  <p className="text-[13px] text-ink-faint">
+                  <p className="text-[12px] leading-snug text-ink-faint">
                     {s.dayOffset === 0 ? "Today" : s.dayOffset === 1 ? "Tomorrow" : `In ${s.dayOffset} days`} ·{" "}
                     {s.time}
                   </p>
@@ -69,7 +68,7 @@ export default function Journey() {
       )}
 
       {/* Phase ribbon — order carries real information here, so it is numbered */}
-      <div className="mt-6 flex gap-1.5">
+      <div className="mt-5 flex gap-1.5">
         {PHASES.map((p, i) => {
           const current = p === m.phase;
           const past = PHASES.indexOf(m.phase) > i;
@@ -91,7 +90,7 @@ export default function Journey() {
           );
         })}
       </div>
-      <p className="mt-3 text-[13px] leading-relaxed text-ink-soft">
+      <p className="mt-2.5 text-[13px] leading-relaxed text-ink-soft">
         {m.phase === "Stabilise"
           ? "Right now we are making things steady, not hard. Intensity comes later and only when the habit holds."
           : m.phase === "Build"
@@ -100,23 +99,23 @@ export default function Journey() {
       </p>
 
       {/* Weekly focus */}
-      <div className="mt-7 rounded-2xl bg-effort-tint p-4">
+      <div className="mt-5 rounded-2xl bg-effort-tint px-4 py-3.5">
         <p className="label">This week</p>
-        <ul className="mt-2 space-y-1.5">
+        <ul className="mt-1.5 space-y-1">
           {m.weeklyFocus.map((f, i) => (
-            <li key={i} className="text-[15px] leading-snug text-effort-stretch">
+            <li key={i} className="text-[14px] leading-snug text-effort-stretch">
               {f}
             </li>
           ))}
         </ul>
       </div>
 
-      {/* Goals */}
-      <div className="mt-6">
+      {/* Goals — a list, so it reads as one rather than as three floating cards */}
+      <div className="mt-5">
         <p className="label">What you said you wanted</p>
-        <ul className="mt-2.5 space-y-2">
+        <ul className="card mt-2 divide-y divide-ink-line px-3.5">
           {m.goals.map((g, i) => (
-            <li key={i} className="card p-3.5 text-[15px] leading-snug">
+            <li key={i} className="py-2.5 text-[14px] leading-snug">
               {g}
             </li>
           ))}
@@ -124,21 +123,21 @@ export default function Journey() {
       </div>
 
       {m.wontDo && (
-        <div className="mt-4 rounded-2xl border border-dashed border-ink-line p-4">
+        <div className="mt-4 rounded-2xl border border-dashed border-ink-line p-3.5">
           <p className="label">And what you said you would not do</p>
-          <p className="mt-1.5 text-[14px] italic leading-relaxed text-ink-soft">
+          <p className="mt-1.5 text-[13px] italic leading-relaxed text-ink-soft">
             &ldquo;{m.wontDo}&rdquo;
           </p>
-          <p className="mt-2 text-[12px] text-ink-faint">
+          <p className="mt-1.5 text-[12px] text-ink-faint">
             Deepika builds around this. It is not a problem to be solved.
           </p>
         </div>
       )}
 
       {/* Active modules */}
-      <div className="mt-7">
+      <div className="mt-5">
         <p className="label">What you are working on</p>
-        <div className="mt-3 space-y-5">
+        <div className="mt-2.5 space-y-4">
           {Object.entries(grouped).map(([cat, mods]) => (
             <div key={cat}>
               <p className="mb-2 text-[13px] font-medium text-ink-soft">
