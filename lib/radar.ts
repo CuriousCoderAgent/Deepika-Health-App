@@ -182,8 +182,9 @@ export function evaluateRadar(
       push(m.id, "R03", `Energy 2 or below on ${lowEnergy} of the last ${recent.length} recorded days.`);
     }
 
-    // R04 — sleep
-    const week = myPulses.filter((x) => x.dayOffset >= -7);
+    // R04 — sleep. `sleep === 0` means she only left a one-tap mood and never
+    // rated sleep, so it is not evidence of anything and is excluded.
+    const week = myPulses.filter((x) => x.dayOffset >= -7 && x.sleep >= 1);
     const poorSleep = week.filter((x) => x.sleep <= 2).length;
     if (on("R04") && poorSleep >= 3) {
       push(m.id, "R04", `Sleep rated 2 or below on ${poorSleep} days this week.`);

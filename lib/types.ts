@@ -107,8 +107,18 @@ export interface PulseEntry {
   memberId: string;
   dayOffset: number;
   energy: number; // 1 drained – 5 energised
-  sleep: number; // 1 poor – 5 restorative
+  /** 1 poor – 5 restorative. 0 means "not recorded" — see `partial`. */
+  sleep: number;
   stress: number; // 1 overwhelmed – 5 calm. Higher is always better, same as the two above.
+  /**
+   * True when this came from a one-tap mood and nothing else. A mood tap can
+   * reasonably imply energy and mental state; it cannot know how she slept.
+   * Rather than invent a number, sleep stays 0 and every consumer — the Radar
+   * sleep rule, the Progress sparkline — skips it. Guessing here would be
+   * worse than missing data: it would quietly feed a fabricated value into a
+   * rule that changes what Deepika does.
+   */
+  partial?: boolean;
   symptoms: string[];
   note?: string;
   provenance: Provenance;

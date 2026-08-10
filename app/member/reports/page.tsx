@@ -58,7 +58,7 @@ export default function Reports() {
         href="/member/progress"
         className="tap -ml-2 inline-flex items-center gap-1 rounded-lg px-2 text-sm text-ink-faint hover:text-ink"
       >
-        <ChevronLeft size={16} /> Progress
+        <ChevronLeft size={16} /> Insights
       </Link>
 
       <h1 className="mt-4 font-display text-[1.7rem] leading-tight">Your reports</h1>
