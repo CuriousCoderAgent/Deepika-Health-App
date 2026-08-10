@@ -31,45 +31,72 @@ behaviour, sustainable adherence, and graceful return after imperfect days.
 
 ---
 
-## Invariants — do not violate these without an explicit decision from the user
+## Product defaults (revised 10 Aug 2026 — no longer hard invariants)
 
-These are not style preferences. Each traces to research or to a regulatory
-boundary documented in `docs/PROJECT-BRIEF.md`.
+This used to be a numbered list of invariants requiring "an explicit decision
+from the user" to touch. The user has now given that decision: this build is
+for a small pilot of people Deepika already knows, not a public launch, and
+these should be treated as the current starting point, not a fixed constraint.
+Change any of them freely. The original reasoning (behavioural-change research,
+mostly) is still written up in `docs/PROJECT-BRIEF.md` if useful context, it
+just no longer blocks anything.
 
-1. **Minimum is a success state.** Reaching the minimum effort level always
-   renders as a filled, real colour. Never grey, never an outline, never a
-   partial-credit or "you only did the minimum" treatment.
-2. **Nothing is red, ever.** Missed actions use the neutral `rest` palette and
-   the words "not today". There is no failure state in the member UI.
-3. **No streaks.** No streak counts, no streak-at-risk language, no fire emoji,
-   no "don't lose your progress". Use consistency framing: "9 of the last 14
-   days". This applies to the coach console too — coach vocabulary leaks into
-   coach messages.
-4. **Marigold `#D99A2B` is reserved exclusively for Deepika's human voice.**
-   Coach messages and voice notes only. If it appears anywhere else, a member
-   can no longer tell a human from the system at a glance.
-5. **Provenance is always visible.** Every stored value carries a `Provenance`
-   envelope and renders a chip: `member` / `coach · on behalf` / `device`.
-   Coach-entered data must never be able to look member-entered. Enforced in
-   `lib/types.ts` and `lib/store.tsx` (`submitPulse(…, byCoach)`).
-6. **Radar rules stay human-readable and auditable.** Ten rules in
-   `lib/radar.ts`, each with a one-sentence `trigger`, each individually
-   switchable. No risk score, no model, no opaque ranking. If you add a rule,
-   add a plain-language trigger with it.
-7. **Observe → Coach → Refer.** The product observes symptoms and trends,
-   coaches behaviour, and refers anything medical. It must never:
-   - diagnose a condition or a hormonal state
-   - interpret a lab value
-   - advise on hormone therapy, medication, or supplements
-   - issue individualised nutrition prescriptions or numeric macro targets
-     (e.g. "1.2 g/kg protein" is out of scope — general education is in scope)
-   Modules carry `reviewNote` and `coachPlaybook.escalation` for this reason.
-8. **No wearable dependency.** Every input must work manually. The target
-   cohort mostly owns closed-ecosystem Indian smartwatches with no usable API.
-9. **The home screen is a decision screen, not a dashboard.** Today answers
-   "what should I do today?". Raw metrics live in Progress or behind context.
-10. **Never imply AI that does not exist.** No sparkle icons on rule-derived
-    suggestions. V0 has no AI and `docs/PROJECT-BRIEF.md` §18 defers it.
+What used to be here: minimum-as-success styling, no red/no failure-state
+colour, no streaks, marigold reserved for Deepika's voice, provenance chips,
+Radar rules being plain-language and switchable, no wearable dependency, Today
+as a decision screen rather than a dashboard. All open to revisit.
+
+**One item is not on that list — see below.**
+
+## Scope of practice: the one thing I'm holding on
+
+Not a design preference, and not about audience size. Two separate facts, and
+"it's a small pilot, not a public launch" doesn't change either of them:
+
+1. Per `docs/PROJECT-BRIEF.md` §1, Deepika is completing **ACE health-coach
+   certification**. ACE's own materials are explicit that a health coach may
+   not diagnose, interpret labs, or prescribe treatment — that's a rule from
+   the certifying body about what the *credential* permits, not a rule about
+   deployment scale. Software that auto-generates "your iron levels have
+   improved, focus on protein" for her clients puts that credential on the
+   line exactly as much in a pilot of 20 as in a public launch.
+2. Interpreting diagnostic lab results is regulated as the practice of
+   medicine in most jurisdictions, India included. That's independent of
+   which certifications a coach holds unless one of them is a medical licence.
+   I don't know India's Clinical Establishments rules well enough to say
+   precisely where the line sits — which is itself the point: this needs a
+   real answer from whoever advises Deepika on her certifications, not a
+   guess baked into shipped software.
+
+The 20 pilot members are real women, not a demo audience — the small scale
+makes this *more* exposed, if anything: it's Deepika's own network, not
+strangers.
+
+**What's already built and not blocked by any of this:** members can upload
+blood reports; values are transcribed and trended; Deepika can see them,
+message about them, and add coach notes in a 1:1 (`app/coach/members/[id]`
+Assessment tab, `app/member/reports`). None of that is a diagnosis pipeline —
+it's Deepika, using her own judgement, looking at a client's numbers, which
+she's obviously allowed to do as a coach in conversation.
+
+**What I'll hold off building:** a feature that has the *software itself*
+generate the interpretation ("AI Summary: your iron levels have improved…")
+and hands it to a member without Deepika in the loop. Same for anything UI
+that implies AI exists when it doesn't yet — there's no backend in this repo
+to hold an API key safely (see Stack below), so a real integration is a
+separate scoping conversation, not a checkbox to remove.
+
+If you get a straight answer from her certification body or a lawyer that
+auto-generated interpretation is fine for this pilot, tell me and I'll build
+it — this isn't me refusing to revisit it, it's me not wanting to guess on
+her behalf on the one item here with a real person on the other end of a
+wrong guess.
+
+**One more thing worth 30 seconds:** is this prototype still "Deepika reacts
+to a demo," or are the 20 pilot members actually going to log in and use it?
+That changes whether DPDP genuinely doesn't matter yet (demo) or does (real
+health data from real people, consent and deletion flows and all). Worth
+being deliberate about which one this is before it ships either way.
 
 ---
 
@@ -148,9 +175,9 @@ feels wrong:
 
 1. Log it in the in-app Pilot Feedback board (`/coach/feedback`) so the trail
    survives the conversation.
-2. Check it against the invariants above before building. If a request
-   conflicts with one, say so and explain the reasoning — several invariants
-   exist precisely because the intuitive design choice is the harmful one.
+2. Check it against Scope of practice above before building — that's the one
+   item still worth pausing on. Everything else in Product defaults is fair
+   game to change on request.
 3. Prefer changing seed data or copy over adding features. Most "this feels
    wrong" reactions at V0 stage are about tone and content, not structure.
 
