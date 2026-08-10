@@ -46,7 +46,7 @@ export default function Home() {
         <div className="mt-4 space-y-3">
           {/* Deepika — marigold, because marigold is her voice everywhere else too. */}
           <Link
-            href="/coach"
+            href="/login?as=coach"
             className="group flex animate-rise items-center gap-4 rounded-2xl border border-marigold/25 bg-marigold-tint/60 p-4 transition-shadow hover:shadow-lift"
           >
             <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-marigold font-display text-xl text-white">
@@ -66,7 +66,7 @@ export default function Home() {
 
           {/* Radhika — the member surface, entered exactly as she would enter it. */}
           <Link
-            href="/member"
+            href="/login?as=member"
             onClick={() => setActiveMember("radhika")}
             className="group flex animate-rise items-center gap-4 rounded-2xl border border-effort-target/25 bg-effort-tint/60 p-4 transition-shadow hover:shadow-lift [animation-delay:80ms]"
           >

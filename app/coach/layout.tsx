@@ -35,12 +35,14 @@ export default function CoachLayout({ children }: { children: React.ReactNode })
     <div className="flex min-h-dvh">
       <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-ink-line bg-paper-card lg:flex">
         <div className="px-5 pt-6">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink"
-          >
-            <ChevronLeft size={13} /> Sign out
-          </Link>
+          <form action="/api/auth/logout" method="post">
+            <button
+              type="submit"
+              className="inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink"
+            >
+              <ChevronLeft size={13} /> Sign out
+            </button>
+          </form>
           <p className="label mt-4">Coach console</p>
           <p className="mt-1 font-display text-xl leading-tight">Deepika</p>
         </div>

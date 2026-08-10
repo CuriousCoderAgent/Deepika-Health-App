@@ -92,14 +92,16 @@ export default function Today() {
           <h1 className="font-display text-[1.55rem] leading-tight">{greeting.hi}</h1>
           <p className="mt-1 text-[14px] leading-relaxed text-ink-soft">{greeting.line}</p>
         </div>
-        <Link
-          href="/"
-          aria-label="Switch profile"
-          title="Switch profile"
-          className="tap flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-effort-tint font-medium text-effort-stretch transition-colors hover:bg-effort-min/40"
-        >
-          {first.charAt(0)}
-        </Link>
+        <form action="/api/auth/logout" method="post" className="shrink-0">
+          <button
+            type="submit"
+            aria-label="Sign out"
+            title="Sign out"
+            className="tap flex h-10 w-10 items-center justify-center rounded-full bg-effort-tint font-medium text-effort-stretch transition-colors hover:bg-effort-min/40"
+          >
+            {first.charAt(0)}
+          </button>
+        </form>
       </div>
 
       {/* 2 — Plan adjusted. Compact by default; the full reason is one tap
