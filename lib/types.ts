@@ -225,6 +225,65 @@ export interface RadarEvent {
   snoozed: boolean;
 }
 
+/**
+ * An uploaded report — blood panel, body composition scan, anything a lab
+ * hands back.
+ *
+ * Values are transcribed and trended. They are never interpreted, scored,
+ * flagged as in/out of range, or turned into advice: that is a clinician's
+ * job and invariant 7 exists to keep this product on the right side of it.
+ * The useful thing the software can do is make her next doctor's appointment
+ * a better one.
+ *
+ * V0 stores the metadata and the values, not the file itself — real documents
+ * need private object storage, which is a Pilot MVP gate item (§17.2).
+ */
+export interface Report {
+  id: string;
+  memberId: string;
+  kind: "blood_panel" | "body_composition" | "other";
+  title: string;
+  collectedOn: string; // ISO date
+  lab?: string;
+  fileName?: string;
+  values: ReportValue[];
+  provenance: Provenance;
+  note?: string;
+}
+
+export interface ReportValue {
+  label: string;
+  value: string;
+  unit?: string;
+}
+
+/**
+ * A short read matched to a member's stage, goals and constraints.
+ *
+ * Matching is rule-based and every article carries the plain-language reason
+ * it surfaced, for the same reason the Radar rules do: she can read why she
+ * is being shown something, and disagree with it.
+ */
+export interface Article {
+  id: string;
+  title: string;
+  category: ModuleCategory;
+  readMinutes: number;
+  standfirst: string;
+  body: string[];
+  match: {
+    lifeStage?: string[];
+    goal?: string[];
+    constraint?: string[];
+    medical?: string[];
+    moduleIds?: string[];
+    minAge?: number;
+  };
+  /** Shown to the member verbatim: "Because you said …". */
+  whyThis: string;
+  sourceNote?: string;
+}
+
 export interface Feedback {
   id: string;
   reporter: string;

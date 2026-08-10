@@ -4,6 +4,12 @@ Operational guidance for Claude Code working on this repository.
 Read `docs/PROJECT-BRIEF.md` before making product decisions — it holds the
 business context, the research the design rests on, and the prioritised backlog.
 
+Internal project codename: **Bharosa** (`package.json` name, repo-facing
+references). This is a codename for the codebase only — the product itself
+stays branded as Deepika Wellness, the founder's real practice name. Do not
+rename in-app branding, page titles, or notification copy to Bharosa without
+an explicit decision from the user.
+
 ---
 
 ## What this is

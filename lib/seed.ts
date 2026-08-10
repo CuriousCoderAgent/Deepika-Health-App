@@ -1,4 +1,5 @@
 import type {
+  Article,
   CoachModule,
   DailyAction,
   Feedback,
@@ -7,6 +8,7 @@ import type {
   NotificationTemplate,
   PulseEntry,
   Provenance,
+  Report,
   Session,
   WeeklyReflection,
   Workout,
@@ -908,6 +910,249 @@ export const reflections: WeeklyReflection[] = [
     confidenceNextWeek: 2,
     questions: "Is it normal to wake at 3am every night now?",
     provenance: p("member_manual", "Radhika", "2026-08-03"),
+  },
+];
+
+/* ------------------------------------------------------------------ */
+/* Reports — stored and trended, never interpreted                     */
+/* ------------------------------------------------------------------ */
+
+export const reports: Report[] = [
+  {
+    id: "rep-radhika-1",
+    memberId: "radhika",
+    kind: "blood_panel",
+    title: "Annual health panel",
+    collectedOn: "2026-07-06",
+    lab: "Neuberg Diagnostics, Bengaluru",
+    fileName: "annual-panel-jul-2026.pdf",
+    values: [
+      { label: "Haemoglobin", value: "12.4", unit: "g/dL" },
+      { label: "Ferritin", value: "38", unit: "ng/mL" },
+      { label: "Total cholesterol", value: "214", unit: "mg/dL" },
+      { label: "LDL", value: "138", unit: "mg/dL" },
+      { label: "HDL", value: "52", unit: "mg/dL" },
+      { label: "Fasting glucose", value: "97", unit: "mg/dL" },
+      { label: "HbA1c", value: "5.6", unit: "%" },
+      { label: "TSH", value: "2.8", unit: "mIU/L" },
+      { label: "Vitamin D", value: "21", unit: "ng/mL" },
+    ],
+    provenance: p("imported_document", "Radhika", "2026-07-08"),
+    note: "GP has seen this. Follow-up on LDL and vitamin D booked for September.",
+  },
+  {
+    id: "rep-radhika-2",
+    memberId: "radhika",
+    kind: "blood_panel",
+    title: "Previous year's panel",
+    collectedOn: "2025-06-18",
+    lab: "Neuberg Diagnostics, Bengaluru",
+    values: [
+      { label: "Haemoglobin", value: "12.1", unit: "g/dL" },
+      { label: "Ferritin", value: "31", unit: "ng/mL" },
+      { label: "Total cholesterol", value: "228", unit: "mg/dL" },
+      { label: "LDL", value: "149", unit: "mg/dL" },
+      { label: "HDL", value: "48", unit: "mg/dL" },
+      { label: "Fasting glucose", value: "94", unit: "mg/dL" },
+      { label: "HbA1c", value: "5.5", unit: "%" },
+      { label: "Vitamin D", value: "17", unit: "ng/mL" },
+    ],
+    provenance: p("imported_document", "Radhika", "2026-07-08"),
+  },
+  {
+    id: "rep-radhika-3",
+    memberId: "radhika",
+    kind: "body_composition",
+    title: "InBody scan — baseline",
+    collectedOn: "2026-07-06",
+    lab: "Studio, in person with Deepika",
+    values: [
+      { label: "Weight", value: "68.7", unit: "kg" },
+      { label: "Skeletal muscle", value: "23.1", unit: "kg" },
+      { label: "Body fat", value: "34.2", unit: "%" },
+      { label: "Waist", value: "89", unit: "cm" },
+    ],
+    provenance: p("coach_on_behalf", "Deepika", "2026-07-06"),
+  },
+  {
+    id: "rep-shreya-1",
+    memberId: "shreya",
+    kind: "blood_panel",
+    title: "Iron studies",
+    collectedOn: "2026-06-22",
+    lab: "Metropolis, Mumbai",
+    values: [
+      { label: "Haemoglobin", value: "10.8", unit: "g/dL" },
+      { label: "Ferritin", value: "9", unit: "ng/mL" },
+    ],
+    provenance: p("imported_document", "Shreya", "2026-06-25"),
+    note: "GP prescribed an iron supplement and is following up. Deepika is not managing this.",
+  },
+];
+
+/* ------------------------------------------------------------------ */
+/* Articles — short reads, matched by rule, never prescriptive         */
+/* ------------------------------------------------------------------ */
+
+export const articles: Article[] = [
+  {
+    id: "art-4pm-crash",
+    title: "Why 4pm feels like a wall",
+    category: "behaviour",
+    readMinutes: 4,
+    standfirst:
+      "The afternoon dip is real, it is normal, and it is not evidence that something is wrong with you.",
+    body: [
+      "Almost everyone has a dip in alertness in the early afternoon. It is part of the ordinary daily rhythm, not a personal failing and not a sign of laziness.",
+      "What makes it feel like a wall rather than a dip is usually what surrounds it: a short night, a long stretch without eating, several hours of concentration without a break, or a morning that started with a rush and never really settled.",
+      "Three things tend to soften it, and none of them are dramatic. Getting outside into daylight at some point before lunch. Eating a lunch that contains some protein rather than only carbohydrate. And taking an actual pause — ten minutes, away from a screen — before the dip rather than after it.",
+      "If the crash is new, severe, or comes with symptoms that worry you, that is worth a conversation with your doctor rather than a change to your routine. Bring it up at your next appointment and say when it started.",
+    ],
+    match: { goal: ["energy", "wiped out", "4pm"] },
+    whyThis: "Because you said you want to stop feeling wiped out by 4pm.",
+  },
+  {
+    id: "art-what-is-strength",
+    title: "What strength training actually is",
+    category: "movement",
+    readMinutes: 5,
+    standfirst:
+      "It is not bodybuilding, it does not require a gym, and it is the single most useful thing most women start doing in their forties.",
+    body: [
+      "Strength training means asking a muscle to work against a resistance that is meaningful for it — your own bodyweight, a pair of dumbbells, a loaded bag. That is the whole idea.",
+      "It matters more now than it did at thirty because muscle mass declines gradually from the late thirties onward unless something asks it not to. Resistance work is that ask. Walking, valuable as it is, does not provide the same signal.",
+      "Technique comes before load. A movement you can do well with no weight is worth more than the same movement done badly with weight, and it is how you avoid the injuries people fear when they start.",
+      "Soreness is not the scoreboard. Plenty of genuinely productive sessions leave you feeling fine the next day, and chasing soreness is how people end up doing too much in week one and nothing in week three.",
+    ],
+    match: { goal: ["strength", "lift", "suitcase", "understand what strength"], moduleIds: ["mv-strength-a", "mv-strength-b"] },
+    whyThis: "Because strength work is on your plan right now.",
+  },
+  {
+    id: "art-perimenopause-basics",
+    title: "Perimenopause, in plain language",
+    category: "hormonal",
+    readMinutes: 5,
+    standfirst:
+      "The transition can run for years before periods stop. Knowing that changes how the symptoms feel.",
+    body: [
+      "Perimenopause is the stretch of time before periods stop for good. It commonly runs for several years, and during it hormone levels fluctuate rather than declining in a straight line.",
+      "That fluctuation is why one week can feel completely normal and the next can bring disrupted sleep, a shorter fuse, changes in cycle length, or hot flushes — and why it can be so disorienting. Nothing is broken. The pattern itself is the thing.",
+      "A single blood test on a single day rarely settles the question, precisely because the levels move. Doctors generally weigh the pattern of symptoms over time much more heavily.",
+      "Decisions about treatment, including hormone therapy, belong with a doctor who knows your history. What is genuinely useful is walking into that appointment with a written record of what you have actually been experiencing and for how long — which is something this app can help you assemble.",
+    ],
+    match: { lifeStage: ["perimenopause", "postmenopause"], minAge: 40 },
+    whyThis: "Because of the stage you told us you are in.",
+    sourceNote:
+      "General education, drawn from mainstream menopause guidance. Not a diagnosis and not specific to you.",
+  },
+  {
+    id: "art-sleep-midlife",
+    title: "When sleep changes in midlife",
+    category: "sleep",
+    readMinutes: 4,
+    standfirst: "Waking at 3am has more than one cause, and they are not treated the same way.",
+    body: [
+      "Broken sleep in midlife is extremely common, and the useful first question is not how to fix it but what kind it is.",
+      "Waking up hot, throwing off a blanket, and settling again is a different experience from waking with your mind already running through tomorrow. So is waking because a child, a parent, or a phone woke you.",
+      "It is worth noticing which one you are having, because they point in different directions — and because being able to describe it precisely makes any conversation with a doctor far more productive than 'I am not sleeping'.",
+      "The things that help across all of them are unglamorous: a consistent wake time, daylight early, and a wind-down that starts before you are already exhausted. None of them work in one night.",
+    ],
+    match: { goal: ["sleep", "3am", "night"], moduleIds: ["sl-reset", "sl-winddown"] },
+    whyThis: "Because sleep is one of the things you are working on.",
+  },
+  {
+    id: "art-protein-basics",
+    title: "Protein, without the arithmetic",
+    category: "nutrition",
+    readMinutes: 4,
+    standfirst: "You do not need to weigh anything to eat noticeably better than you did last month.",
+    body: [
+      "Most people find protein easiest to think about by meal rather than by day: is there a protein source on this plate, or is this plate mostly carbohydrate?",
+      "In a typical Indian kitchen that source might be dal, rajma or chana, paneer, curd, eggs, fish or chicken, or a combination across the day. Vegetarian eating makes it require a little more thought, not less possible.",
+      "Breakfast is where it most often goes missing. A morning meal built only around bread, poha or cereal tends to leave people reaching for something else by eleven.",
+      "How much any individual needs depends on things a coach cannot assess for you, and a specific number for your body is a conversation for a registered dietitian. What is safe and useful to aim at is simply: more meals with a protein source on the plate than without.",
+    ],
+    match: { goal: ["protein"], moduleIds: ["nu-protein", "nu-plate"] },
+    whyThis: "Because protein is part of your current focus.",
+    sourceNote:
+      "General education only. Individual nutrition prescriptions are outside a health coach's scope — ask us for a dietitian referral if you want specific numbers.",
+  },
+  {
+    id: "art-bone-loading",
+    title: "Why bones need load, not just steps",
+    category: "hormonal",
+    readMinutes: 4,
+    standfirst: "Walking is genuinely good for you. It is not, on its own, a bone strategy.",
+    body: [
+      "Bone is living tissue that responds to the demands placed on it. Load it meaningfully and it maintains itself; leave it unloaded and it gradually gives ground.",
+      "Walking loads the skeleton lightly and habitually, which is worth having. But the stimulus that most reliably speaks to bone is heavier, briefer, and more deliberate — resistance work, and for some people impact.",
+      "This matters more after the menopausal transition, when the rate of bone loss changes. It is also why the strength sessions on your plan are not really about how you look.",
+      "If there is osteoporosis or a fragility fracture in your family history, tell your doctor and tell your coach. It changes what is appropriate to do and how quickly.",
+    ],
+    match: { lifeStage: ["postmenopause", "perimenopause"], medical: ["osteoporosis", "fracture"], moduleIds: ["hr-bone-muscle"] },
+    whyThis: "Because of your stage and what is on your plan.",
+    sourceNote: "Education only. Screening and diagnosis are medical decisions.",
+  },
+  {
+    id: "art-bad-week",
+    title: "What to do with a genuinely bad week",
+    category: "behaviour",
+    readMinutes: 3,
+    standfirst: "The week after the bad week is the one that actually decides anything.",
+    body: [
+      "Everyone has weeks where none of it happens. Illness, travel, a family crisis, or simply a stretch where there was nothing left at the end of the day.",
+      "What separates people who are still doing this in a year from people who are not is almost never willpower during the bad week. It is what they do in the three days after it.",
+      "The move that works is to make the return deliberately small — smaller than feels satisfying. One session. One walk. One meal you planned. The point of the small return is that it is impossible to fail at, and doing it re-establishes that you are someone who does this.",
+      "There is nothing to make up. Nothing accumulated a debt while you were away, and treating it as though it did is the reliable way to turn one bad week into three.",
+    ],
+    match: { goal: ["consistency", "habit", "survives a bad week"], moduleIds: ["bh-comeback", "bh-minimum-day"] },
+    whyThis: "Because building something that survives a bad week is what you said you wanted.",
+  },
+  {
+    id: "art-doctor-appointment",
+    title: "Getting more out of ten minutes with your doctor",
+    category: "hormonal",
+    readMinutes: 4,
+    standfirst: "Most appointments are short. Preparation is what makes them count.",
+    body: [
+      "A consultation is often ten minutes, and a lot of it disappears into establishing basics that you could have handed over on paper.",
+      "Three things are worth writing down beforehand. What you are actually experiencing, in your own words. When it started and whether it is getting worse. And the one question you would be most annoyed to leave without an answer to.",
+      "If you have recent reports, bring the actual numbers rather than a summary of how you remember them. Your own trend over two or three years is often more informative than any single result.",
+      "It is completely reasonable to ask a doctor to explain what a result means for you specifically, and to ask what would change their advice. That is their job, and it is not one your coach can do for you.",
+    ],
+    match: { moduleIds: ["hr-doctor-questions", "hr-perimenopause"], minAge: 38 },
+    whyThis: "Because preparing for appointments is part of your journey.",
+  },
+  {
+    id: "art-vegetarian-iron",
+    title: "Iron when you eat vegetarian",
+    category: "nutrition",
+    readMinutes: 4,
+    standfirst: "Plant sources behave differently, and a couple of ordinary habits change how much you absorb.",
+    body: [
+      "Iron from plant foods is absorbed less readily than iron from meat. That does not make a vegetarian diet inadequate; it means the details matter more.",
+      "Vitamin C eaten alongside iron-containing food improves absorption meaningfully. Lemon over dal, tomato in the sabzi, a citrus fruit with the meal — ordinary things, not supplements.",
+      "Tea and coffee taken with a meal work in the other direction. Moving chai to between meals rather than with them is a small change that costs nothing.",
+      "If a blood test has shown low iron or low ferritin, that is your doctor's territory, not your coach's. Supplements in particular should be their decision — take too much for too long and it causes its own problems.",
+    ],
+    match: { constraint: ["vegetarian"], medical: ["ferritin", "iron"] },
+    whyThis: "Because you eat vegetarian and told us protein and iron are the hard part.",
+    sourceNote: "General education. Supplement decisions belong with your doctor.",
+  },
+  {
+    id: "art-strength-not-weight",
+    title: "Why we are not leading with the scale",
+    category: "behaviour",
+    readMinutes: 3,
+    standfirst: "The number moves for reasons that have nothing to do with whether this is working.",
+    body: [
+      "Bodyweight shifts day to day with salt, water, where you are in your cycle, and what time you last ate. Reading a daily number as feedback on your effort mostly generates noise and discouragement.",
+      "It also misses the thing most worth having. Two people at the same weight can be in very different positions in terms of how much muscle they carry, and muscle is what makes stairs, suitcases and grandchildren manageable later.",
+      "The measures that track what is actually changing here are slower and less exciting: what you can lift, how a session feels at the same load, how often you found a way to move in a fortnight, whether you sleep through.",
+      "Weight is still recorded — it is on the Progress screen — but as one line among several, measured every few weeks rather than every morning.",
+    ],
+    match: { goal: ["body composition", "fat", "weight", "energy"] },
+    whyThis: "Because how we measure progress here is worth understanding early.",
   },
 ];
 

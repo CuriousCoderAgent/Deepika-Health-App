@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, CalendarClock } from "lucide-react";
+import { ChevronRight, CalendarClock, BookOpen } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { matchArticles } from "@/lib/articles";
 import { ProgressRing, CategoryIcon } from "@/components/ui";
 
 const PHASES = ["Stabilise", "Build", "Consolidate"] as const;
@@ -16,7 +17,8 @@ const CATEGORY_COPY: Record<string, string> = {
 };
 
 export default function Journey() {
-  const { activeMember: m, modules, sessions } = useStore();
+  const { activeMember: m, modules, sessions, articles } = useStore();
+  const reads = matchArticles(m, articles).length;
   const active = modules.filter((x) => m.activeModuleIds.includes(x.id));
   const nextReview = sessions
     .filter((s) => s.memberId === m.id && s.type === "1:1 coaching" && s.status === "scheduled")
@@ -167,10 +169,26 @@ export default function Journey() {
         </div>
       </div>
 
+      <Link
+        href="/member/reading"
+        className="card mt-7 flex items-center gap-3 p-4 transition-shadow hover:shadow-lift"
+      >
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-paper-sunk">
+          <BookOpen size={16} className="text-ink-soft" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="font-medium leading-snug">Worth reading</p>
+          <p className="mt-0.5 text-[13px] text-ink-faint">
+            {reads} short {reads === 1 ? "piece" : "pieces"} picked for your stage and goals
+          </p>
+        </div>
+        <ChevronRight size={16} className="shrink-0 text-ink-faint" />
+      </Link>
+
       {nextReview && (
         <Link
           href="/member/reflection"
-          className="card mt-7 block p-4 transition-shadow hover:shadow-lift"
+          className="card mt-4 block p-4 transition-shadow hover:shadow-lift"
         >
           <p className="label">Before your next review</p>
           <p className="mt-1.5 text-[15px] font-medium">

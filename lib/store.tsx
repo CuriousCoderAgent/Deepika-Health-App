@@ -5,6 +5,7 @@ import * as seed from "./seed";
 import { evaluateRadar, radarRules, type RadarRule } from "./radar";
 import { draftWeekPlansFor, weekPlansFor } from "./plan";
 import type {
+  Article,
   CoachModule,
   DailyAction,
   EffortLevel,
@@ -12,6 +13,7 @@ import type {
   Member,
   Message,
   PulseEntry,
+  Report,
   Session,
   WeekPlan,
   Workout,
@@ -22,11 +24,13 @@ interface State {
   members: Member[];
   modules: CoachModule[];
   workouts: Workout[];
+  articles: Article[];
   actions: DailyAction[];
   pulses: PulseEntry[];
   workoutLogs: WorkoutLog[];
   messages: Message[];
   sessions: Session[];
+  reports: Report[];
   feedback: Feedback[];
   rules: RadarRule[];
   resolvedRadar: string[];
@@ -37,18 +41,22 @@ const initial: State = {
   members: seed.members,
   modules: seed.modules,
   workouts: seed.workouts,
+  articles: seed.articles,
   actions: seed.dailyActions,
   pulses: seed.pulses,
   workoutLogs: seed.workoutLogs,
   messages: seed.messages,
   sessions: seed.sessions,
+  reports: seed.reports,
   feedback: seed.feedbackItems,
   rules: radarRules,
   resolvedRadar: [],
   activeMemberId: "radhika",
 };
 
-const KEY = "dw-v0-state-3";
+// Bumped when seeded member content changes shape, so an existing demo
+// browser picks up new seed data instead of showing a half-populated state.
+const KEY = "dw-v0-state-4";
 
 interface Ctx extends State {
   radar: ReturnType<typeof evaluateRadar>;
@@ -71,6 +79,7 @@ interface Ctx extends State {
   ) => void;
   publishWeek: (memberId: string, week: number, rationale: string) => void;
   addCoachNote: (memberId: string, text: string) => void;
+  addReport: (r: Omit<Report, "id">) => void;
   sendMessage: (memberId: string, m: Omit<Message, "id" | "memberId">) => void;
   markRead: (memberId: string) => void;
   toggleRule: (id: string) => void;
@@ -94,7 +103,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         const parsed = JSON.parse(raw);
         // Seeded content (modules, workouts) always comes from source, so
         // content edits ship without wiping the demo state.
-        setState({ ...initial, ...parsed, modules: seed.modules, workouts: seed.workouts });
+        setState({
+          ...initial,
+          ...parsed,
+          modules: seed.modules,
+          workouts: seed.workouts,
+          articles: seed.articles,
+        });
       }
     } catch {
       /* first run, or storage unavailable */
@@ -247,6 +262,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
               : s.messages,
           };
         }),
+
+      // Stores what a report says. Nothing here interprets it — see types.ts.
+      addReport: (r) =>
+        patch((s) => ({
+          ...s,
+          reports: [{ ...r, id: `rep-${Date.now()}` }, ...s.reports],
+        })),
 
       addCoachNote: (memberId, text) =>
         patch((s) => ({
