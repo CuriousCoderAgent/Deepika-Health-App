@@ -39,7 +39,7 @@ export default function CoachLayout({ children }: { children: React.ReactNode })
             href="/"
             className="inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink"
           >
-            <ChevronLeft size={13} /> Home
+            <ChevronLeft size={13} /> Sign out
           </Link>
           <p className="label mt-4">Coach console</p>
           <p className="mt-1 font-display text-xl leading-tight">Deepika</p>

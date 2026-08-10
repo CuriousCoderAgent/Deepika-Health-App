@@ -84,9 +84,23 @@ export default function Today() {
   return (
     <div className="animate-rise px-5 pt-6">
       {/* 1 — Contextual greeting. Kept as the one serif "hero" moment on the
-          whole screen — every other heading here is plain sans-serif. */}
-      <h1 className="font-display text-[1.55rem] leading-tight">{greeting.hi}</h1>
-      <p className="mt-1 text-[14px] leading-relaxed text-ink-soft">{greeting.line}</p>
+          whole screen — every other heading here is plain sans-serif. The
+          profile control is the only chrome, and it is how you leave: no
+          "viewing as" banner anywhere in the member surface. */}
+      <div className="flex items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <h1 className="font-display text-[1.55rem] leading-tight">{greeting.hi}</h1>
+          <p className="mt-1 text-[14px] leading-relaxed text-ink-soft">{greeting.line}</p>
+        </div>
+        <Link
+          href="/"
+          aria-label="Switch profile"
+          title="Switch profile"
+          className="tap flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-effort-tint font-medium text-effort-stretch transition-colors hover:bg-effort-min/40"
+        >
+          {first.charAt(0)}
+        </Link>
+      </div>
 
       {/* 2 — Plan adjusted. Compact by default; the full reason is one tap
           away, not printed in full every single day. */}
