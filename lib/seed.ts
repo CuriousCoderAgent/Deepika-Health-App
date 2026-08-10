@@ -1,4 +1,6 @@
 import type {
+  FoodEntry,
+  FoodItem,
   Article,
   CoachModule,
   DailyAction,
@@ -62,6 +64,8 @@ export const members: Member[] = [
       { label: "Waist", value: "89 cm", at: "Week 4", provenance: p("coach_on_behalf", "Deepika", "2026-07-28") },
     ],
     assessmentComplete: 85,
+    // Set by Deepika in the console, not calculated by the app.
+    proteinTargetG: 60,
     notes: [
       {
         id: "note-radhika-1",
@@ -1117,6 +1121,75 @@ export const reflections: WeeklyReflection[] = [
     questions: "Is it normal to wake at 3am every night now?",
     provenance: p("member_manual", "Radhika", "2026-08-03"),
   },
+];
+
+/* ------------------------------------------------------------------ */
+/* Food library — protein per household serving                        */
+/*                                                                     */
+/* Values are for food as actually served at home, cooked, in the       */
+/* portion an Indian kitchen uses. That distinction matters more than   */
+/* it sounds: raw masoor dal is ~25g protein per 100g, but a katori of  */
+/* homestyle dal is loose and soupy and lands nearer 5g. Quoting the    */
+/* raw figure would overstate a typical day by a factor of three or     */
+/* four, which is worse than not counting at all.                       */
+/*                                                                     */
+/* Everything here is a reasonable average, not a precise measurement,  */
+/* and the UI says so — every figure is editable by the member.         */
+/* Sources: Indian Food Composition Tables (NIN Hyderabad) and standard */
+/* katori portion references, cross-checked Aug 2026.                   */
+/* ------------------------------------------------------------------ */
+
+export const foodItems: FoodItem[] = [
+  // Dals and legumes
+  { id: "f-dal", name: "Dal (any)", category: "dal", unitLabel: "katori", proteinPerUnit: 5, common: true },
+  { id: "f-rajma", name: "Rajma", category: "dal", unitLabel: "katori", proteinPerUnit: 7, common: true },
+  { id: "f-chole", name: "Chole / chana", category: "dal", unitLabel: "katori", proteinPerUnit: 7, common: true },
+  { id: "f-sambar", name: "Sambar", category: "dal", unitLabel: "katori", proteinPerUnit: 4 },
+  { id: "f-sprouts", name: "Sprouts", category: "dal", unitLabel: "katori", proteinPerUnit: 7 },
+  { id: "f-soya", name: "Soya chunks", category: "dal", unitLabel: "katori", proteinPerUnit: 18 },
+
+  // Grains
+  { id: "f-roti", name: "Roti / chapati", category: "grain", unitLabel: "roti", proteinPerUnit: 3, common: true },
+  { id: "f-paratha", name: "Paratha", category: "grain", unitLabel: "paratha", proteinPerUnit: 4 },
+  { id: "f-rice", name: "Rice", category: "grain", unitLabel: "katori", proteinPerUnit: 3, common: true },
+  { id: "f-idli", name: "Idli", category: "grain", unitLabel: "idli", proteinPerUnit: 2 },
+  { id: "f-dosa", name: "Dosa", category: "grain", unitLabel: "dosa", proteinPerUnit: 4 },
+  { id: "f-poha", name: "Poha", category: "grain", unitLabel: "katori", proteinPerUnit: 3 },
+  { id: "f-upma", name: "Upma", category: "grain", unitLabel: "katori", proteinPerUnit: 4 },
+  { id: "f-oats", name: "Oats", category: "grain", unitLabel: "katori", proteinPerUnit: 5 },
+  { id: "f-besan-chilla", name: "Besan chilla", category: "grain", unitLabel: "chilla", proteinPerUnit: 6 },
+
+  // Vegetables
+  { id: "f-sabzi", name: "Sabzi (mixed veg)", category: "veg", unitLabel: "katori", proteinPerUnit: 2, common: true },
+  { id: "f-palak", name: "Palak / methi sabzi", category: "veg", unitLabel: "katori", proteinPerUnit: 3 },
+  { id: "f-aloo", name: "Aloo sabzi", category: "veg", unitLabel: "katori", proteinPerUnit: 2 },
+  { id: "f-salad", name: "Salad", category: "veg", unitLabel: "katori", proteinPerUnit: 1 },
+
+  // Dairy
+  { id: "f-curd", name: "Curd / dahi", category: "dairy", unitLabel: "katori", proteinPerUnit: 4, common: true },
+  { id: "f-milk", name: "Milk", category: "dairy", unitLabel: "glass", proteinPerUnit: 6, common: true },
+  { id: "f-paneer", name: "Paneer", category: "dairy", unitLabel: "50g (≈4 cubes)", proteinPerUnit: 9, common: true },
+  { id: "f-chaas", name: "Buttermilk / chaas", category: "dairy", unitLabel: "glass", proteinPerUnit: 2 },
+  { id: "f-tofu", name: "Tofu", category: "dairy", unitLabel: "100g", proteinPerUnit: 12 },
+
+  // Higher-protein
+  { id: "f-egg", name: "Egg", category: "protein", unitLabel: "egg", proteinPerUnit: 6, common: true },
+  { id: "f-chicken", name: "Chicken", category: "protein", unitLabel: "katori (≈100g)", proteinPerUnit: 25 },
+  { id: "f-fish", name: "Fish", category: "protein", unitLabel: "piece (≈100g)", proteinPerUnit: 22 },
+  { id: "f-whey", name: "Protein powder", category: "protein", unitLabel: "scoop", proteinPerUnit: 24 },
+
+  // Snacks
+  { id: "f-peanuts", name: "Peanuts", category: "snack", unitLabel: "handful", proteinPerUnit: 8 },
+  { id: "f-almonds", name: "Almonds", category: "snack", unitLabel: "10 almonds", proteinPerUnit: 3 },
+  { id: "f-makhana", name: "Makhana", category: "snack", unitLabel: "katori", proteinPerUnit: 3 },
+];
+
+/** A day already part-logged, so the screen is not empty on first open. */
+export const foodEntries: FoodEntry[] = [
+  { id: "fe-1", memberId: "radhika", dayOffset: 0, itemId: "f-curd", name: "Curd / dahi", qty: 1, unitLabel: "katori", protein: 4, meal: "Breakfast", provenance: p("member_manual", "Radhika", "2026-08-09") },
+  { id: "fe-2", memberId: "radhika", dayOffset: 0, itemId: "f-roti", name: "Roti / chapati", qty: 2, unitLabel: "roti", protein: 6, meal: "Breakfast", provenance: p("member_manual", "Radhika", "2026-08-09") },
+  { id: "fe-3", memberId: "radhika", dayOffset: -1, itemId: "f-dal", name: "Dal (any)", qty: 1, unitLabel: "katori", protein: 5, meal: "Lunch", provenance: p("member_manual", "Radhika", "2026-08-08") },
+  { id: "fe-4", memberId: "radhika", dayOffset: -1, itemId: "f-paneer", name: "Paneer", qty: 1, unitLabel: "50g (≈4 cubes)", protein: 9, meal: "Dinner", provenance: p("member_manual", "Radhika", "2026-08-08") },
 ];
 
 /* ------------------------------------------------------------------ */
