@@ -27,7 +27,7 @@ export default function ModuleDetail({ params }: { params: { id: string } }) {
       <p className="label mt-4">
         {m.category === "hormonal" ? "Understanding your body" : m.category}
       </p>
-      <h1 className="mt-2 font-display text-[1.7rem] leading-tight">{m.name}</h1>
+      <h1 className="mt-2 font-display text-[1.55rem] leading-tight">{m.name}</h1>
       <p className="mt-2 text-[15px] leading-relaxed text-ink-soft">{m.purpose}</p>
 
       <div className="mt-6 rounded-2xl bg-effort-tint p-4">

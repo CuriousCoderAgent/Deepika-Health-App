@@ -48,7 +48,7 @@ export default function Reflection() {
         <ChevronLeft size={16} /> Coach
       </Link>
 
-      <h1 className="mt-4 font-display text-[1.7rem] leading-tight">Your week</h1>
+      <h1 className="mt-4 font-display text-[1.55rem] leading-tight">Your week</h1>
       <p className="mt-1.5 text-[15px] leading-relaxed text-ink-soft">
         Four questions. There is no score at the end of this and nobody is marking
         it.

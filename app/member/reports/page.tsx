@@ -61,7 +61,7 @@ export default function Reports() {
         <ChevronLeft size={16} /> Insights
       </Link>
 
-      <h1 className="mt-4 font-display text-[1.7rem] leading-tight">Your reports</h1>
+      <h1 className="mt-4 font-display text-[1.55rem] leading-tight">Your reports</h1>
       <p className="mt-1.5 text-[15px] leading-relaxed text-ink-soft">
         Everything in one place, so you are never hunting through email the night
         before an appointment.

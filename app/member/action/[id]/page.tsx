@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ChevronLeft, Check, MessageCircle } from "lucide-react";
 import { useStore } from "@/lib/store";
+import ExerciseFigure from "@/components/ExerciseFigure";
 import type { EffortLevel } from "@/lib/types";
 
 const LEVELS: { key: EffortLevel; name: string; cls: string; ring: string }[] = [
@@ -17,7 +18,7 @@ const REASONS = ["Ran out of time", "Too tired", "Not feeling well", "Family cam
 
 export default function ActionDetail({ params }: { params: { id: string } }) {
   const router = useRouter();
-  const { actions, modules, completeAction } = useStore();
+  const { actions, modules, workouts, completeAction } = useStore();
   const a = actions.find((x) => x.id === params.id);
   const [restOpen, setRestOpen] = useState(false);
   const [done, setDone] = useState<EffortLevel | null>(null);
@@ -34,6 +35,7 @@ export default function ActionDetail({ params }: { params: { id: string } }) {
   }
 
   const mod = modules.find((m) => m.id === a.moduleId);
+  const workout = a.workoutId ? workouts.find((w) => w.id === a.workoutId) : undefined;
 
   const record = (level: EffortLevel | "rest", reason?: string) => {
     completeAction(a.id, level, reason);
@@ -82,12 +84,42 @@ export default function ActionDetail({ params }: { params: { id: string } }) {
         <ChevronLeft size={16} /> Today
       </Link>
 
-      <h1 className="mt-4 font-display text-[1.7rem] leading-tight">{a.title}</h1>
+      <h1 className="mt-3 font-display text-[1.55rem] leading-tight">{a.title}</h1>
 
-      <div className="mt-4 rounded-2xl bg-paper-sunk/70 p-4">
+      <div className="mt-3.5 rounded-2xl bg-paper-sunk/70 p-3.5">
         <p className="label">Why this, today</p>
-        <p className="mt-1.5 text-[15px] leading-relaxed">{a.why}</p>
+        <p className="mt-1.5 text-[14px] leading-relaxed">{a.why}</p>
       </div>
+
+      {/* For a movement action, show what the session actually contains before
+          asking her to commit to a size. Deciding "can I do this today" is much
+          easier when you can see the four movements than when you cannot. */}
+      {workout && (
+        <Link
+          href={`/member/workout/${workout.id}`}
+          className="card mt-3 block p-3.5 transition-shadow hover:shadow-lift"
+        >
+          <div className="flex items-baseline justify-between">
+            <p className="text-[14px] font-medium">{workout.name}</p>
+            <span className="text-[12px] text-ink-faint">
+              {workout.exercises.length} movements
+            </span>
+          </div>
+          <div className="mt-2 flex gap-2">
+            {workout.exercises.slice(0, 5).map((e, i) => (
+              <span
+                key={i}
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-paper-sunk/70"
+              >
+                <ExerciseFigure figure={e.figure} size={38} />
+              </span>
+            ))}
+          </div>
+          <p className="mt-2 text-[12px] text-effort-stretch">
+            Open the session for form and cues
+          </p>
+        </Link>
+      )}
 
       {mod && mod.keyIdeas.length > 0 && (
         <div className="mt-5">
@@ -137,14 +169,6 @@ export default function ActionDetail({ params }: { params: { id: string } }) {
         </p>
       </div>
 
-      {a.workoutId && (
-        <Link
-          href={`/member/workout/${a.workoutId}`}
-          className="tap mt-5 flex w-full items-center justify-center rounded-xl bg-paper-sunk text-sm font-medium text-ink"
-        >
-          Open the session
-        </Link>
-      )}
 
       {/* Rest — neutral, never a failure state, always with a reason we can learn from */}
       <div className="mt-6 border-t border-ink-line pt-5">

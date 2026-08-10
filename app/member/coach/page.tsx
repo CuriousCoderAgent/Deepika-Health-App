@@ -66,6 +66,19 @@ export default function CoachInbox() {
         </div>
       )}
 
+      {thread.length === 0 && (
+        <div className="card mt-4 p-5 text-center">
+          <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-marigold-tint">
+            <Mic size={18} className="text-marigold-deep" />
+          </span>
+          <p className="mt-3 text-[15px] font-medium">No messages yet</p>
+          <p className="mx-auto mt-1.5 max-w-[17rem] text-[13px] leading-relaxed text-ink-soft">
+            Deepika usually sends a voice note before your first session. You can
+            write to her here any time — she answers between clients, not instantly.
+          </p>
+        </div>
+      )}
+
       <div className="mt-4 space-y-2.5">
         {thread.map((msg) => {
           if (msg.kind === "plan_update") {

@@ -61,6 +61,22 @@ export default function Movement() {
         </div>
       )}
 
+      {/* Week one, before Deepika has assigned anything. Says what happens
+          next rather than showing a blank screen and letting her assume
+          something is broken. */}
+      {upcoming.length === 0 && week.length === 0 && logs.length === 0 && (
+        <div className="card mt-5 p-5 text-center">
+          <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-paper-sunk">
+            <Dumbbell size={19} className="text-ink-faint" />
+          </span>
+          <p className="mt-3 text-[15px] font-medium">Nothing assigned yet</p>
+          <p className="mx-auto mt-1.5 max-w-[17rem] text-[13px] leading-relaxed text-ink-soft">
+            Deepika builds your first sessions after she has read your answers.
+            They will appear here — you don&rsquo;t need to pick anything yourself.
+          </p>
+        </div>
+      )}
+
       {/* The week, as a row. Not a calendar. */}
       <div className="mt-5">
         <p className="label">Your week</p>
