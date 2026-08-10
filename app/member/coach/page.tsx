@@ -27,15 +27,15 @@ export default function CoachInbox() {
     .sort((a, b) => b.dayOffset - a.dayOffset)[0];
 
   return (
-    <div className="animate-rise px-5 pt-8">
-      <h1 className="font-display text-[1.7rem] leading-tight">Deepika</h1>
-      <p className="mt-1.5 text-[15px] text-ink-soft">Your coach, not a chatbot.</p>
+    <div className="animate-rise px-5 pt-6">
+      <h1 className="font-display text-[1.55rem] leading-tight">Deepika</h1>
+      <p className="mt-1 text-[14px] text-ink-soft">Your coach, not a chatbot.</p>
 
       {upcoming && (
-        <div className="mt-6 card p-4">
+        <div className="card mt-4 p-3.5">
           <div className="flex items-center gap-2.5">
-            <CalendarClock size={16} className="text-ink-soft" />
-            <p className="text-[15px] font-medium">
+            <CalendarClock size={15} className="shrink-0 text-ink-soft" />
+            <p className="text-[14px] font-medium leading-snug">
               {upcoming.type},{" "}
               {upcoming.dayOffset === 0
                 ? "today"
@@ -43,16 +43,14 @@ export default function CoachInbox() {
                 ? "tomorrow"
                 : `in ${upcoming.dayOffset} days`}
             </p>
+            <span className="ml-auto shrink-0 text-[12px] text-ink-faint">{upcoming.time}</span>
           </div>
-          <p className="mt-1 text-[13px] text-ink-soft">
-            {upcoming.time} · {upcoming.mode}
-          </p>
           {upcoming.memberQuestions.length > 0 && (
-            <div className="mt-3 border-t border-ink-line pt-3">
+            <div className="mt-2.5 border-t border-ink-line pt-2.5">
               <p className="label">Your questions for this session</p>
               <ul className="mt-1.5 space-y-1">
                 {upcoming.memberQuestions.map((q, i) => (
-                  <li key={i} className="text-[14px] leading-snug text-ink-soft">
+                  <li key={i} className="text-[13px] leading-snug text-ink-soft">
                     {q}
                   </li>
                 ))}
@@ -61,14 +59,14 @@ export default function CoachInbox() {
           )}
           <Link
             href="/member/reflection"
-            className="tap mt-3 inline-flex items-center rounded-lg text-[14px] text-effort-stretch underline underline-offset-2"
+            className="tap mt-2 inline-flex items-center rounded-lg text-[13px] font-medium text-effort-stretch"
           >
             Fill in the two-minute reflection
           </Link>
         </div>
       )}
 
-      <div className="mt-6 space-y-3">
+      <div className="mt-4 space-y-2.5">
         {thread.map((msg) => {
           if (msg.kind === "plan_update") {
             return (
@@ -124,9 +122,9 @@ export default function CoachInbox() {
       </div>
 
       {past?.memberRecap && (
-        <div className="mt-6 card p-4">
+        <div className="card mt-4 p-3.5">
           <p className="label">From your last session</p>
-          <p className="mt-1.5 text-[14px] leading-relaxed text-ink-soft">{past.memberRecap}</p>
+          <p className="mt-1.5 text-[13px] leading-relaxed text-ink-soft">{past.memberRecap}</p>
           {past.commitments.length > 0 && (
             <div className="mt-3 space-y-1.5">
               {past.commitments.map((c, i) => (
@@ -144,7 +142,16 @@ export default function CoachInbox() {
         </div>
       )}
 
-      <div className="sticky bottom-0 mt-6 flex gap-2 bg-paper pb-4 pt-2">
+      {/* Scope note sits above the composer, not below it. It was rendering
+          underneath a sticky element, which put it permanently out of view. */}
+      <p className="mt-5 text-[11px] leading-relaxed text-ink-faint">
+        Deepika is a health coach and personal trainer. She does not diagnose
+        conditions or advise on medication. For anything urgent or medical,
+        contact your doctor rather than waiting for a reply here — she will
+        help you prepare the questions.
+      </p>
+
+      <div className="sticky bottom-0 mt-3 flex gap-2 bg-paper pb-4 pt-2">
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
@@ -170,13 +177,6 @@ export default function CoachInbox() {
           <Send size={16} />
         </button>
       </div>
-
-      <p className="pb-4 text-[11px] leading-relaxed text-ink-faint">
-        Deepika is a health coach and personal trainer. She does not diagnose
-        conditions or advise on medication. For anything urgent or medical,
-        contact your doctor rather than waiting for a reply here — she will
-        help you prepare the questions.
-      </p>
     </div>
   );
 }
