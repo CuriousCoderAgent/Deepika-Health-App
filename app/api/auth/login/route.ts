@@ -5,7 +5,11 @@ import {
   sessionMaxAge,
   verifyCredentials,
 } from "@/lib/auth";
+import { verifyAccount } from "@/lib/accounts";
+import { isConfigured } from "@/lib/db";
 import { encodeUserCookie, USER_COOKIE } from "@/lib/session-client";
+
+export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   const { username, password } = await req.json().catch(() => ({}) as any);
@@ -14,7 +18,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Missing credentials." }, { status: 400 });
   }
 
-  const user = await verifyCredentials(username, password);
+  // Accounts come from two places: the environment, which holds Deepika's
+  // login and anything handed out by hand, and the database, which holds the
+  // accounts members created for themselves. Environment first — it is the
+  // one that works with no infrastructure at all.
+  let user = await verifyCredentials(username, password);
+  if (!user && isConfigured()) {
+    try {
+      user = await verifyAccount(username, password);
+    } catch (err) {
+      console.error("[login] account lookup failed", err);
+    }
+  }
   if (!user) {
     // One message for both wrong-user and wrong-password, so this can't be
     // used to discover which accounts exist.

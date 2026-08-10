@@ -25,7 +25,8 @@ to an existing build.
 | `AUTH_SECRET` | Random string used to sign session cookies. Generate with `openssl rand -base64 32`. Changing it signs everyone out. |
 | `COACH_PASSWORD` | Deepika's password. Her username is always `deepika`. |
 | `MEMBERS` | The cohort. See below. |
-| `DATABASE_URL` | Postgres connection string. Optional — see Storage. |
+| `DATABASE_URL` | Postgres connection string. Optional, but required for self-signup — see Storage. |
+| `SIGNUP_CODE` | Optional. When set, creating an account asks for this code. |
 
 The login screen stops showing the preview-credentials box once the first
 three are present, which is a quick way to confirm the deployment picked
@@ -48,6 +49,37 @@ deployment, so a stray comma costs you one account, not all of them.
 `anita`, `shreya`, `nidhi` and `priya`. Giving one of those to a real member
 drops her into a fictional woman's history. `radhika` is the exception and is
 meant to be used — it is the seeded demo account.
+
+## Signing up
+
+With `DATABASE_URL` set, the login screen offers **Create your account**: a
+member enters her name, picks a username (suggested from her name, editable)
+and a password, and is signed straight in to the first-run flow. Deepika
+shares one link with her group rather than minting twenty credentials by hand
+and sending them out one at a time.
+
+These passwords are stored as scrypt hashes with a per-account salt. Nobody
+can read them back — not Deepika, and not anyone who gets a copy of the
+database. The `MEMBERS` passwords stay plaintext because they belong to
+whoever runs the deployment and are already visible in Vercel.
+
+Both kinds of account work at once. Login checks `MEMBERS` first, then the
+database.
+
+**Who can sign up.** A link shared in a group chat travels further than the
+group. Set `SIGNUP_CODE` to any short phrase and the form asks for it —
+Deepika includes it in the same message as the link. Leave it unset and
+anyone with the URL can create an account, which is the right default while
+the link is still being handed out person to person, and the wrong one the
+day it goes anywhere public.
+
+Without `DATABASE_URL` the option is not shown at all, rather than shown and
+broken: an environment variable is read-only at runtime, so there is nowhere
+for a new account to go.
+
+**No password reset exists yet.** The form warns about this, and asks for the
+password twice, because a typo is currently an account nobody can get back
+into. Worth building before the cohort grows.
 
 ## Storage
 
@@ -95,8 +127,9 @@ forged cookie is rejected by signature check; per-account data isolation, in
 both storage modes.
 
 **Does not:** password reset, rate limiting on login attempts, or account
-self-service. Adding or removing a member means editing `MEMBERS` and
-redeploying.
+removal. Deleting someone means a `delete` against `account` and
+`member_state`, or removing her entry from `MEMBERS` and redeploying,
+depending on which kind of account she has.
 
 ## Conflict handling
 

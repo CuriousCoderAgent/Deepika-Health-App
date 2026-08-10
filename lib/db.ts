@@ -17,6 +17,7 @@
  */
 
 import { Pool } from "pg";
+import type { StoredAccount } from "./accounts";
 import type { CoachDoc, MemberDoc } from "./persist";
 import { seedCoachDoc, seedMemberDocs } from "./persist";
 
@@ -109,6 +110,12 @@ async function init(): Promise<void> {
       key   text primary key,
       value text not null
     );
+    create table if not exists account (
+      user_id       text primary key,
+      name          text not null,
+      password_hash text not null,
+      created_at    timestamptz not null default now()
+    );
   `);
 
   // The marker, not a row count, decides whether to seed. Counting would
@@ -172,4 +179,43 @@ export async function writeCoachDoc(userId: string, doc: CoachDoc): Promise<void
      on conflict (user_id) do update set doc = excluded.doc, updated_at = now()`,
     [userId, JSON.stringify(doc)]
   );
+}
+
+/* ------------------------------------------------------------------ */
+/* Self-created accounts. See lib/accounts.ts — passwords are hashed    */
+/* before they get here and this module never sees a plaintext one.     */
+/* ------------------------------------------------------------------ */
+
+export async function readAccount(userId: string): Promise<StoredAccount | null> {
+  await ensureReady();
+  const r = await db().query(
+    "select user_id, name, password_hash from account where user_id = $1",
+    [userId]
+  );
+  const row = r.rows[0];
+  return row ? { userId: row.user_id, name: row.name, hash: row.password_hash } : null;
+}
+
+/**
+ * Insert only — never an upsert. Two people picking the same username at the
+ * same moment must end with one account and one clear failure, not with the
+ * second silently taking over the first one's row.
+ *
+ * Returns false when the name was already taken.
+ */
+export async function writeAccount(a: StoredAccount): Promise<boolean> {
+  await ensureReady();
+  const r = await db().query(
+    `insert into account (user_id, name, password_hash) values ($1, $2, $3)
+     on conflict (user_id) do nothing`,
+    [a.userId, a.name, a.hash]
+  );
+  return (r.rowCount ?? 0) > 0;
+}
+
+/** Everyone who signed themselves up, for Deepika's roster. */
+export async function readAccountNames(): Promise<{ userId: string; name: string }[]> {
+  await ensureReady();
+  const r = await db().query("select user_id, name from account order by created_at asc");
+  return r.rows.map((row) => ({ userId: row.user_id, name: row.name }));
 }

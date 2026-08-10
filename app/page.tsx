@@ -7,6 +7,7 @@ import {
   sessionCookieName,
   sessionsAreSecure,
 } from "@/lib/auth";
+import { isConfigured } from "@/lib/db";
 import LoginForm from "./login/LoginForm";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +25,11 @@ export default async function Home() {
   if (session) redirect(session.role === "coach" ? "/coach" : "/member");
 
   const insecure = !sessionsAreSecure();
+  // Self-signup needs somewhere to put the account. An environment variable is
+  // read-only at runtime, so without storage there is nowhere for a new
+  // account to go and the option is not offered rather than offered and broken.
+  const canSignUp = isConfigured();
+  const needsCode = Boolean(process.env.SIGNUP_CODE?.trim());
 
   return (
     <main className="relative min-h-dvh overflow-hidden bg-paper">
@@ -48,7 +54,7 @@ export default async function Home() {
         </header>
 
         <div className="mt-8">
-          <LoginForm />
+          <LoginForm canSignUp={canSignUp} needsCode={needsCode} />
         </div>
 
         {insecure && (
@@ -69,6 +75,12 @@ export default async function Home() {
               deployment environment before anyone real signs in.
             </p>
           </div>
+        )}
+
+        {!canSignUp && !insecure && (
+          <p className="mt-6 text-center text-[12px] leading-relaxed text-ink-faint">
+            Signing up isn't open on this deployment. Deepika can add you.
+          </p>
         )}
 
         <p className="mt-8 text-center text-[11px] leading-relaxed text-ink-faint">

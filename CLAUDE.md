@@ -111,9 +111,13 @@ Storage is per account either way — one document per member, split and
 rejoined by `lib/persist.ts`. `lib/db.ts` is server-only; importing it from a
 client component would put the connection string in the browser bundle.
 
-Accounts come from the environment (`MEMBERS`, `COACH_PASSWORD`,
-`AUTH_SECRET`), all with fallbacks, so a deployment with nothing set still
-opens on demo credentials. See `docs/DEPLOYMENT.md`.
+Accounts come from two places: the environment (`MEMBERS`, `COACH_PASSWORD`,
+`AUTH_SECRET`), all with fallbacks so a deployment with nothing set still
+opens on demo credentials; and the database, for members who signed
+themselves up. `lib/accounts.ts` handles the second kind and is server-only —
+Node's crypto is not available in the Edge middleware, which is why the
+middleware imports from `lib/auth.ts` and never from there.
+See `docs/DEPLOYMENT.md`.
 
 ```bash
 npm install
