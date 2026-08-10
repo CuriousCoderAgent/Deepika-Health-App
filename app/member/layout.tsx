@@ -9,7 +9,7 @@ const tabs = [
   { href: "/member", label: "Today", icon: Home },
   { href: "/member/journey", label: "Journey", icon: CalendarHeart },
   { href: "/member/movement", label: "Movement", icon: Activity },
-  { href: "/member/progress", label: "Progress", icon: TrendingUp },
+  { href: "/member/progress", label: "Insights", icon: TrendingUp },
   { href: "/member/coach", label: "Coach", icon: MessageCircle },
 ];
 
@@ -38,12 +38,17 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
           not a shrunken copy of a 412px canvas. */}
       <div className="flex min-h-0 flex-1 justify-center sm:items-center sm:p-4">
         <div
-          className="flex w-full flex-col overflow-hidden bg-paper shadow-lift sm:h-[760px] sm:max-h-full sm:rounded-[2.25rem] sm:border-[10px] sm:border-ink"
+          className="relative flex w-full flex-col overflow-hidden bg-paper shadow-lift sm:h-[760px] sm:max-h-full sm:rounded-[2.25rem] sm:border-[10px] sm:border-ink"
           style={{ maxWidth: "var(--phone-reference)" }}
         >
           <div className="scroll-hide min-h-0 flex-1 overflow-y-auto overscroll-contain">
             {children}
           </div>
+
+          {/* Bottom sheets portal in here, so they stay inside the phone frame
+              on a desktop instead of covering the browser window. */}
+          <div id="sheet-root" />
+
 
           <nav className="safe-bottom shrink-0 border-t border-ink-line bg-paper-card/95 backdrop-blur">
             <div className="flex">

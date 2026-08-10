@@ -65,7 +65,14 @@ interface Ctx extends State {
   completeAction: (id: string, level: EffortLevel | "rest", reason?: string) => void;
   submitPulse: (
     memberId: string,
-    v: { energy: number; sleep: number; stress: number; symptoms: string[]; note?: string },
+    v: {
+      energy: number;
+      sleep: number;
+      stress: number;
+      symptoms: string[];
+      note?: string;
+      partial?: boolean;
+    },
     byCoach?: boolean
   ) => void;
   logWorkout: (log: Omit<WorkoutLog, "id">) => void;
