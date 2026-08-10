@@ -6,6 +6,8 @@ import { evaluateRadar, radarRules, type RadarRule } from "./radar";
 import { draftWeekPlansFor, weekPlansFor } from "./plan";
 import type {
   Article,
+  FoodEntry,
+  FoodItem,
   CoachModule,
   DailyAction,
   EffortLevel,
@@ -25,6 +27,8 @@ interface State {
   modules: CoachModule[];
   workouts: Workout[];
   articles: Article[];
+  foodItems: FoodItem[];
+  foodEntries: FoodEntry[];
   actions: DailyAction[];
   pulses: PulseEntry[];
   workoutLogs: WorkoutLog[];
@@ -42,6 +46,8 @@ const initial: State = {
   modules: seed.modules,
   workouts: seed.workouts,
   articles: seed.articles,
+  foodItems: seed.foodItems,
+  foodEntries: seed.foodEntries,
   actions: seed.dailyActions,
   pulses: seed.pulses,
   workoutLogs: seed.workoutLogs,
@@ -56,7 +62,7 @@ const initial: State = {
 
 // Bumped when seeded member content changes shape, so an existing demo
 // browser picks up new seed data instead of showing a half-populated state.
-const KEY = "dw-v0-state-4";
+const KEY = "dw-v0-state-5";
 
 interface Ctx extends State {
   radar: ReturnType<typeof evaluateRadar>;
@@ -87,6 +93,9 @@ interface Ctx extends State {
   publishWeek: (memberId: string, week: number, rationale: string) => void;
   addCoachNote: (memberId: string, text: string) => void;
   addReport: (r: Omit<Report, "id">) => void;
+  addFood: (e: Omit<FoodEntry, "id" | "provenance">, byCoach?: boolean) => void;
+  removeFood: (id: string) => void;
+  setProteinTarget: (memberId: string, grams: number | undefined) => void;
   completeOnboarding: (
     memberId: string,
     data: {
@@ -134,6 +143,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           modules: seed.modules,
           workouts: seed.workouts,
           articles: seed.articles,
+          foodItems: seed.foodItems,
         });
       }
     } catch {
@@ -294,6 +304,36 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         patch((s) => ({
           ...s,
           reports: [{ ...r, id: `rep-${Date.now()}` }, ...s.reports],
+        })),
+
+      addFood: (e, byCoach) =>
+        patch((s) => ({
+          ...s,
+          foodEntries: [
+            {
+              ...e,
+              id: `fe-${Date.now()}`,
+              provenance: {
+                source: byCoach ? "coach_on_behalf" : "member_manual",
+                enteredBy: byCoach
+                  ? "Deepika"
+                  : s.members.find((m) => m.id === e.memberId)?.name.split(" ")[0] ?? "Member",
+                at: new Date().toISOString().slice(0, 10),
+              },
+            },
+            ...s.foodEntries,
+          ],
+        })),
+
+      removeFood: (id) =>
+        patch((s) => ({ ...s, foodEntries: s.foodEntries.filter((x) => x.id !== id) })),
+
+      setProteinTarget: (memberId, grams) =>
+        patch((s) => ({
+          ...s,
+          members: s.members.map((m) =>
+            m.id === memberId ? { ...m, proteinTargetG: grams } : m
+          ),
         })),
 
       addCoachNote: (memberId, text) =>

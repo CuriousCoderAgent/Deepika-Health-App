@@ -53,6 +53,7 @@ export default function Member360({ params }: { params: { id: string } }) {
     updateDraftWeek,
     publishWeek,
     addCoachNote,
+    setProteinTarget,
     sendMessage,
     updateAction,
     saveSessionNotes,
@@ -258,6 +259,30 @@ export default function Member360({ params }: { params: { id: string } }) {
           <div className="md:col-span-2">
             <p className="label mb-2">Enter her check-in during the call</p>
             <PulseCard memberId={m.id} asCoach />
+          </div>
+
+          <div className="card p-5 md:col-span-2">
+            <p className="label">Daily protein target</p>
+            <p className="mt-1 text-[13px] leading-relaxed text-ink-soft">
+              Your number, not a calculated one — the app never sets this
+              itself. She sees it on Today and on her food log. Leave it blank
+              and the app just counts without a target.
+            </p>
+            <div className="mt-2.5 flex items-center gap-2">
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={250}
+                value={m.proteinTargetG ?? ""}
+                onChange={(e) =>
+                  setProteinTarget(m.id, e.target.value ? Number(e.target.value) : undefined)
+                }
+                placeholder="—"
+                className="w-24 rounded-xl border border-ink-line bg-paper px-3 py-2 text-right font-mono text-[15px] focus:border-effort-target focus:outline-none"
+              />
+              <span className="text-[14px] text-ink-soft">grams per day</span>
+            </div>
           </div>
 
           <div className="card p-5 md:col-span-2">

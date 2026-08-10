@@ -75,6 +75,16 @@ export interface Member {
   consent?: { health: boolean; reports: boolean; at: string };
   /** When she'd rather hear from the app. Shapes notification timing later. */
   checkInPreference?: "morning" | "evening";
+  /**
+   * Daily protein target in grams, set by Deepika for this member.
+   *
+   * Deliberately a number she types, not one the app calculates from body
+   * weight. Deciding what an individual should eat is a coach's professional
+   * judgement about her own client; software generating that target on its
+   * own would be the product prescribing, which is a different thing
+   * entirely. Absent means she has not set one, and the app just counts.
+   */
+  proteinTargetG?: number;
   /** Dated, appendable coach log. Private — never surfaced to the member. */
   notes?: CoachNote[];
   /** The published 12-week plan. Falls back to a synthesis of live state — see lib/plan.ts. */
@@ -339,6 +349,51 @@ export interface Article {
   /** Shown to the member verbatim: "Because you said …". */
   whyThis: string;
   sourceNote?: string;
+}
+
+/**
+ * Food logging — protein only, deliberately.
+ *
+ * This is not a calorie tracker and must never become one. Radhika's own
+ * stated boundary is "I will not count calories", and turning her plate into
+ * a ledger of everything she ate is the fastest way to lose her. One number,
+ * one question: was there protein on the plate.
+ *
+ * Portions are household measures — katori, roti, glass — because that is how
+ * this kitchen actually thinks. Grams-and-scales is the input model that kills
+ * food diaries in week two.
+ */
+export interface FoodItem {
+  id: string;
+  name: string;
+  category: "dal" | "grain" | "veg" | "dairy" | "protein" | "snack";
+  /** How it is counted at the table: "katori", "roti", "glass", "egg". */
+  unitLabel: string;
+  /**
+   * Grams of protein in one of that unit, as actually served at home.
+   * Cooked, not raw — a katori of homestyle dal is mostly water, so it lands
+   * near 5g rather than the 20g+ a raw-weight table would imply.
+   */
+  proteinPerUnit: number;
+  /** Surfaces in the short list before search. */
+  common?: boolean;
+}
+
+export interface FoodEntry {
+  id: string;
+  memberId: string;
+  dayOffset: number;
+  /** Present when picked from the library; absent for a custom entry. */
+  itemId?: string;
+  name: string;
+  qty: number;
+  unitLabel: string;
+  /** Total grams for this entry, not per unit. */
+  protein: number;
+  /** True when she corrected the library's figure — hers wins, and is marked. */
+  proteinEdited?: boolean;
+  meal: "Breakfast" | "Lunch" | "Snack" | "Dinner";
+  provenance: Provenance;
 }
 
 export interface Feedback {

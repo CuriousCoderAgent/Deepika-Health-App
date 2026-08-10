@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Mic, Play, CalendarClock, ChevronRight, RefreshCw, Check } from "lucide-react";
+import { Mic, Play, CalendarClock, ChevronRight, RefreshCw, Check, Apple } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { CategoryIcon, ConsistencyBand } from "@/components/ui";
 import PulseCard from "@/components/PulseCard";
@@ -44,7 +44,8 @@ function FocusStatus({ level, rest }: { level: EffortLevel | null; rest?: boolea
 }
 
 export default function Today() {
-  const { activeMember: m, actions, pulses, messages, sessions, modules } = useStore();
+  const { activeMember: m, actions, pulses, messages, sessions, modules, foodEntries } =
+    useStore();
   const [playing, setPlaying] = useState(false);
   const [planExpanded, setPlanExpanded] = useState(false);
 
@@ -80,6 +81,11 @@ export default function Today() {
     return { level: level as any, dayOffset: off };
   });
   const activeDays = last14days.filter((d) => d.level && d.level !== "rest").length;
+
+  const proteinTarget = m.proteinTargetG;
+  const proteinToday = foodEntries
+    .filter((e) => e.memberId === m.id && e.dayOffset === 0)
+    .reduce((s, e) => s + e.protein, 0);
 
   return (
     <div className="animate-rise px-5 pt-6">
@@ -234,7 +240,42 @@ export default function Today() {
         </div>
       </div>
 
-      {/* 6 — Next human touchpoint */}
+      {/* 6 — Protein. One number, tappable, never a scoreboard. */}
+      <Link
+        href="/member/food"
+        className="card mt-4 flex items-center gap-3 p-3.5 transition-shadow hover:shadow-lift"
+      >
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-paper-sunk">
+          <Apple size={16} className="text-ink-faint" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[14px] font-medium leading-snug">
+            Protein today
+            {proteinTarget ? (
+              <span className="ml-1.5 font-mono text-[12px] font-normal text-ink-soft">
+                {proteinToday}g of {proteinTarget}
+              </span>
+            ) : (
+              <span className="ml-1.5 font-mono text-[12px] font-normal text-ink-soft">
+                {proteinToday}g
+              </span>
+            )}
+          </p>
+          {proteinTarget ? (
+            <span className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-paper-sunk">
+              <span
+                className="block h-full rounded-full bg-effort-target transition-all duration-500"
+                style={{ width: `${Math.min(100, (proteinToday / proteinTarget) * 100)}%` }}
+              />
+            </span>
+          ) : (
+            <p className="text-[12px] text-ink-faint">Log what you ate</p>
+          )}
+        </div>
+        <ChevronRight size={16} className="shrink-0 text-ink-faint" />
+      </Link>
+
+      {/* 7 — Next human touchpoint */}
       {nextSession && (
         <Link
           href="/member/coach"
