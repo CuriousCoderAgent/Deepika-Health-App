@@ -441,7 +441,7 @@ function CustomEditor({
         Add it
       </button>
       <p className="mt-2 text-[11px] leading-relaxed text-ink-faint">
-        Not sure of the protein? A rough guess is fine — a katori of dal is
+        Not sure of the protein? A rough guess is fine — a bowl of dal is
         about 5g, an egg about 6g, a roti about 3g.
       </p>
     </div>

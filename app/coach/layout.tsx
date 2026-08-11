@@ -10,7 +10,7 @@ import {
   MessagesSquare,
   Bell,
   MessageSquareWarning,
-  ChevronLeft,
+  LogOut,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 
@@ -38,9 +38,9 @@ export default function CoachLayout({ children }: { children: React.ReactNode })
           <form action="/api/auth/logout" method="post">
             <button
               type="submit"
-              className="inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink"
+              className="inline-flex items-center gap-1.5 text-xs text-ink-faint hover:text-ink"
             >
-              <ChevronLeft size={13} /> Sign out
+              <LogOut size={13} /> Sign out
             </button>
           </form>
           <p className="label mt-4">Coach console</p>
@@ -85,6 +85,24 @@ export default function CoachLayout({ children }: { children: React.ReactNode })
           </p>
         </div>
       </aside>
+
+      {/* Mobile header. The sidebar holds the only way to sign out, and it is
+          hidden below lg — which left Deepika signed in on her phone with no
+          way out short of clearing cookies. */}
+      <div className="safe-top sticky top-0 z-20 flex items-center justify-between border-b border-ink-line bg-paper-card/95 px-4 py-2.5 backdrop-blur lg:hidden">
+        <div>
+          <p className="label">Coach console</p>
+          <p className="font-display text-lg leading-tight">Deepika</p>
+        </div>
+        <form action="/api/auth/logout" method="post">
+          <button
+            type="submit"
+            className="tap inline-flex items-center gap-1.5 rounded-xl px-3 text-[13px] text-ink-soft hover:bg-paper-sunk hover:text-ink"
+          >
+            <LogOut size={15} /> Sign out
+          </button>
+        </form>
+      </div>
 
       {/* Mobile nav */}
       <div className="safe-bottom fixed inset-x-0 bottom-0 z-20 border-t border-ink-line bg-paper-card/95 backdrop-blur lg:hidden">
