@@ -32,7 +32,11 @@ export default function CoachLayout({ children }: { children: React.ReactNode })
   const unread = messages.filter((m) => m.from === "member" && !m.read).length;
 
   return (
-    <div className="flex min-h-dvh">
+    /* Column on a phone, row on a desktop. The sidebar is the only child that
+       belongs beside the content, and it only exists at lg — so stacking below
+       that keeps the mobile header full-width above the page instead of
+       becoming a second column next to it. */
+    <div className="flex min-h-dvh flex-col lg:flex-row">
       <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-ink-line bg-paper-card lg:flex">
         <div className="px-5 pt-6">
           <form action="/api/auth/logout" method="post">
@@ -89,7 +93,10 @@ export default function CoachLayout({ children }: { children: React.ReactNode })
       {/* Mobile header. The sidebar holds the only way to sign out, and it is
           hidden below lg — which left Deepika signed in on her phone with no
           way out short of clearing cookies. */}
-      <div className="safe-top sticky top-0 z-20 flex items-center justify-between border-b border-ink-line bg-paper-card/95 px-4 py-2.5 backdrop-blur lg:hidden">
+      <div
+        className="sticky top-0 z-20 flex shrink-0 items-center justify-between border-b border-ink-line bg-paper-card/95 px-4 py-2.5 backdrop-blur lg:hidden"
+        style={{ paddingTop: "max(0.625rem, env(safe-area-inset-top))" }}
+      >
         <div>
           <p className="label">Coach console</p>
           <p className="font-display text-lg leading-tight">Deepika</p>
