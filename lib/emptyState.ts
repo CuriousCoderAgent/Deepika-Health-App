@@ -16,7 +16,6 @@ export function newMember(id: string, name: string): Member {
   return {
     id,
     name,
-    age: 45,
     city: "",
     initials: name
       .split(" ")
@@ -24,6 +23,11 @@ export function newMember(id: string, name: string): Member {
       .join("")
       .slice(0, 2)
       .toUpperCase(),
+    // Unset, not a guess. Onboarding asks for it and will not let her past
+    // that screen without a real answer between 18 and 99, so nothing
+    // downstream sees this zero for long — and it is better than opening her
+    // first question with a made-up age she has to delete.
+    age: 0,
     week: 1,
     phase: "Stabilise",
     lifeStage: "",

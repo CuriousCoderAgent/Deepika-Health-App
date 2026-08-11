@@ -59,6 +59,23 @@ const config: Config = {
           DEFAULT: "#6E8FB0",
           tint: "#EAF0F6",
         },
+        // Navigation, and navigation only.
+        //
+        // Deliberately outside the effort ramp. Everything green in this app
+        // means something about effort — minimum, target, stretch — and the
+        // bottom bar was borrowing `effort.stretch` for "you are on this tab",
+        // which quietly said "stretch" five times a day for no reason. Purple
+        // and turquoise carry no meaning here beyond where you are, which is
+        // exactly what navigation should say and nothing more.
+        //
+        // Microsoft Teams purple, and a turquoise darkened until it holds up:
+        // plain #40E0D0 measures 1.8:1 on white and is unreadable at the 10px
+        // the tab labels use. #0B7F7A measures 4.9:1.
+        nav: {
+          DEFAULT: "#6264A7",
+          active: "#0B7F7A",
+          tint: "#E4F2F1",
+        },
         // Genuine system errors only (a save that failed, a required field).
         // Never used for a missed action or an honest "not today" — that
         // distinction is the whole reason `rest` and `danger` are separate

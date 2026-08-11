@@ -48,8 +48,13 @@ export default async function Home() {
           <h1 className="mt-5 font-display text-[2.1rem] leading-[1.1] tracking-tight">
             Deepika Wellness
           </h1>
+          {/* Deliberately names no age and no gender. The practice is built
+              around women in midlife and the coaching reflects that, but the
+              first line anyone reads should not turn away someone who came
+              here ready to start. What makes this different is the coach, not
+              the demographic. */}
           <p className="mx-auto mt-3 max-w-sm text-[15px] leading-relaxed text-ink-soft">
-            Strength, energy and steadiness through your forties and beyond —
+            Strength, energy and steadiness — built around your actual life,
             with someone who actually knows you.
           </p>
         </header>

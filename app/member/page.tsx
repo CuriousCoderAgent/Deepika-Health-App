@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Mic, Play, CalendarClock, ChevronRight, RefreshCw, Check, Apple } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { CategoryIcon, ConsistencyBand } from "@/components/ui";
@@ -10,16 +10,42 @@ import PulseCard from "@/components/PulseCard";
 import { DEMO_MEMBER_ID } from "@/lib/session-client";
 import type { EffortLevel } from "@/lib/types";
 
+/**
+ * Time of day, from her phone's clock.
+ *
+ * The greeting used to say "Good morning" at eleven at night. Everything else
+ * in this prototype runs on dayOffset from a fixed seeded "today", which is
+ * what keeps the sample history coherent — but the time of day is the one
+ * thing that has to come from the real clock in her hand, because she is the
+ * one reading it.
+ */
+function partOfDay(hour: number): string {
+  if (hour < 5) return "Still up";
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+}
+
 /** Greeting adapts to what the last few days actually looked like. */
-function greetingFor(energy: number | null, poorSleep: boolean, name: string) {
+function greetingFor(
+  energy: number | null,
+  poorSleep: boolean,
+  name: string,
+  hour: number | null
+) {
+  // Null until the clock has been read on the client. Rendering a time-based
+  // greeting on the server would bake the server's hour into the HTML and
+  // then visibly swap it a moment later.
+  const hi = hour === null ? `Hello, ${name}.` : `${partOfDay(hour)}, ${name}.`;
+
   if (poorSleep)
     return {
-      hi: `Good morning, ${name}.`,
+      hi,
       line: "Your sleep was more disrupted than usual last night. We've made today lighter.",
     };
   if (energy !== null && energy >= 4)
-    return { hi: `Good morning, ${name}.`, line: "You have had a good run. Today can be a bigger one if you want it." };
-  return { hi: `Good morning, ${name}.`, line: "One thing done today keeps the week intact." };
+    return { hi, line: "You have had a good run. Today can be a bigger one if you want it." };
+  return { hi, line: "One thing done today keeps the week intact." };
 }
 
 /** A single glanceable status, not a ramp of dots plus a text label plus a chevron. */
@@ -46,6 +72,11 @@ function FocusStatus({ level, rest }: { level: EffortLevel | null; rest?: boolea
 }
 
 export default function Today() {
+  // Read after mount, not during render: the server has no idea what time it
+  // is where she is.
+  const [hour, setHour] = useState<number | null>(null);
+  useEffect(() => setHour(new Date().getHours()), []);
+
   const {
     activeMember: m,
     actions,
@@ -67,7 +98,7 @@ export default function Today() {
     .filter((p) => p.memberId === m.id && p.dayOffset >= -3)
     .sort((a, b) => b.dayOffset - a.dayOffset);
   const poorSleep = recent.filter((p) => p.sleep <= 2).length >= 2;
-  const greeting = greetingFor(recent[0]?.energy ?? null, poorSleep, first);
+  const greeting = greetingFor(recent[0]?.energy ?? null, poorSleep, first, hour);
 
   const voiceNote = messages.find(
     (x) => x.memberId === m.id && x.from === "coach" && x.kind === "voice" && x.dayOffset >= -1
@@ -109,14 +140,20 @@ export default function Today() {
           <h1 className="font-display text-[1.55rem] leading-tight">{greeting.hi}</h1>
           <p className="mt-1 text-[14px] leading-relaxed text-ink-soft">{greeting.line}</p>
         </div>
+        {/* An initial in a circle means "profile" in every other app on her
+            phone, so as a sign-out button it was invisible — someone looking
+            at this screen asked where the sign-out was while it was on it.
+            The word does the work now; the initial keeps it hers. */}
         <form action="/api/auth/logout" method="post" className="shrink-0">
           <button
             type="submit"
-            aria-label="Sign out"
             title="Sign out"
-            className="tap flex h-10 w-10 items-center justify-center rounded-full bg-effort-tint font-medium text-effort-stretch transition-colors hover:bg-effort-min/40"
+            className="tap flex items-center gap-1.5 rounded-full bg-paper-sunk pl-1 pr-3 text-[12px] text-ink-soft transition-colors hover:bg-ink-line hover:text-ink"
           >
-            {first.charAt(0)}
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-effort-tint font-medium text-effort-stretch">
+              {first.charAt(0)}
+            </span>
+            Sign out
           </button>
         </form>
       </div>

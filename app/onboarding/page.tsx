@@ -26,13 +26,38 @@ import { useStore } from "@/lib/store";
  * clicking through a demo never blanks out good data by accident.
  */
 
-const LIFE_STAGES = [
+/**
+ * "Where you are right now" depends on who is answering.
+ *
+ * This step is required, and every option used to be a menstrual-cycle state —
+ * which meant a man could create an account and then hit a screen he could not
+ * truthfully answer or skip past. The practice is still built around women in
+ * midlife and that set stays exactly as it was; the others are a genuine
+ * question about life stage rather than a watered-down version of this one.
+ */
+const LIFE_STAGES_WOMEN = [
   "My cycle is regular",
   "My cycle has become irregular",
   "I think I'm in perimenopause",
   "My periods have stopped",
   "I'm not sure",
 ];
+
+const LIFE_STAGES_GENERAL = [
+  "I'm starting from scratch",
+  "I used to be active and stopped",
+  "I train, but something has changed",
+  "I'm managing a health condition",
+  "I'm not sure",
+];
+
+const GENDERS = [
+  { value: "woman", label: "Woman" },
+  { value: "man", label: "Man" },
+  { value: "other", label: "Prefer to self-describe or not say" },
+] as const;
+
+type Gender = (typeof GENDERS)[number]["value"];
 
 const GOAL_SUGGESTIONS = [
   "Stop feeling wiped out by the afternoon",
@@ -59,7 +84,17 @@ export default function Onboarding() {
   const { activeMember: m, completeOnboarding, hydrated, session } = useStore();
 
   const [step, setStep] = useState(0);
-  const [age, setAge] = useState<number>(m.age || 42);
+  const [gender, setGender] = useState<Gender | "">("");
+  /**
+   * A string, not a number, and empty to begin with.
+   *
+   * It was `type="number"` coerced with `Number(e.target.value)`, and
+   * `Number("")` is 0 — so the moment she cleared the pre-filled age to type
+   * her own, the field showed a 0 she then had to delete. Holding the raw
+   * string lets empty stay empty. The pre-fill is gone too: guessing someone's
+   * age and making her correct it is a poor first question.
+   */
+  const [age, setAge] = useState<string>("");
   const [lifeStage, setLifeStage] = useState<string>("");
   const [goals, setGoals] = useState<string[]>([]);
   const [customGoal, setCustomGoal] = useState("");
@@ -86,8 +121,11 @@ export default function Onboarding() {
   // stay selected and invisible. Her activity history is untouched either way,
   // so the app is still populated when she comes out the other side.
   useEffect(() => {
-    if (hydrated) setAge(m.age);
+    if (hydrated && m.age) setAge(String(m.age));
   }, [hydrated, m.age]);
+
+  const lifeStages = gender === "woman" ? LIFE_STAGES_WOMEN : LIFE_STAGES_GENERAL;
+  const ageNumber = Number(age);
 
   const toggle = (list: string[], set: (v: string[]) => void, value: string) =>
     set(list.includes(value) ? list.filter((x) => x !== value) : [...list, value]);
@@ -97,7 +135,7 @@ export default function Onboarding() {
       case 1:
         return consentHealth;
       case 2:
-        return Boolean(lifeStage);
+        return Boolean(gender) && Boolean(lifeStage) && ageNumber >= 18 && ageNumber <= 99;
       case 3:
         return goals.length > 0 || customGoal.trim().length > 0;
       default:
@@ -107,7 +145,8 @@ export default function Onboarding() {
 
   const finish = () => {
     completeOnboarding(m.id, {
-      age,
+      age: ageNumber,
+      gender: gender || undefined,
       lifeStage: lifeStage || m.lifeStage,
       goals: customGoal.trim() ? [...goals, customGoal.trim()] : goals,
       wontDo: wontDo.trim(),
@@ -273,25 +312,53 @@ export default function Onboarding() {
               This shapes what Deepika suggests and what you get to read.
             </p>
 
+            {/* Asked first, because it decides what the rest of this screen
+                should even ask. */}
+            <p className="label mt-5">You are</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {GENDERS.map((g) => (
+                <button
+                  key={g.value}
+                  onClick={() => {
+                    setGender(g.value);
+                    // The options below change with the answer, so a selection
+                    // made under the old set would no longer mean anything.
+                    setLifeStage("");
+                  }}
+                  className={`tap rounded-xl border px-4 text-[14px] transition-colors ${
+                    gender === g.value
+                      ? "border-effort-target/40 bg-effort-tint/50 font-medium"
+                      : "border-ink-line bg-paper-card hover:bg-paper-sunk/50"
+                  }`}
+                >
+                  {g.label}
+                </button>
+              ))}
+            </div>
+
             <div className="mt-5">
-              <label htmlFor="age" className="label">
+              {/* `block` matters: .label carries no display of its own, and a
+                  <label> is inline by default, so the input's top margin was
+                  pulling it up over the text. Every other use of .label is on
+                  a <p>, which is why this is the only place it showed. */}
+              <label htmlFor="age" className="label block">
                 Your age
               </label>
               <input
                 id="age"
-                type="number"
+                type="text"
                 inputMode="numeric"
-                min={18}
-                max={99}
+                autoComplete="off"
+                placeholder="—"
                 value={age}
-                onChange={(e) => setAge(Number(e.target.value))}
+                onChange={(e) => setAge(e.target.value.replace(/[^0-9]/g, "").slice(0, 2))}
                 className="tap mt-1.5 w-24 rounded-xl border border-ink-line bg-paper-card px-3.5 text-[16px] focus:border-effort-target focus:outline-none"
               />
             </div>
 
             <p className="label mt-5">Where you are right now</p>
             <div className="mt-2 space-y-2">
-              {LIFE_STAGES.map((s) => (
+              {lifeStages.map((s) => (
                 <button
                   key={s}
                   onClick={() => setLifeStage(s)}

@@ -125,6 +125,7 @@ interface Ctx extends State {
     memberId: string,
     data: {
       age: number;
+      gender?: "woman" | "man" | "other";
       lifeStage: string;
       goals: string[];
       wontDo: string;
@@ -557,6 +558,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
               ? {
                   ...m,
                   age: d.age,
+                  gender: d.gender ?? m.gender,
                   lifeStage: d.lifeStage,
                   goals: d.goals.filter(Boolean),
                   wontDo: d.wontDo,

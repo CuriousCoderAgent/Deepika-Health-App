@@ -63,6 +63,15 @@ export interface Member {
   bodyComp?: { label: string; value: string; at: string; provenance: Provenance }[];
   assessmentComplete: number; // 0–100
   /**
+   * Asked at the start of onboarding, and used for one thing only: which
+   * "where you are right now" question makes sense to ask. The practice is
+   * built around women in midlife, but nothing here is restricted to them,
+   * and a required screen full of menstrual-cycle options is not answerable
+   * by everyone who can usefully be coached. Absent on the seeded cohort and
+   * on anyone who onboarded before it existed.
+   */
+  gender?: "woman" | "man" | "other";
+  /**
    * Set when she finishes the first-run flow. Absent means she has never been
    * through it, which is what sends her to /onboarding instead of Today.
    */

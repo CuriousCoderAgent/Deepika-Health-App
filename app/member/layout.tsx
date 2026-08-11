@@ -78,13 +78,22 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
                     key={t.href}
                     href={t.href}
                     className={`tap relative flex flex-1 flex-col items-center justify-center gap-1 py-2.5 text-[10px] transition-colors ${
-                      active ? "text-effort-stretch" : "text-ink-faint"
+                      active ? "text-nav-active" : "text-nav hover:text-nav-active"
                     }`}
                   >
-                    <Icon size={19} strokeWidth={active ? 2.2 : 1.7} />
+                    {/* Every tab is a saturated colour now, so hue alone no
+                        longer says which one you are on. The tinted pill and
+                        the heavier stroke carry that instead. */}
+                    <span
+                      className={`flex h-7 w-12 items-center justify-center rounded-full transition-colors ${
+                        active ? "bg-nav-tint" : ""
+                      }`}
+                    >
+                      <Icon size={19} strokeWidth={active ? 2.2 : 1.7} />
+                    </span>
                     {t.label}
                     {t.label === "Coach" && unread > 0 && (
-                      <span className="absolute right-[26%] top-1.5 h-1.5 w-1.5 rounded-full bg-marigold" />
+                      <span className="absolute right-[24%] top-1 h-1.5 w-1.5 rounded-full bg-marigold" />
                     )}
                   </Link>
                 );
