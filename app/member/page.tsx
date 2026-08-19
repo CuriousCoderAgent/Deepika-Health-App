@@ -379,6 +379,17 @@ export default function Today() {
         </button>
       )}
 
+      {/* Account, privacy and deletion. Required to be reachable in-app by the
+          Play Store, and the right place for it regardless — the alternative is
+          a member who wants her data gone having to ask someone for it. */}
+      <Link
+        href="/member/account"
+        className="tap mt-5 flex items-center justify-between rounded-xl border border-ink-line bg-paper-card px-4 text-[13px] text-ink-soft hover:bg-paper-sunk/50"
+      >
+        Your account &amp; privacy
+        <ChevronRight size={15} className="text-ink-faint" />
+      </Link>
+
       <div className="h-6" />
     </div>
   );

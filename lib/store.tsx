@@ -264,14 +264,19 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   // Browser storage stays written either way: it is the only store when there
   // is no database, and an offline mirror when there is one.
+  //
+  // Not for a signed-out visitor, though. There is nothing of theirs to keep,
+  // and writing anyway had a sharp edge: deleting an account cleared storage
+  // and then navigated, the provider re-mounted with no session, and promptly
+  // wrote a fresh blob back to the disk we had just wiped.
   useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || !session) return;
     try {
       window.localStorage.setItem(key, JSON.stringify(state));
     } catch {
       /* storage full or blocked — the prototype still works in memory */
     }
-  }, [state, hydrated, key]);
+  }, [state, hydrated, session, key]);
 
   // Server writes are debounced and send only what changed. A member sends her
   // own document. Deepika sends the members she has actually edited, so her

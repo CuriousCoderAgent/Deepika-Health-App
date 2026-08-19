@@ -5,8 +5,8 @@ import {
   sessionMaxAge,
   verifyCredentials,
 } from "@/lib/auth";
-import { verifyAccount } from "@/lib/accounts";
-import { isConfigured } from "@/lib/db";
+import { normaliseUsername, verifyAccount } from "@/lib/accounts";
+import { isConfigured, isDeletedAccount } from "@/lib/db";
 import { encodeUserCookie, USER_COOKIE } from "@/lib/session-client";
 
 export const runtime = "nodejs";
@@ -16,6 +16,23 @@ export async function POST(req: Request) {
 
   if (typeof username !== "string" || typeof password !== "string") {
     return NextResponse.json({ error: "Missing credentials." }, { status: 400 });
+  }
+
+  // A deleted account stays deleted, including one whose credential lives in
+  // the MEMBERS environment variable and therefore still technically matches.
+  // Without this, "delete my account" would empty someone's data and let her
+  // sign straight back into a fresh one, which is not a deletion.
+  if (isConfigured()) {
+    try {
+      if (await isDeletedAccount(normaliseUsername(username))) {
+        return NextResponse.json(
+          { error: "That username and password don't match." },
+          { status: 401 }
+        );
+      }
+    } catch (err) {
+      console.error("[login] tombstone check failed", err);
+    }
   }
 
   // Accounts come from two places: the environment, which holds Deepika's

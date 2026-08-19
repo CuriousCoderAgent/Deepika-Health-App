@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { StoreProvider } from "@/lib/store";
+import ServiceWorker from "@/components/ServiceWorker";
 
 /**
  * These two strings are the only copy that leaves the app.
@@ -16,6 +17,23 @@ export const metadata: Metadata = {
   title: "Deepika Wellness",
   description:
     "Strength, energy and steadiness — built around your actual life, with someone who actually knows you.",
+  applicationName: "Deepika Wellness",
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: "/icons/favicon.png", sizes: "64x64", type: "image/png" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: "/icons/apple-touch-icon.png",
+  },
+  // Lets iOS install this to the home screen as a standalone app too. Android
+  // gets the same behaviour from the manifest; iOS still wants telling.
+  appleWebApp: {
+    capable: true,
+    title: "Deepika",
+    statusBarStyle: "default",
+  },
+  formatDetection: { telephone: false },
 };
 
 /**
@@ -63,6 +81,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <StoreProvider>{children}</StoreProvider>
+        <ServiceWorker />
       </body>
     </html>
   );

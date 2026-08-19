@@ -25,8 +25,16 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
   // on the seed defaults for a frame and bounce someone already onboarded. And
   // it only applies to members: Deepika opens this same route to see a member's
   // app, and she must not be dropped into that member's welcome questions.
+  //
+  // Except on the account screen. Somebody who signs up, reads the consent
+  // step and changes her mind has to be able to delete what she just created;
+  // bouncing her back into the questions she is trying to escape would leave
+  // the only exit an email to Deepika.
   const needsOnboarding =
-    hydrated && session?.role !== "coach" && !activeMember.onboardedAt;
+    hydrated &&
+    session?.role !== "coach" &&
+    !activeMember.onboardedAt &&
+    path !== "/member/account";
 
   useEffect(() => {
     if (needsOnboarding) router.replace("/onboarding");

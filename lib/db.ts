@@ -132,6 +132,17 @@ async function init(): Promise<void> {
       password_hash text not null,
       created_at    timestamptz not null default now()
     );
+    -- Tombstones. A member whose login comes from the MEMBERS environment
+    -- variable cannot have her credential deleted from here — it lives in the
+    -- deployment config. Deleting her data while leaving her able to sign
+    -- straight back in to a fresh empty account would not be a deletion at
+    -- all, so the username is recorded here and login refuses it. Only the
+    -- username is kept; nothing about her, and nothing that could rebuild her
+    -- record.
+    create table if not exists deleted_account (
+      user_id    text primary key,
+      deleted_at timestamptz not null default now()
+    );
   `);
 
   // The marker, not a row count, decides whether to seed. Counting would
@@ -234,4 +245,53 @@ export async function readAccountNames(): Promise<{ userId: string; name: string
   await ensureReady();
   const r = await db().query("select user_id, name from account order by created_at asc");
   return r.rows.map((row) => ({ userId: row.user_id, name: row.name }));
+}
+
+/* ------------------------------------------------------------------ */
+/* Deletion. See app/api/account/route.ts for who is allowed to do it.  */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Removes a member's record, her history, and her credential.
+ *
+ * One transaction, so this cannot half-succeed and leave a login that opens
+ * an empty account, or an orphaned pile of health data with no owner. The
+ * tombstone goes in last and is the only thing that survives.
+ */
+export async function deleteMemberAccount(userId: string): Promise<void> {
+  await ensureReady();
+  const client = await db().connect();
+  try {
+    await client.query("begin");
+    await client.query("delete from member_state where user_id = $1", [userId]);
+    await client.query("delete from account where user_id = $1", [userId]);
+    await client.query(
+      `insert into deleted_account (user_id) values ($1)
+       on conflict (user_id) do update set deleted_at = now()`,
+      [userId]
+    );
+    await client.query("commit");
+  } catch (err) {
+    await client.query("rollback").catch(() => {});
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+/** True once a username has been deleted. Checked at login. */
+export async function isDeletedAccount(userId: string): Promise<boolean> {
+  await ensureReady();
+  const r = await db().query("select 1 from deleted_account where user_id = $1", [userId]);
+  return (r.rowCount ?? 0) > 0;
+}
+
+/**
+ * Frees a username again — for the case where someone deletes an account and
+ * later wants back in under the same name. Not wired to any UI; it is a
+ * deliberate, manual act.
+ */
+export async function restoreDeletedUsername(userId: string): Promise<void> {
+  await ensureReady();
+  await db().query("delete from deleted_account where user_id = $1", [userId]);
 }
