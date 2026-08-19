@@ -2,10 +2,20 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { StoreProvider } from "@/lib/store";
 
+/**
+ * These two strings are the only copy that leaves the app.
+ *
+ * The title is what a saved home-screen shortcut is called, and the
+ * description is what renders in the link preview when Deepika pastes the URL
+ * into WhatsApp — so they are read by people who have not opened the app yet,
+ * and they should say the same thing the landing page says. "V0 Vision
+ * Prototype" was a note to ourselves, and "for women in midlife" is the framing
+ * the visible copy deliberately moved away from.
+ */
 export const metadata: Metadata = {
-  title: "Deepika Wellness — V0 Vision Prototype",
+  title: "Deepika Wellness",
   description:
-    "Coaching software for women in midlife. The coach provides the intelligence and the relationship; the product provides memory, structure and continuity.",
+    "Strength, energy and steadiness — built around your actual life, with someone who actually knows you.",
 };
 
 /**
