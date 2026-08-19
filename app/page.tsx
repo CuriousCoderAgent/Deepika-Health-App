@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { Sprout } from "lucide-react";
@@ -89,8 +90,18 @@ export default async function Home() {
           </p>
         )}
 
+        {/* This used to say "Preview build. Sample data, not real health
+            records." That stopped being true the day the database went in and
+            people started signing up, and a false reassurance about health data
+            is the worst kind to leave lying around. */}
         <p className="mt-8 text-center text-[11px] leading-relaxed text-ink-faint">
-          Preview build. Sample data, not real health records.
+          <Link href="/privacy" className="underline underline-offset-2 hover:text-ink-soft">
+            Privacy
+          </Link>
+          <span className="px-2">·</span>
+          <Link href="/delete-account" className="underline underline-offset-2 hover:text-ink-soft">
+            Deleting your account
+          </Link>
         </p>
       </div>
     </main>

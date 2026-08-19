@@ -20,7 +20,7 @@
 
 import { randomBytes, scrypt as scryptCb, timingSafeEqual } from "crypto";
 import { promisify } from "util";
-import { readAccount, writeAccount, writeMemberDoc } from "./db";
+import { isDeletedAccount, readAccount, writeAccount, writeMemberDoc } from "./db";
 import { newMember } from "./emptyState";
 import { RESERVED_USERNAMES } from "./persist";
 import type { SessionUser } from "./auth";
@@ -105,6 +105,10 @@ export async function createAccount(
 ): Promise<SessionUser | null> {
   if (isTaken(username)) return null;
   if (await readAccount(username)) return null;
+  // A username someone deleted is not handed to the next person: her old
+  // messages and her coach's notes refer to it, and a stranger inheriting that
+  // name would inherit those references.
+  if (await isDeletedAccount(username)) return null;
 
   const name = displayName.trim() || username;
   const created = await writeAccount({
