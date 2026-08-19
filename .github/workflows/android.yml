@@ -57,6 +57,22 @@ jobs:
           EOF
           echo "JDK: ${JAVA_HOME}"
           echo "SDK: ${ANDROID_SDK_ROOT}"
+          ls -1 "${ANDROID_SDK_ROOT}"
+
+          # Bubblewrap sanity-checks the SDK by looking for a top-level `tools`
+          # or `bin` directory (AndroidSdkTools.validatePath). Modern SDK
+          # installs have neither — the command-line tools moved to
+          # cmdline-tools/latest/bin — so it rejects a perfectly good SDK with
+          # "The provided androidSdk isn't correct."
+          #
+          # Linking the real command-line tools to where it looks satisfies the
+          # check with the actual binaries rather than an empty decoy: sdkmanager
+          # and avdmanager genuinely are in there.
+          if [ ! -e "${ANDROID_SDK_ROOT}/bin" ] && [ ! -e "${ANDROID_SDK_ROOT}/tools" ]; then
+            ln -s "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin" "${ANDROID_SDK_ROOT}/bin"
+            echo "Linked ${ANDROID_SDK_ROOT}/bin -> cmdline-tools/latest/bin"
+          fi
+          ls -l "${ANDROID_SDK_ROOT}/bin" | head -3
 
       - name: Accept Android SDK licences
         run: yes | "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null 2>&1 || true
