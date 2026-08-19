@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Check } from "lucide-react";
 
-export const metadata = { title: "Account deleted — Deepika Wellness" };
+export const metadata = { title: "Account deleted — Bharosa" };
 
 /** Where deletion lands. Public, because by the time she reads it she is
  *  signed out and has no account to authenticate against. */

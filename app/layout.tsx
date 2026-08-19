@@ -14,10 +14,10 @@ import ServiceWorker from "@/components/ServiceWorker";
  * the visible copy deliberately moved away from.
  */
 export const metadata: Metadata = {
-  title: "Deepika Wellness",
+  title: "Bharosa",
   description:
     "Strength, energy and steadiness — built around your actual life, with someone who actually knows you.",
-  applicationName: "Deepika Wellness",
+  applicationName: "Bharosa",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   // gets the same behaviour from the manifest; iOS still wants telling.
   appleWebApp: {
     capable: true,
-    title: "Deepika",
+    title: "Bharosa",
     statusBarStyle: "default",
   },
   formatDetection: { telephone: false },

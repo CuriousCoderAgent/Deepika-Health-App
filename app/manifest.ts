@@ -13,10 +13,10 @@ import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
-    name: "Deepika Wellness",
+    name: "Bharosa",
     // What sits under the launcher icon. Anything longer than about 12
-    // characters gets truncated on an Android home screen.
-    short_name: "Deepika",
+    // characters gets truncated on an Android home screen — "Bharosa" fits.
+    short_name: "Bharosa",
     description:
       "Strength, energy and steadiness — built around your actual life, with someone who actually knows you.",
     start_url: "/",

@@ -1,8 +1,10 @@
-# Deepika Wellness — V0 Vision Prototype
+# Bharosa — V0 Vision Prototype
 
-*Internal project codename: **Bharosa**. The app itself stays branded as
-Deepika Wellness — that's the founder's real practice name — this codename
-is for the repo, package, and internal conversation only.*
+*Bharosa is the product name, as of 19 Aug 2026. It began as an internal
+codename while the app was branded "Deepika Wellness"; that was reversed so
+the app can stand as its own brand rather than on the founder's personal
+practice name. Deepika is still the coach inside it, and the copy that names
+her stays.*
 
 A clickable prototype of the member app and coach console described in
 *Deepika Wellness V0 Product Architecture*. It exists for one purpose: to put

@@ -61,7 +61,7 @@ export default function NotificationsPage() {
               {/* Rendered as it would actually appear on a lock screen. */}
               <div className="mt-3 max-w-md rounded-2xl bg-ink px-4 py-3">
                 <p className="font-mono text-[10px] uppercase tracking-wider text-white/40">
-                  Deepika Wellness
+                  Bharosa
                 </p>
                 <p className="mt-1 text-[14px] leading-snug text-white">{n.copy}</p>
               </div>
@@ -74,7 +74,7 @@ export default function NotificationsPage() {
         <p className="label">What we are not sending</p>
         <div className="mt-3 max-w-md rounded-2xl border border-dashed border-attention/40 bg-attention-tint/40 px-4 py-3">
           <p className="font-mono text-[10px] uppercase tracking-wider text-attention/60">
-            Deepika Wellness
+            Bharosa
           </p>
           <p className="mt-1 text-[14px] leading-snug text-ink-soft line-through">
             🔥 Your 17-day streak is at risk! Don't lose your progress!

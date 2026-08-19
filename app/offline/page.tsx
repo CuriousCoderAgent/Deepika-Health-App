@@ -1,6 +1,6 @@
 import { CloudOff } from "lucide-react";
 
-export const metadata = { title: "Offline — Deepika Wellness" };
+export const metadata = { title: "Offline — Bharosa" };
 
 /**
  * What the service worker shows when the network is unreachable.

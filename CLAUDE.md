@@ -4,18 +4,24 @@ Operational guidance for Claude Code working on this repository.
 Read `docs/PROJECT-BRIEF.md` before making product decisions — it holds the
 business context, the research the design rests on, and the prioritised backlog.
 
-Internal project codename: **Bharosa** (`package.json` name, repo-facing
-references). This is a codename for the codebase only — the product itself
-stays branded as Deepika Wellness, the founder's real practice name. Do not
-rename in-app branding, page titles, or notification copy to Bharosa without
-an explicit decision from the user.
+The product is called **Bharosa** (19 Aug 2026). This was a codename for the
+codebase only, with the product branded "Deepika Wellness" — that has been
+reversed by explicit decision: the app is launching as its own brand rather
+than under the founder's personal practice name, because it has to stand on
+its own as it grows past her immediate circle.
+
+What that does and does not mean: **Bharosa is the product**, so app name,
+page titles, launcher icon, notification sender and store listing all say
+Bharosa. **Deepika is the coach**, so every line of copy naming her as the
+person doing the coaching stays exactly as it is. She is not a brand in the
+app; she is the human on the other end of it, and that is the whole thesis.
 
 ---
 
 ## What this is
 
-A **V0 Vision Prototype** for Deepika Wellness: coaching software for a women's
-midlife health practice in India. Two surfaces — a member app and a coach
+A **V0 Vision Prototype** for Bharosa: coaching software for a women's
+midlife health practice in India, built around Deepika's practice. Two surfaces — a member app and a coach
 console — built so the founder (Deepika) can use them and react, rather than
 answer more discovery questions.
 

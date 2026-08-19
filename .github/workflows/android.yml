@@ -1,0 +1,152 @@
+name: Android build
+
+# Builds the Play Store bundle.
+#
+# This runs in CI rather than on anyone's laptop because GitHub's Ubuntu
+# runners already carry the Android SDK, and because a release build should be
+# reproducible from a commit rather than from whatever happened to be installed
+# on one machine.
+#
+# Triggered by hand. There is no reason to spend six minutes building an
+# Android bundle on every push to a web app.
+
+on:
+  workflow_dispatch:
+    inputs:
+      versionName:
+        description: 'Version name shown in the Play Console (e.g. 1.0.1)'
+        required: false
+        default: ''
+      versionCode:
+        description: 'Version code — a whole number, higher than the last upload'
+        required: false
+        default: ''
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Bubblewrap wants JDK 17 specifically. The runner has several; this
+      # pins the one it accepts.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Bubblewrap
+        run: npm install -g @bubblewrap/cli@latest
+
+      # Bubblewrap prompts for these on first run, which a CI job cannot
+      # answer. Writing its config up front makes the whole thing headless.
+      - name: Point Bubblewrap at the runner's JDK and SDK
+        run: |
+          mkdir -p ~/.bubblewrap
+          cat > ~/.bubblewrap/config.json <<EOF
+          {
+            "jdkPath": "${JAVA_HOME}",
+            "androidSdkPath": "${ANDROID_SDK_ROOT}"
+          }
+          EOF
+          echo "JDK: ${JAVA_HOME}"
+          echo "SDK: ${ANDROID_SDK_ROOT}"
+
+      - name: Accept Android SDK licences
+        run: yes | "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null 2>&1 || true
+
+      - name: Apply version from the workflow inputs
+        if: inputs.versionName != '' || inputs.versionCode != ''
+        run: |
+          python3 - <<'PY'
+          import json, os
+          p = 'android/twa-manifest.json'
+          m = json.load(open(p))
+          name, code = os.environ.get('IN_NAME', ''), os.environ.get('IN_CODE', '')
+          if name:
+              m['appVersionName'] = name
+              m['appVersion'] = name
+          if code:
+              m['appVersionCode'] = int(code)
+          json.dump(m, open(p, 'w'), indent=2)
+          print('version', m['appVersionName'], 'code', m['appVersionCode'])
+          PY
+        env:
+          IN_NAME: ${{ inputs.versionName }}
+          IN_CODE: ${{ inputs.versionCode }}
+
+      # The upload key. Stored as a secret so it never sits in the repository.
+      #
+      # Without the secret the job still runs and still produces a bundle, but
+      # signed with a throwaway key generated here — useful for proving the
+      # pipeline works, useless for uploading, and labelled as such.
+      - name: Restore the signing key
+        id: signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          cd android
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > android.keystore
+            echo "real=true" >> "$GITHUB_OUTPUT"
+            echo "Using the upload key from repository secrets."
+          else
+            keytool -genkeypair -v -keystore android.keystore -alias bharosa \
+              -keyalg RSA -keysize 2048 -validity 30 \
+              -storepass throwaway -keypass throwaway \
+              -dname "CN=Bharosa Pipeline Test, O=Bharosa, C=IN"
+            echo "real=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::No ANDROID_KEYSTORE_BASE64 secret set. Built with a throwaway key — do NOT upload this to Play."
+          fi
+
+      - name: Build the bundle
+        working-directory: android
+        env:
+          BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || 'throwaway' }}
+          BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || 'throwaway' }}
+        run: |
+          set -o pipefail
+          # init generates the Gradle project; our committed twa-manifest.json
+          # is then put back over the one it writes, so the build uses our
+          # settings rather than whatever it inferred from the live manifest.
+          cp twa-manifest.json ../twa-manifest.committed.json
+          bubblewrap init \
+            --manifest="https://deepika-health-app.vercel.app/manifest.webmanifest" \
+            --directory=. \
+            --skipPwaValidation 2>&1 | tee init.log || true
+          cp ../twa-manifest.committed.json twa-manifest.json
+          bubblewrap update --skipVersionUpgrade 2>&1 | tee update.log
+          bubblewrap build --skipPwaValidation 2>&1 | tee build.log
+
+      - name: Show what was produced
+        working-directory: android
+        run: |
+          ls -la *.aab *.apk 2>/dev/null || true
+          echo "--- signing fingerprint of this build ---"
+          keytool -list -v -keystore android.keystore -alias bharosa \
+            -storepass "${{ secrets.ANDROID_KEYSTORE_PASSWORD || 'throwaway' }}" \
+            2>/dev/null | grep -A1 "SHA256:" || true
+
+      - name: Upload the bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: >-
+            bharosa-${{ steps.signing.outputs.real == 'true' && 'release' || 'UNSIGNED-PIPELINE-TEST' }}
+          path: |
+            android/*.aab
+            android/*.apk
+            android/*.log
+          if-no-files-found: warn
+          retention-days: 14
+
+      # The keystore is a file on a disposable runner, but leaving it lying
+      # around in a workspace that later steps could archive is a bad habit.
+      - name: Remove the keystore
+        if: always()
+        run: rm -f android/android.keystore

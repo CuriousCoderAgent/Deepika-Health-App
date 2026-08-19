@@ -47,7 +47,7 @@ export default async function Home() {
             <Sprout size={21} strokeWidth={1.8} />
           </span>
           <h1 className="mt-5 font-display text-[2.1rem] leading-[1.1] tracking-tight">
-            Deepika Wellness
+            Bharosa
           </h1>
           {/* Deliberately names no age and no gender. The practice is built
               around women in midlife and the coaching reflects that, but the
