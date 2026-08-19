@@ -1,9 +1,9 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Privacy — Deepika Wellness",
+  title: "Privacy — Bharosa",
   description:
-    "What Deepika Wellness stores about you, who can see it, and how to have it deleted.",
+    "What Bharosa stores about you, who can see it, and how to have it deleted.",
 };
 
 /**
@@ -15,7 +15,7 @@ export const metadata = {
  * if the app changes, this changes with it.
  */
 
-const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || "hello@deepikawellness.in";
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || "hello@bharosa.app";
 const UPDATED = "19 August 2026";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -32,7 +32,7 @@ export default function Privacy() {
     <main className="min-h-dvh bg-paper">
       <div className="mx-auto max-w-2xl px-6 py-12">
         <Link href="/" className="tap text-[13px] text-ink-soft hover:text-ink">
-          ← Deepika Wellness
+          ← Bharosa
         </Link>
 
         <h1 className="mt-6 font-display text-[2rem] leading-tight">Privacy</h1>
@@ -198,7 +198,7 @@ export default function Privacy() {
         </Section>
 
         <p className="mt-12 border-t border-ink-line pt-5 text-[12px] leading-relaxed text-ink-faint">
-          Deepika Wellness is coaching, not medical care. Nothing in the app is
+          Bharosa is coaching, not medical care. Nothing in the app is
           a diagnosis or a treatment plan. If something about your health worries
           you, please see a doctor.
         </p>

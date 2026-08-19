@@ -1,5 +1,5 @@
 /**
- * Domain model for Deepika Wellness V0.
+ * Domain model for Bharosa V0.
  * Mirrors §13 of the V0 Product Architecture (data model + dual-entry).
  *
  * The rule that shapes everything here: every observed value carries its own

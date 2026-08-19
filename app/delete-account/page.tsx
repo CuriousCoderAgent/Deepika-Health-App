@@ -1,9 +1,9 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Deleting your account — Deepika Wellness",
+  title: "Deleting your account — Bharosa",
   description:
-    "How to delete your Deepika Wellness account and everything stored in it.",
+    "How to delete your Bharosa account and everything stored in it.",
 };
 
 /**
@@ -15,14 +15,14 @@ export const metadata = {
  * case it has to actually answer, not just link past.
  */
 
-const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || "hello@deepikawellness.in";
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || "hello@bharosa.app";
 
 export default function DeleteAccount() {
   return (
     <main className="min-h-dvh bg-paper">
       <div className="mx-auto max-w-2xl px-6 py-12">
         <Link href="/" className="tap text-[13px] text-ink-soft hover:text-ink">
-          ← Deepika Wellness
+          ← Bharosa
         </Link>
 
         <h1 className="mt-6 font-display text-[2rem] leading-tight">
