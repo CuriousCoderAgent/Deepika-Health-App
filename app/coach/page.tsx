@@ -7,7 +7,7 @@ import { useStore } from "@/lib/store";
 import { bucketMeta } from "@/lib/radar";
 import { memberCode } from "@/lib/display";
 import { Sparkline } from "@/components/ui";
-import type { DailyAction, PulseEntry, RadarBucket } from "@/lib/types";
+import type { DailyAction, Member, PulseEntry, RadarBucket, RadarEvent } from "@/lib/types";
 
 const ORDER: RadarBucket[] = ["attention", "prepare", "celebrate", "admin"];
 
@@ -43,13 +43,36 @@ function sparkFor(
 export default function RadarPage() {
   const { radar, members, actions, pulses, rules, toggleRule, resolveRadar } = useStore();
   const [showRules, setShowRules] = useState(false);
+  /* Below lg the four buckets are tabs rather than columns. Stacked, they ran
+     to about nine screens of scrolling for a normal day's flags, which is not
+     a thing anyone does on a phone between clients. */
+  const [openBucket, setOpenBucket] = useState<RadarBucket>("attention");
 
   const byBucket = (b: RadarBucket) => radar.filter((r) => r.bucket === b && !r.resolved);
   const memberOf = (id: string) => members.find((m) => m.id === id)!;
   const openCount = radar.filter((r) => !r.resolved).length;
-  const attentionCount = byBucket("attention").length;
-  const celebrateCount = byBucket("celebrate").length;
-  const prepareCount = byBucket("prepare").length;
+
+  /**
+   * Flags gathered per person, in the order the Radar already ranked them.
+   *
+   * One woman can trip four rules in a bad week, and as one card per rule she
+   * filled half the column and was read four separate times. Deepika works a
+   * person at a time — she opens Radhika, not R02 — so the card is the person
+   * and the flags are what is inside it. Ordering follows first appearance, so
+   * whoever the evaluator put at the top of the bucket stays at the top.
+   */
+  const groupsFor = (b: RadarBucket): { member: Member; items: RadarEvent[] }[] => {
+    const order: string[] = [];
+    const byMember = new Map<string, RadarEvent[]>();
+    for (const item of byBucket(b)) {
+      if (!byMember.has(item.memberId)) {
+        byMember.set(item.memberId, []);
+        order.push(item.memberId);
+      }
+      byMember.get(item.memberId)!.push(item);
+    }
+    return order.map((id) => ({ member: memberOf(id), items: byMember.get(id)! }));
+  };
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-10">
@@ -70,25 +93,6 @@ export default function RadarPage() {
           <SlidersHorizontal size={15} />
           {showRules ? "Hide rules" : "Show the rules"}
         </button>
-      </div>
-
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="card p-4">
-          <p className="label">Members</p>
-          <p className="mt-1 font-display text-2xl">{members.length}</p>
-        </div>
-        <div className="card p-4">
-          <p className="label">Need attention</p>
-          <p className="mt-1 font-display text-2xl text-attention">{attentionCount}</p>
-        </div>
-        <div className="card p-4">
-          <p className="label">Celebrate</p>
-          <p className="mt-1 font-display text-2xl text-effort-stretch">{celebrateCount}</p>
-        </div>
-        <div className="card p-4">
-          <p className="label">Reviews due</p>
-          <p className="mt-1 font-display text-2xl">{prepareCount}</p>
-        </div>
       </div>
 
       {/* Rule transparency. The whole point: Deepika can read why anything fired. */}
@@ -149,101 +153,158 @@ export default function RadarPage() {
         </div>
       )}
 
-      {/* Four columns, equal weight — Celebrate is not a footnote to Needs attention. */}
-      <div className="mt-9 grid gap-6 lg:grid-cols-4">
+      {/* Bucket picker, phones only. On a desktop all four columns are visible
+          at once and this would be a control that hides three quarters of a
+          screen she can already see. */}
+      <div className="mt-7 grid grid-cols-2 gap-1.5 lg:hidden">
         {ORDER.map((bucket) => {
-          const items = byBucket(bucket);
+          const meta = bucketMeta[bucket];
+          const count = byBucket(bucket).length;
+          const on = bucket === openBucket;
+          return (
+            <button
+              key={bucket}
+              onClick={() => setOpenBucket(bucket)}
+              aria-pressed={on}
+              className={`tap flex items-center gap-1.5 rounded-xl px-3 text-left text-[13px] transition-colors ${
+                on ? "bg-ink text-white" : "bg-paper-sunk text-ink-soft hover:text-ink"
+              }`}
+            >
+              <span
+                className={`h-1.5 w-1.5 shrink-0 rounded-full ${on ? "bg-white/70" : meta.dot}`}
+              />
+              <span className="truncate">{meta.label}</span>
+              <span
+                className={`ml-auto font-mono text-[11px] ${
+                  on ? "text-white/70" : "text-ink-faint"
+                }`}
+              >
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Four columns, equal weight — Celebrate is not a footnote to Needs attention. */}
+      <div className="mt-4 grid gap-6 lg:mt-9 lg:grid-cols-4">
+        {ORDER.map((bucket) => {
+          const groups = groupsFor(bucket);
+          const flagCount = byBucket(bucket).length;
           const meta = bucketMeta[bucket];
 
           return (
-            <section key={bucket} className="min-w-0">
-              <div className="flex items-baseline gap-2">
+            <section
+              key={bucket}
+              className={`min-w-0 ${bucket === openBucket ? "" : "hidden lg:block"}`}
+            >
+              {/* The heading repeats what the phone's tab strip already says,
+                  so it only earns its place on a desktop. */}
+              <div className="hidden items-baseline gap-2 lg:flex">
                 <span className={`h-2 w-2 rounded-full ${meta.dot}`} />
                 <h2 className="font-display text-lg">{meta.label}</h2>
-                <span className="font-mono text-[11px] text-ink-faint">{items.length}</span>
+                <span className="font-mono text-[11px] text-ink-faint">{flagCount}</span>
               </div>
-              <p className="mt-0.5 text-[12px] leading-snug text-ink-faint">{meta.blurb}</p>
+              <p className="text-[12px] leading-snug text-ink-faint lg:mt-0.5">{meta.blurb}</p>
 
               <div className="mt-3.5 space-y-2.5">
-                {items.map((r) => {
-                  const m = memberOf(r.memberId);
-                  const mine = actions.filter((a) => a.memberId === m.id);
-                  const myPulses = pulses.filter((p) => p.memberId === m.id);
-                  const spark = sparkFor(r.ruleId, mine, myPulses);
-
-                  return (
-                    <div
-                      key={r.id}
-                      className="card p-3.5 transition-shadow hover:shadow-lift"
-                    >
-                      <div className="flex items-start gap-2.5">
-                        <span
-                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-medium ${
-                            bucket === "celebrate"
-                              ? "bg-effort-tint text-effort-stretch"
-                              : bucket === "attention"
-                              ? "bg-attention-tint text-attention"
-                              : "bg-paper-sunk text-ink-soft"
-                          }`}
-                        >
-                          {m.initials}
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-baseline gap-x-1.5">
-                            <Link
-                              href={`/coach/members/${m.id}`}
-                              className="font-mono text-[13px] font-medium hover:underline"
-                            >
-                              {memberCode(m)}
-                            </Link>
-                            <span className="text-[11px] text-ink-faint">Wk {m.week}</span>
-                            <span
-                              className="ml-auto shrink-0 font-mono text-[10px] text-ink-faint"
-                              title={r.trigger}
-                            >
-                              {r.ruleId}
-                            </span>
-                          </div>
-                          <p className="mt-1 text-[13px] leading-snug">{r.detail}</p>
-                        </div>
-                      </div>
-
-                      {spark && (
-                        <div className="ml-[42px] mt-2">
-                          <Sparkline
-                            values={spark.values}
-                            min={spark.min}
-                            max={spark.max}
-                            color={spark.color}
-                            height={22}
-                          />
-                        </div>
-                      )}
-
-                      <div className="ml-[42px] mt-2 flex flex-wrap items-center gap-2">
-                        <p className="flex-1 text-[12px] leading-relaxed text-effort-stretch">
-                          {r.suggestedAction}
-                        </p>
-                      </div>
-                      <div className="ml-[42px] mt-2 flex items-center gap-2">
-                        <button
-                          onClick={() => resolveRadar(r.id)}
-                          className="tap inline-flex items-center gap-1 rounded-lg px-2 text-[12px] text-ink-faint hover:bg-paper-sunk hover:text-ink"
-                        >
-                          <Check size={12} /> Handled
-                        </button>
+                {groups.map(({ member: m, items }) => (
+                  <div key={m.id} className="card p-3.5 transition-shadow hover:shadow-lift">
+                    <div className="flex items-start gap-2.5">
+                      <span
+                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-medium ${
+                          bucket === "celebrate"
+                            ? "bg-effort-tint text-effort-stretch"
+                            : bucket === "attention"
+                            ? "bg-attention-tint text-attention"
+                            : "bg-paper-sunk text-ink-soft"
+                        }`}
+                      >
+                        {m.initials}
+                      </span>
+                      <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-1.5">
                         <Link
                           href={`/coach/members/${m.id}`}
-                          className="tap inline-flex items-center gap-1 rounded-lg bg-paper-sunk px-2 text-[12px] text-ink hover:bg-ink-line"
+                          className="font-mono text-[13px] font-medium hover:underline"
                         >
-                          Open <ChevronRight size={12} />
+                          {memberCode(m)}
                         </Link>
+                        <span className="text-[11px] text-ink-faint">Wk {m.week}</span>
+                        {items.length > 1 && (
+                          <span className="ml-auto shrink-0 rounded-full bg-paper-sunk px-1.5 font-mono text-[10px] text-ink-soft">
+                            {items.length}
+                          </span>
+                        )}
                       </div>
                     </div>
-                  );
-                })}
 
-                {items.length === 0 && (
+                    <div className="mt-2 divide-y divide-ink-line">
+                      {items.map((r) => {
+                        const mine = actions.filter((a) => a.memberId === m.id);
+                        const myPulses = pulses.filter((p) => p.memberId === m.id);
+                        const spark = sparkFor(r.ruleId, mine, myPulses);
+
+                        return (
+                          <div key={r.id} className="pt-2.5 first:pt-0">
+                            <div className="flex items-start gap-1.5">
+                              <p className="min-w-0 flex-1 text-[13px] leading-snug">
+                                {r.detail}
+                              </p>
+                              <span
+                                className="shrink-0 font-mono text-[10px] text-ink-faint"
+                                title={r.trigger}
+                              >
+                                {r.ruleId}
+                              </span>
+                            </div>
+
+                            {spark && (
+                              <div className="mt-2">
+                                <Sparkline
+                                  values={spark.values}
+                                  min={spark.min}
+                                  max={spark.max}
+                                  color={spark.color}
+                                  height={22}
+                                />
+                              </div>
+                            )}
+
+                            <p className="mt-1.5 text-[12px] leading-relaxed text-effort-stretch">
+                              {r.suggestedAction}
+                            </p>
+                            {items.length > 1 && (
+                              <button
+                                onClick={() => resolveRadar(r.id)}
+                                className="tap -ml-2 mt-0.5 inline-flex items-center gap-1 rounded-lg px-2 text-[12px] text-ink-faint hover:bg-paper-sunk hover:text-ink"
+                              >
+                                <Check size={12} /> Handled
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="mt-2 flex items-center gap-2">
+                      <button
+                        onClick={() => items.forEach((i) => resolveRadar(i.id))}
+                        className="tap -ml-2 inline-flex items-center gap-1 rounded-lg px-2 text-[12px] text-ink-faint hover:bg-paper-sunk hover:text-ink"
+                      >
+                        <Check size={12} />
+                        {items.length > 1 ? `All ${items.length} handled` : "Handled"}
+                      </button>
+                      <Link
+                        href={`/coach/members/${m.id}`}
+                        className="tap ml-auto inline-flex items-center gap-1 rounded-lg bg-paper-sunk px-2 text-[12px] text-ink hover:bg-ink-line"
+                      >
+                        Open <ChevronRight size={12} />
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+
+                {groups.length === 0 && (
                   <div className="card p-4">
                     <p className="text-[13px] text-ink-faint">
                       {bucket === "attention"
