@@ -164,15 +164,20 @@ export default function Member360({ params }: { params: { id: string } }) {
         </div>
       )}
 
-      <div className="scroll-hide mt-7 flex gap-1 overflow-x-auto border-b border-ink-line">
+      {/* Six tabs do not fit across a phone. As a scrolling strip the last
+          three sat off the right edge with nothing to say they existed, so
+          Session prep — the one she wants before a 1:1 — was effectively
+          missing. Two rows of pills below md, the underlined row above it. */}
+      <div className="mt-7 grid grid-cols-2 gap-1.5 md:flex md:gap-1 md:border-b md:border-ink-line">
         {TABS.map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`shrink-0 border-b-2 px-3 py-2.5 text-sm transition-colors ${
+            aria-pressed={tab === t}
+            className={`tap rounded-xl px-3 text-[13px] transition-colors md:shrink-0 md:rounded-none md:border-b-2 md:px-3 md:py-2.5 md:text-sm ${
               tab === t
-                ? "border-ink text-ink"
-                : "border-transparent text-ink-faint hover:text-ink-soft"
+                ? "bg-ink text-white md:border-ink md:bg-transparent md:text-ink"
+                : "bg-paper-sunk text-ink-soft md:border-transparent md:bg-transparent md:text-ink-faint md:hover:text-ink-soft"
             }`}
           >
             {t}
@@ -181,8 +186,14 @@ export default function Member360({ params }: { params: { id: string } }) {
       </div>
 
       {/* ---------------- Overview ---------------- */}
+      {/* Overview is the screen she has open during a call, so it is split:
+          what happened on the left, what she does about it on the right. The
+          working rail sticks, because the message composer used to sit about
+          eighteen hundred pixels down and she had to scroll past every chart
+          to type a sentence. */}
       {tab === "Overview" && (
-        <div className="mt-7 grid gap-5 md:grid-cols-2">
+        <div className="mt-7 grid gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:items-start">
+        <div className="grid gap-5 md:grid-cols-2">
           <div className="card p-5 md:col-span-2">
             <p className="label">What she is trying to get to</p>
             <ul className="mt-2.5 space-y-1.5">
@@ -255,13 +266,16 @@ export default function Member360({ params }: { params: { id: string } }) {
             </div>
           </div>
 
+        </div>
+
+        <div className="grid gap-5 md:grid-cols-2 lg:sticky lg:top-6 lg:grid-cols-1">
           {/* Coach-on-behalf entry — the dual-entry requirement, live */}
-          <div className="md:col-span-2">
+          <div className="md:col-span-2 lg:col-span-1">
             <p className="label mb-2">Enter her check-in during the call</p>
             <PulseCard memberId={m.id} asCoach />
           </div>
 
-          <div className="card p-5 md:col-span-2">
+          <div className="card p-5 md:col-span-2 lg:col-span-1">
             <p className="label">Daily protein target</p>
             <p className="mt-1 text-[13px] leading-relaxed text-ink-soft">
               Your number, not a calculated one — the app never sets this
@@ -285,7 +299,7 @@ export default function Member360({ params }: { params: { id: string } }) {
             </div>
           </div>
 
-          <div className="card p-5 md:col-span-2">
+          <div className="card p-5 md:col-span-2 lg:col-span-1">
             <p className="label">Send her something</p>
             <div className="mt-3 flex gap-2">
               <button
@@ -335,6 +349,7 @@ export default function Member360({ params }: { params: { id: string } }) {
               <Send size={14} /> Send
             </button>
           </div>
+        </div>
         </div>
       )}
 
