@@ -4,17 +4,64 @@ Operational guidance for Claude Code working on this repository.
 Read `docs/PROJECT-BRIEF.md` before making product decisions — it holds the
 business context, the research the design rests on, and the prioritised backlog.
 
-The product is called **Bharosa** (19 Aug 2026). This was a codename for the
-codebase only, with the product branded "Deepika Wellness" — that has been
-reversed by explicit decision: the app is launching as its own brand rather
-than under the founder's personal practice name, because it has to stand on
-its own as it grows past her immediate circle.
+## The name is currently undecided (21 Aug 2026)
 
-What that does and does not mean: **Bharosa is the product**, so app name,
-page titles, launcher icon, notification sender and store listing all say
-Bharosa. **Deepika is the coach**, so every line of copy naming her as the
-person doing the coaching stays exactly as it is. She is not a brand in the
-app; she is the human on the other end of it, and that is the whole thesis.
+**Bharosa is a working name and is being replaced.** Deepika does not like it,
+so it is on its way out — do not treat any occurrence of it in this repository
+as final, and do not spend effort making it more consistent. When a name is
+chosen it gets changed everywhere in one pass: app name, page titles, launcher
+icon, notification sender, store listing, privacy policy, and the Android
+package ID in `android/twa-manifest.json`.
+
+Until then the string "Bharosa" stays where it is. Renaming twice is worse than
+renaming once, and the package ID in particular is permanent from the first
+install, so nothing ships under a placeholder.
+
+**Deepika is the coach, not the brand.** Whatever the product ends up being
+called, every line of copy naming her as the person doing the coaching stays
+exactly as it is. She is not a brand in the app; she is the human on the other
+end of it, and that is the whole thesis.
+
+---
+
+## There are two apps now (21 Aug 2026)
+
+This repository is one of two products, and they are no longer variants of the
+same thing:
+
+**This app — Deepika's practice.** Coaching-led and individual. Deepika supplies
+the judgement; the software supplies memory, structure, visibility,
+reinforcement and continuity. Built with Claude.
+
+**The other app — a separate, AI-centric product.** Built by Codex, driven by
+the founder rather than by Deepika, aimed at a general market. It does not
+carry Deepika's name and is not this product's future. Nothing in this
+repository should be shaped around it.
+
+**They share no backend and no database.** Codex's app is getting its own
+Vercel deployment and its own Postgres. This matters beyond tidiness: the
+records here belong to Deepika's clients, and a general-audience consumer app
+must not be able to reach them. Do not add bearer-token auth, a public API, or
+anything else whose purpose is to let another application log into this one.
+
+### Where this app is going
+
+The 20 pilot members are the first goal, not the whole ambition. The intended
+path is that it grows past the people Deepika coaches one-to-one — members
+sharing it with others who use the app without a direct coaching relationship
+with her.
+
+Two consequences worth holding in mind while building:
+
+- **Not every future user will have Deepika.** Anything that only makes sense
+  when a coach is reading it will need a considered answer for someone who has
+  no coach. That is not today's problem, but it is the reason to keep the
+  member experience coherent on its own rather than assuming a human backstop.
+- **The data model should tolerate more than one coach.** Retrofitting that is
+  painful, and the growth path above makes it likely rather than hypothetical.
+
+What does **not** change: this app stays coaching-led. AI does not take over
+the relationship here. That is the other app's premise, not this one's.
 
 ---
 
