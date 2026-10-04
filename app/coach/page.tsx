@@ -6,6 +6,7 @@ import { ChevronRight, Check, SlidersHorizontal, X } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { bucketMeta } from "@/lib/radar";
 import { memberCode } from "@/lib/display";
+import { dateKey, longDate } from "@/lib/calendar";
 import { Sparkline } from "@/components/ui";
 import type { DailyAction, Member, PulseEntry, RadarBucket, RadarEvent } from "@/lib/types";
 
@@ -78,7 +79,7 @@ export default function RadarPage() {
     <div className="mx-auto max-w-6xl px-6 py-10">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="label">Sunday, 9 August</p>
+          <p className="label">{longDate(dateKey())}</p>
           <h1 className="mt-2 font-display text-4xl leading-tight">Radar</h1>
           <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-ink-soft">
             {members.length} {members.length === 1 ? "woman" : "women"},{" "}

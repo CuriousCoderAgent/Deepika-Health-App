@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SUPPORT_EMAIL } from "@/lib/support";
 
 export const metadata = {
   title: "Privacy — Bharosa",
@@ -15,8 +16,8 @@ export const metadata = {
  * if the app changes, this changes with it.
  */
 
-const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || "hello@bharosa.app";
-const UPDATED = "19 August 2026";
+
+const UPDATED = "4 October 2026";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -70,7 +71,8 @@ export default function Privacy() {
             Your password is stored as a scrypt hash, not as text. Nobody can
             read it back — not Deepika, not us, and not anyone who obtained a
             copy of the database. That is also why nobody can tell you what it
-            was if you forget it.
+            was if you forget it. Deepika can set you a new temporary password,
+            and you can change it yourself from your account screen.
           </p>
         </Section>
 
@@ -130,11 +132,19 @@ export default function Privacy() {
             restore it from.
           </p>
           <p>
-            If you cannot sign in, email{" "}
-            <a className="font-medium text-effort-stretch underline" href={`mailto:${SUPPORT_EMAIL}`}>
-              {SUPPORT_EMAIL}
-            </a>{" "}
-            from the address Deepika knows you by and ask. See{" "}
+            If you cannot sign in,{" "}
+            {SUPPORT_EMAIL ? (
+              <>
+                email{" "}
+                <a className="font-medium text-effort-stretch underline" href={`mailto:${SUPPORT_EMAIL}`}>
+                  {SUPPORT_EMAIL}
+                </a>{" "}
+                from the address Deepika knows you by
+              </>
+            ) : (
+              <>contact Deepika directly, the way you normally reach her,</>
+            )}{" "}
+            and ask. See{" "}
             <Link href="/delete-account" className="font-medium text-effort-stretch underline">
               deleting your account
             </Link>
@@ -159,12 +169,19 @@ export default function Privacy() {
           <p>
             Under India&rsquo;s Digital Personal Data Protection Act you can ask
             what is held about you, have it corrected, and have it erased. The
-            first is visible in the app, the second you can edit yourself, and
-            the third is the delete button. For anything that is not covered by
-            those, email{" "}
-            <a className="font-medium text-effort-stretch underline" href={`mailto:${SUPPORT_EMAIL}`}>
-              {SUPPORT_EMAIL}
-            </a>
+            first you can download from your account screen, the second you can
+            edit yourself, and the third is the delete button. For anything
+            that is not covered by those,{" "}
+            {SUPPORT_EMAIL ? (
+              <>
+                email{" "}
+                <a className="font-medium text-effort-stretch underline" href={`mailto:${SUPPORT_EMAIL}`}>
+                  {SUPPORT_EMAIL}
+                </a>
+              </>
+            ) : (
+              <>talk to Deepika, or write to her from the Coach tab in the app</>
+            )}
             .
           </p>
           <p>
@@ -191,9 +208,13 @@ export default function Privacy() {
 
         <Section title="Contact">
           <p>
-            <a className="font-medium text-effort-stretch underline" href={`mailto:${SUPPORT_EMAIL}`}>
-              {SUPPORT_EMAIL}
-            </a>
+            {SUPPORT_EMAIL ? (
+              <a className="font-medium text-effort-stretch underline" href={`mailto:${SUPPORT_EMAIL}`}>
+                {SUPPORT_EMAIL}
+              </a>
+            ) : (
+              <>Deepika, directly — or through the Coach tab in the app.</>
+            )}
           </p>
         </Section>
 

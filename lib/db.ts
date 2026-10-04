@@ -151,6 +151,12 @@ async function init(): Promise<void> {
   const marked = await c.query("select 1 from app_meta where key = $1", [BOOTSTRAP_KEY]);
   if (marked.rowCount) return;
 
+  // The six fictional members are a demonstration, and a real deployment should
+  // not begin by putting them in Deepika's console beside the women she is
+  // actually coaching. Seeding is therefore opt-in. It used to be automatic,
+  // which meant removing them with SQL before the first real member arrived.
+  if (process.env.SEED_DEMO_COHORT !== "1") return;
+
   for (const doc of seedMemberDocs()) {
     await c.query(
       `insert into member_state (user_id, name, doc) values ($1, $2, $3)
@@ -294,4 +300,35 @@ export async function isDeletedAccount(userId: string): Promise<boolean> {
 export async function restoreDeletedUsername(userId: string): Promise<void> {
   await ensureReady();
   await db().query("delete from deleted_account where user_id = $1", [userId]);
+}
+
+/** Replaces a self-created account's password hash. Hashing happens in
+ *  lib/accounts.ts; this module never sees a plaintext password. */
+export async function updateAccountHash(userId: string, hash: string): Promise<boolean> {
+  await ensureReady();
+  const r = await db().query("update account set password_hash = $2 where user_id = $1", [
+    userId,
+    hash,
+  ]);
+  return (r.rowCount ?? 0) > 0;
+}
+
+/**
+ * Removes the fictional sample members, and only them.
+ *
+ * Deepika does this from her console when the pilot becomes real. It is limited
+ * to the ids passed in — the seeded cohort — so it can never touch a real
+ * member, and it leaves the bootstrap marker alone so they are not seeded again.
+ */
+export async function deleteSampleMembers(ids: string[]): Promise<number> {
+  await ensureReady();
+  const r = await db().query(
+    // `not in account` is belt and braces: sample ids are reserved and cannot be
+    // signed up, but if one ever did hold a real login its data must survive.
+    `delete from member_state
+      where user_id = any($1::text[])
+        and user_id not in (select user_id from account)`,
+    [ids]
+  );
+  return r.rowCount ?? 0;
 }

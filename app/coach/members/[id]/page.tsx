@@ -23,6 +23,8 @@ import {
   CategoryIcon,
 } from "@/components/ui";
 import PulseCard from "@/components/PulseCard";
+import ResetPassword from "@/components/ResetPassword";
+import { isSampleMember } from "@/lib/dailyPlan";
 import { draftWeekPlansFor, PHASE_WEEKS } from "@/lib/plan";
 import { memberLabel } from "@/lib/display";
 import type { EffortLevel, WeekPlan } from "@/lib/types";
@@ -146,7 +148,7 @@ export default function Member360({ params }: { params: { id: string } }) {
         <div>
           <h1 className="font-mono text-3xl font-medium leading-tight">{memberLabel(m)}</h1>
           <p className="mt-1.5 text-[15px] text-ink-soft">
-            {m.age} · {m.city} · Week {m.week} · {m.phase} phase
+            {[m.age || null, m.city || null, `Week ${m.week}`, `${m.phase} phase`].filter(Boolean).join(" · ")}
           </p>
           <p className="mt-1 text-[14px] text-ink-faint">{m.lifeStage}</p>
         </div>
@@ -158,6 +160,8 @@ export default function Member360({ params }: { params: { id: string } }) {
           See her app <ArrowUpRight size={14} />
         </Link>
       </div>
+
+      {!isSampleMember(m.id) && <ResetPassword username={m.id} firstName={m.name.split(" ")[0]} />}
 
       {flags.length > 0 && (
         <div className="mt-5 rounded-2xl border border-attention/25 bg-attention-tint/50 p-4">

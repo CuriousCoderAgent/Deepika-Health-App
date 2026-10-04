@@ -18,9 +18,15 @@
  * exactly why the middleware imports from lib/auth.ts and never from here.
  */
 
-import { randomBytes, scrypt as scryptCb, timingSafeEqual } from "crypto";
+import { randomBytes, randomInt, scrypt as scryptCb, timingSafeEqual } from "crypto";
 import { promisify } from "util";
-import { isDeletedAccount, readAccount, writeAccount, writeMemberDoc } from "./db";
+import {
+  isDeletedAccount,
+  readAccount,
+  updateAccountHash,
+  writeAccount,
+  writeMemberDoc,
+} from "./db";
 import { newMember } from "./emptyState";
 import { RESERVED_USERNAMES } from "./persist";
 import type { SessionUser } from "./auth";
@@ -141,4 +147,70 @@ export async function verifyAccount(
   if (!account) return null;
   if (!(await passwordMatches(password, account.hash))) return null;
   return { sub: account.userId, role: "member", name: account.name };
+}
+
+/** Letters and digits with the look-alikes taken out (no 0/o, 1/l/i). A
+ *  temporary password is read off a phone and typed in by hand. */
+const READABLE = "abcdefghjkmnpqrstuvwxyz23456789";
+
+/** Three groups of four, like "k7mq-x3pa-9wzn". Twelve characters from a
+ *  31-symbol alphabet is roughly 59 bits, and it is only ever valid until the
+ *  member replaces it. */
+function temporaryPassword(): string {
+  const group = () => Array.from({ length: 4 }, () => READABLE[randomInt(READABLE.length)]).join("");
+  return `${group()}-${group()}-${group()}`;
+}
+
+export type ResetOutcome =
+  | { ok: true; name: string; password: string }
+  | { ok: false; reason: "sample" | "env" | "none" };
+
+/**
+ * Deepika sets a member a temporary password.
+ *
+ * There is no email service to send a reset link through, so recovery is
+ * mediated by the person who already knows her — which for a coached cohort is
+ * a reasonable answer rather than a stopgap. The plaintext is returned once, to
+ * Deepika, to pass on; only the hash is stored.
+ *
+ * Only accounts held in the database can be reset. One whose login lives in the
+ * MEMBERS environment variable belongs to whoever runs the deployment.
+ */
+export async function issueTemporaryPassword(rawUsername: string): Promise<ResetOutcome> {
+  const username = normaliseUsername(rawUsername);
+  if (RESERVED_USERNAMES.includes(username)) return { ok: false, reason: "sample" };
+  const account = await readAccount(username);
+  if (!account) {
+    return { ok: false, reason: isTaken(username) ? "env" : "none" };
+  }
+  const password = temporaryPassword();
+  const updated = await updateAccountHash(username, await hashPassword(password));
+  if (!updated) return { ok: false, reason: "none" };
+  return { ok: true, name: account.name, password };
+}
+
+export type ChangeOutcome = { ok: true } | { ok: false; reason: "wrong" | "weak" | "env"; message: string };
+
+/** A member changing her own password. Needs the current one, so a phone left
+ *  signed in on a table cannot be used to lock her out. */
+export async function changePassword(
+  userId: string,
+  current: string,
+  next: string
+): Promise<ChangeOutcome> {
+  const account = await readAccount(userId);
+  if (!account) {
+    return {
+      ok: false,
+      reason: "env",
+      message: "Your password is set by whoever runs this deployment, so it can't be changed here.",
+    };
+  }
+  if (!(await passwordMatches(current, account.hash))) {
+    return { ok: false, reason: "wrong", message: "That isn't your current password." };
+  }
+  const weak = passwordProblem(next);
+  if (weak) return { ok: false, reason: "weak", message: weak };
+  await updateAccountHash(userId, await hashPassword(next));
+  return { ok: true };
 }

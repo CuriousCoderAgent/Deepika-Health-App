@@ -5,6 +5,8 @@ import { useState } from "react";
 import { Search, ChevronRight } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { memberCode } from "@/lib/display";
+import { isSampleMember } from "@/lib/dailyPlan";
+import InvitePanel from "@/components/InvitePanel";
 import { EffortRamp } from "@/components/ui";
 import type { EngagementState } from "@/lib/types";
 
@@ -20,8 +22,12 @@ const WHEN = (o: number) =>
   o === 0 ? "today" : o === 1 ? "tomorrow" : `in ${o} days`;
 
 export default function MembersPage() {
-  const { members, actions, radar, sessions } = useStore();
+  const { members, actions, radar, sessions, removeSampleMembers } = useStore();
   const [q, setQ] = useState("");
+  const [confirmRemove, setConfirmRemove] = useState(false);
+  const [removeError, setRemoveError] = useState<string | null>(null);
+  const real = members.filter((m) => !isSampleMember(m.id)).length;
+  const sample = members.length - real;
 
   const filtered = members.filter((m) =>
     memberCode(m).toLowerCase().includes(q.toLowerCase())
@@ -31,8 +37,62 @@ export default function MembersPage() {
     <div className="mx-auto max-w-4xl px-6 py-10">
       <h1 className="font-display text-4xl leading-tight">Members</h1>
       <p className="mt-2 text-[15px] text-ink-soft">
-        The first cohort. Six of twenty places filled.
+        {real === 0
+          ? "No members yet. Invite the first one below."
+          : real <= 20
+            ? `The first cohort. ${real} of twenty places filled.`
+            : `${real} members.`}
       </p>
+
+      <InvitePanel startOpen={real === 0} />
+
+      {sample > 0 && (
+        <div className="card mt-4 border border-dashed border-ink-line p-4">
+          <p className="text-[14px] font-medium">
+            {sample === 1 ? "1 member here is" : `${sample} members here are`} sample data
+          </p>
+          <p className="mt-1 text-[13px] leading-relaxed text-ink-soft">
+            They are fictional, kept so the console is not empty while you wait for real members.
+            Remove them once your own cohort starts — it will not bring them back.
+          </p>
+          {confirmRemove ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                onClick={async () => {
+                  setRemoveError(null);
+                  try {
+                    await removeSampleMembers();
+                    setConfirmRemove(false);
+                  } catch (e) {
+                    setRemoveError(e instanceof Error ? e.message : "Could not remove them.");
+                  }
+                }}
+                className="tap rounded-xl bg-ink px-4 text-[13px] font-medium text-white"
+              >
+                Yes, remove the sample members
+              </button>
+              <button
+                onClick={() => setConfirmRemove(false)}
+                className="tap rounded-xl bg-paper-sunk px-4 text-[13px] text-ink-soft hover:bg-ink-line"
+              >
+                Keep them
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmRemove(true)}
+              className="tap mt-3 rounded-xl bg-paper-sunk px-3 text-[13px] text-ink-soft hover:bg-ink-line hover:text-ink"
+            >
+              Remove sample members
+            </button>
+          )}
+          {removeError && (
+            <p role="alert" className="mt-2 text-[13px] text-danger">
+              {removeError}
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="relative mt-6">
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint" />
@@ -94,7 +154,7 @@ export default function MembersPage() {
                   <div className="flex flex-wrap items-baseline gap-x-2">
                     <p className="font-mono text-[15px] font-medium">{memberCode(m)}</p>
                     <span className="text-[13px] text-ink-faint">
-                      {m.age} · {m.city}
+                      {[m.age || null, m.city || null].filter(Boolean).join(" · ")}
                     </span>
                   </div>
                   <p className="mt-0.5 text-[13px] text-ink-soft">

@@ -108,8 +108,8 @@ export default function Reports() {
             />
           </label>
           <p className="mt-1.5 text-[11px] leading-relaxed text-ink-faint">
-            In this prototype the file itself is not stored — only what you type
-            below. Real document storage arrives with the secure version.
+            Only what you type below is saved. The file itself is not uploaded or
+            stored, so keep the original wherever you normally would.
           </p>
 
           <input

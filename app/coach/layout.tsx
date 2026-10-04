@@ -13,6 +13,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { isSampleMember } from "@/lib/dailyPlan";
 
 const nav = [
   { href: "/coach", label: "Radar", icon: Radar, hint: "Who needs me today" },
@@ -26,7 +27,8 @@ const nav = [
 
 export default function CoachLayout({ children }: { children: React.ReactNode }) {
   const path = usePathname();
-  const { radar, messages } = useStore();
+  const { radar, messages, members, hydrated } = useStore();
+  const hasSample = members.some((m) => isSampleMember(m.id));
 
   const attention = radar.filter((r) => r.bucket === "attention" && !r.resolved).length;
   const unread = messages.filter((m) => m.from === "member" && !m.read).length;
@@ -83,11 +85,16 @@ export default function CoachLayout({ children }: { children: React.ReactNode })
           })}
         </nav>
 
-        <div className="border-t border-ink-line p-4">
-          <p className="text-[11px] leading-relaxed text-ink-faint">
-            Vision prototype. Fictional members, no real health data.
-          </p>
-        </div>
+        {/* Only true while sample members are present. It used to say, for
+            everyone and always, "Fictional members, no real health data" —
+            which stopped being so the day real women signed up. */}
+        {hasSample && (
+          <div className="border-t border-ink-line p-4">
+            <p className="text-[11px] leading-relaxed text-ink-faint">
+              Some members here are fictional samples. You can remove them from Members.
+            </p>
+          </div>
+        )}
       </aside>
 
       {/* Mobile header. The sidebar holds the only way to sign out, and it is
@@ -133,7 +140,19 @@ export default function CoachLayout({ children }: { children: React.ReactNode })
         </div>
       </div>
 
-      <main className="min-w-0 flex-1 pb-20 lg:pb-0">{children}</main>
+      {/* Held back until the store has loaded. Before that it holds the seeded
+          sample cohort, so every page load showed Deepika six fictional women
+          for a moment — including on a deployment where she had already
+          removed them. */}
+      <main className="min-w-0 flex-1 pb-20 lg:pb-0">
+        {hydrated ? (
+          children
+        ) : (
+          <p className="px-6 py-10 text-sm text-ink-faint" role="status">
+            Loading your members…
+          </p>
+        )}
+      </main>
     </div>
   );
 }
