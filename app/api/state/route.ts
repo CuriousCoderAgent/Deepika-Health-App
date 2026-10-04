@@ -23,6 +23,7 @@ import {
   writeMemberDoc,
 } from "@/lib/db";
 import type { CoachDoc, MemberDoc } from "@/lib/persist";
+import { acceptFromMember, forMember } from "@/lib/privacy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -47,7 +48,10 @@ export async function GET() {
       ]);
       return NextResponse.json({ configured: true, docs, coach });
     }
-    return NextResponse.json({ configured: true, doc: await readMemberDoc(user.sub) });
+    // Deepika's private notes and plan drafts live in this same document but are
+    // not hers to read — see lib/privacy.ts.
+    const doc = await readMemberDoc(user.sub);
+    return NextResponse.json({ configured: true, doc: doc ? forMember(doc) : null });
   } catch (err) {
     console.error("[state] read failed", err);
     return NextResponse.json({ error: "Storage unavailable" }, { status: 503 });
@@ -82,7 +86,9 @@ export async function PUT(req: Request) {
     const doc = body.doc;
     if (!doc?.member) return NextResponse.json({ error: "Missing document" }, { status: 400 });
     // The session decides the key, so a member can only ever overwrite herself.
-    await writeMemberDoc(user.sub, { ...doc, member: { ...doc.member, id: user.sub } });
+    const existing = await readMemberDoc(user.sub);
+    const safe = acceptFromMember({ ...doc, member: { ...doc.member, id: user.sub } }, existing);
+    await writeMemberDoc(user.sub, safe);
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[state] write failed", err);

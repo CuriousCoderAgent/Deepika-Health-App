@@ -4,17 +4,64 @@ Operational guidance for Claude Code working on this repository.
 Read `docs/PROJECT-BRIEF.md` before making product decisions — it holds the
 business context, the research the design rests on, and the prioritised backlog.
 
-The product is called **Bharosa** (19 Aug 2026). This was a codename for the
-codebase only, with the product branded "Deepika Wellness" — that has been
-reversed by explicit decision: the app is launching as its own brand rather
-than under the founder's personal practice name, because it has to stand on
-its own as it grows past her immediate circle.
+## The name is currently undecided (21 Aug 2026)
 
-What that does and does not mean: **Bharosa is the product**, so app name,
-page titles, launcher icon, notification sender and store listing all say
-Bharosa. **Deepika is the coach**, so every line of copy naming her as the
-person doing the coaching stays exactly as it is. She is not a brand in the
-app; she is the human on the other end of it, and that is the whole thesis.
+**Bharosa is a working name and is being replaced.** Deepika does not like it,
+so it is on its way out — do not treat any occurrence of it in this repository
+as final, and do not spend effort making it more consistent. When a name is
+chosen it gets changed everywhere in one pass: app name, page titles, launcher
+icon, notification sender, store listing, privacy policy, and the Android
+package ID in `android/twa-manifest.json`.
+
+Until then the string "Bharosa" stays where it is. Renaming twice is worse than
+renaming once, and the package ID in particular is permanent from the first
+install, so nothing ships under a placeholder.
+
+**Deepika is the coach, not the brand.** Whatever the product ends up being
+called, every line of copy naming her as the person doing the coaching stays
+exactly as it is. She is not a brand in the app; she is the human on the other
+end of it, and that is the whole thesis.
+
+---
+
+## There are two apps now (21 Aug 2026)
+
+This repository is one of two products, and they are no longer variants of the
+same thing:
+
+**This app — Deepika's practice.** Coaching-led and individual. Deepika supplies
+the judgement; the software supplies memory, structure, visibility,
+reinforcement and continuity. Built with Claude.
+
+**The other app — a separate, AI-centric product.** Built by Codex, driven by
+the founder rather than by Deepika, aimed at a general market. It does not
+carry Deepika's name and is not this product's future. Nothing in this
+repository should be shaped around it.
+
+**They share no backend and no database.** Codex's app is getting its own
+Vercel deployment and its own Postgres. This matters beyond tidiness: the
+records here belong to Deepika's clients, and a general-audience consumer app
+must not be able to reach them. Do not add bearer-token auth, a public API, or
+anything else whose purpose is to let another application log into this one.
+
+### Where this app is going
+
+The 20 pilot members are the first goal, not the whole ambition. The intended
+path is that it grows past the people Deepika coaches one-to-one — members
+sharing it with others who use the app without a direct coaching relationship
+with her.
+
+Two consequences worth holding in mind while building:
+
+- **Not every future user will have Deepika.** Anything that only makes sense
+  when a coach is reading it will need a considered answer for someone who has
+  no coach. That is not today's problem, but it is the reason to keep the
+  member experience coherent on its own rather than assuming a human backstop.
+- **The data model should tolerate more than one coach.** Retrofitting that is
+  painful, and the growth path above makes it likely rather than hypothetical.
+
+What does **not** change: this app stays coaching-led. AI does not take over
+the relationship here. That is the other app's premise, not this one's.
 
 ---
 
@@ -161,10 +208,31 @@ lib/
   seed.ts                   6 personas, 14 modules, 3 workouts, plans, messages
   radar.ts                  10 rules + evaluator
   store.tsx                 Context, localStorage, all mutations
+  calendar.ts               Dates in India time; the one definition of "today"
+  dailyPlan.ts              Roll a member forward a day; build today's actions
+  starterPlan.ts            The 12-week plan a new member starts on
+  privacy.ts                What a member may read/write of her own document
 components/
   ui.tsx                    EffortRamp, ProvenanceChip, ConsistencyBand, Sparkline
   PulseCard.tsx             Daily Pulse (member + coach-on-behalf modes)
 ```
+
+**Time.** Every record is a `dayOffset` from the date in `member.anchorDate`, and
+loading a member on a later day shifts them all forward. The seeded sample
+cohort has no anchor and is frozen on purpose — never roll them. Anything that
+needs "today" calls `dateKey()` from `lib/calendar.ts`, which is India time, not
+the viewer's clock.
+
+**Coach-private data.** A member's document also holds Deepika's private notes
+and plan drafts. They must never reach the member: `lib/privacy.ts` strips them
+on read and refuses them on write. Anything new that Deepika keeps about a member
+and the member must not see belongs there too.
+
+`website/` is the public launch site — a separate static project, not part of
+the Next app. Own deployment, own domain, no scripts or cookies. The product
+name lives in `website/site.config.json`, so the rename is a one-line change
+there. See `website/README.md` for the launch checklist. Its copy describes
+only what this app really does; if a feature changes, change the page.
 
 **Design tokens** live in `tailwind.config.ts` with comments explaining what
 each colour means semantically. Read those comments before adding a colour.
@@ -183,8 +251,11 @@ each colour means semantically. Read those comments before adding a colour.
 - **Accessibility floor:** 17px base, `.tap` class for 44px targets, visible
   keyboard focus, `prefers-reduced-motion` respected. The audience is 38–50.
 - Verify with `npm run build` before committing. It type-checks.
-- After changing `lib/radar.ts` or `lib/seed.ts`, confirm all ten rules still
-  fire — the four Radar buckets should all be populated.
+- After changing `lib/radar.ts` or `lib/seed.ts`, run `npm run test:logic` — it
+  checks that the sample cohort still fills all four Radar buckets. There are
+  now eleven rules; R11 (a new member who has not been greeted) only ever fires
+  for real members, never the sample cohort.
+- Run `npm run test:logic` as well as `npm run build` before committing.
 
 ---
 

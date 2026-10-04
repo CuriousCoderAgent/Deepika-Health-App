@@ -23,6 +23,8 @@ import {
   CategoryIcon,
 } from "@/components/ui";
 import PulseCard from "@/components/PulseCard";
+import ResetPassword from "@/components/ResetPassword";
+import { isSampleMember } from "@/lib/dailyPlan";
 import { draftWeekPlansFor, PHASE_WEEKS } from "@/lib/plan";
 import { memberLabel } from "@/lib/display";
 import type { EffortLevel, WeekPlan } from "@/lib/types";
@@ -67,8 +69,14 @@ export default function Member360({ params }: { params: { id: string } }) {
   const [selectedWeek, setSelectedWeek] = useState<number | null>(null);
   const [note, setNote] = useState("");
   const [voiceMode, setVoiceMode] = useState(false);
-  const [privateNotes, setPrivateNotes] = useState("");
-  const [recap, setRecap] = useState("");
+  /* null means "not edited yet", so the box shows what is already saved on the
+     session instead of starting blank every time she opens the tab. */
+  const [privateNotesDraft, setPrivateNotesDraft] = useState<string | null>(null);
+  const [recapDraft, setRecapDraft] = useState<string | null>(null);
+  const [notesSaved, setNotesSaved] = useState(false);
+  /* What each action looked like before "make today the minimum", so it can be
+     put back. Held for the visit only. */
+  const [shrunk, setShrunk] = useState<Record<string, { target: any; why: string }>>({});
   const [newNote, setNewNote] = useState("");
 
   if (!m) {
@@ -119,6 +127,14 @@ export default function Member360({ params }: { params: { id: string } }) {
 
   const todays = mine.filter((a) => a.dayOffset === 0);
 
+  /* "This week" means the last seven days including today. These used to count
+     every action and pulse on record, so the prep sheet reported lifetime totals
+     under a heading that said "this week". */
+  const weekActions = mine.filter((a) => a.dayOffset >= -6 && a.dayOffset <= 0);
+  const weekPulses = myPulses.filter((p) => p.dayOffset >= -6 && p.dayOffset <= 0);
+  const privateNotes = privateNotesDraft ?? nextSession?.privateNotes ?? "";
+  const recap = recapDraft ?? nextSession?.memberRecap ?? "";
+
   return (
     <div className="mx-auto max-w-4xl px-6 py-10">
       <Link
@@ -132,7 +148,7 @@ export default function Member360({ params }: { params: { id: string } }) {
         <div>
           <h1 className="font-mono text-3xl font-medium leading-tight">{memberLabel(m)}</h1>
           <p className="mt-1.5 text-[15px] text-ink-soft">
-            {m.age} · {m.city} · Week {m.week} · {m.phase} phase
+            {[m.age || null, m.city || null, `Week ${m.week}`, `${m.phase} phase`].filter(Boolean).join(" · ")}
           </p>
           <p className="mt-1 text-[14px] text-ink-faint">{m.lifeStage}</p>
         </div>
@@ -144,6 +160,8 @@ export default function Member360({ params }: { params: { id: string } }) {
           See her app <ArrowUpRight size={14} />
         </Link>
       </div>
+
+      {!isSampleMember(m.id) && <ResetPassword username={m.id} firstName={m.name.split(" ")[0]} />}
 
       {flags.length > 0 && (
         <div className="mt-5 rounded-2xl border border-attention/25 bg-attention-tint/50 p-4">
@@ -164,15 +182,20 @@ export default function Member360({ params }: { params: { id: string } }) {
         </div>
       )}
 
-      <div className="scroll-hide mt-7 flex gap-1 overflow-x-auto border-b border-ink-line">
+      {/* Six tabs do not fit across a phone. As a scrolling strip the last
+          three sat off the right edge with nothing to say they existed, so
+          Session prep — the one she wants before a 1:1 — was effectively
+          missing. Two rows of pills below md, the underlined row above it. */}
+      <div className="mt-7 grid grid-cols-2 gap-1.5 md:flex md:gap-1 md:border-b md:border-ink-line">
         {TABS.map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`shrink-0 border-b-2 px-3 py-2.5 text-sm transition-colors ${
+            aria-pressed={tab === t}
+            className={`tap rounded-xl px-3 text-[13px] transition-colors md:shrink-0 md:rounded-none md:border-b-2 md:px-3 md:py-2.5 md:text-sm ${
               tab === t
-                ? "border-ink text-ink"
-                : "border-transparent text-ink-faint hover:text-ink-soft"
+                ? "bg-ink text-white md:border-ink md:bg-transparent md:text-ink"
+                : "bg-paper-sunk text-ink-soft md:border-transparent md:bg-transparent md:text-ink-faint md:hover:text-ink-soft"
             }`}
           >
             {t}
@@ -181,8 +204,14 @@ export default function Member360({ params }: { params: { id: string } }) {
       </div>
 
       {/* ---------------- Overview ---------------- */}
+      {/* Overview is the screen she has open during a call, so it is split:
+          what happened on the left, what she does about it on the right. The
+          working rail sticks, because the message composer used to sit about
+          eighteen hundred pixels down and she had to scroll past every chart
+          to type a sentence. */}
       {tab === "Overview" && (
-        <div className="mt-7 grid gap-5 md:grid-cols-2">
+        <div className="mt-7 grid gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:items-start">
+        <div className="grid gap-5 md:grid-cols-2">
           <div className="card p-5 md:col-span-2">
             <p className="label">What she is trying to get to</p>
             <ul className="mt-2.5 space-y-1.5">
@@ -255,13 +284,16 @@ export default function Member360({ params }: { params: { id: string } }) {
             </div>
           </div>
 
+        </div>
+
+        <div className="grid gap-5 md:grid-cols-2 lg:sticky lg:top-6 lg:grid-cols-1">
           {/* Coach-on-behalf entry — the dual-entry requirement, live */}
-          <div className="md:col-span-2">
+          <div className="md:col-span-2 lg:col-span-1">
             <p className="label mb-2">Enter her check-in during the call</p>
             <PulseCard memberId={m.id} asCoach />
           </div>
 
-          <div className="card p-5 md:col-span-2">
+          <div className="card p-5 md:col-span-2 lg:col-span-1">
             <p className="label">Daily protein target</p>
             <p className="mt-1 text-[13px] leading-relaxed text-ink-soft">
               Your number, not a calculated one — the app never sets this
@@ -285,7 +317,7 @@ export default function Member360({ params }: { params: { id: string } }) {
             </div>
           </div>
 
-          <div className="card p-5 md:col-span-2">
+          <div className="card p-5 md:col-span-2 lg:col-span-1">
             <p className="label">Send her something</p>
             <div className="mt-3 flex gap-2">
               <button
@@ -335,6 +367,7 @@ export default function Member360({ params }: { params: { id: string } }) {
               <Send size={14} /> Send
             </button>
           </div>
+        </div>
         </div>
       )}
 
@@ -745,17 +778,45 @@ export default function Member360({ params }: { params: { id: string } }) {
                   ))}
                 </div>
 
-                <button
-                  onClick={() =>
-                    updateAction(a.id, {
-                      target: { ...a.minimum },
-                      why: `${a.why} Made smaller today — nothing is behind.`,
-                    })
-                  }
-                  className="tap mt-3 rounded-xl bg-paper-sunk px-3 text-[13px] text-ink-soft hover:bg-ink-line hover:text-ink"
-                >
-                  Make today the minimum version
-                </button>
+                {/* Shrinking is a decision she makes in the middle of a call, so
+                    it has to be undoable: it overwrote the target for good, and
+                    appended another sentence to the text the member reads on
+                    every click. */}
+                {shrunk[a.id] ? (
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
+                    <span className="text-[13px] text-ink-soft">
+                      Today is now the minimum version.
+                    </span>
+                    <button
+                      onClick={() => {
+                        const before = shrunk[a.id];
+                        updateAction(a.id, { target: before.target, why: before.why } as any);
+                        setShrunk((x) => {
+                          const { [a.id]: _, ...rest } = x;
+                          return rest;
+                        });
+                      }}
+                      className="tap rounded-xl bg-paper-sunk px-3 text-[13px] text-ink-soft hover:bg-ink-line hover:text-ink"
+                    >
+                      Put it back
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setShrunk((x) => ({ ...x, [a.id]: { target: a.target, why: a.why } }));
+                      updateAction(a.id, {
+                        target: { ...a.minimum },
+                        why: a.why.includes("Made smaller today")
+                          ? a.why
+                          : `${a.why} Made smaller today — nothing is behind.`,
+                      });
+                    }}
+                    className="tap mt-3 rounded-xl bg-paper-sunk px-3 text-[13px] text-ink-soft hover:bg-ink-line hover:text-ink"
+                  >
+                    Make today the minimum version
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -820,38 +881,38 @@ export default function Member360({ params }: { params: { id: string } }) {
                   {nextSession.dayOffset === 0 ? "today" : `in ${nextSession.dayOffset} day(s)`} ·{" "}
                   {nextSession.time}
                 </p>
-                <h2 className="mt-2 font-display text-xl">What happened this week</h2>
+                <h2 className="mt-2 font-display text-xl">What happened in the last 7 days</h2>
 
                 <div className="mt-4 grid gap-4 sm:grid-cols-3">
                   <div>
                     <p className="label">Completed</p>
                     <p className="mt-1 font-display text-2xl">
-                      {mine.filter((a) => a.completed && a.completed !== "rest").length}
+                      {weekActions.filter((a) => a.completed && a.completed !== "rest").length}
                     </p>
                   </div>
                   <div>
                     <p className="label">Not today</p>
                     <p className="mt-1 font-display text-2xl">
-                      {mine.filter((a) => a.completed === "rest").length}
+                      {weekActions.filter((a) => a.completed === "rest").length}
                     </p>
                   </div>
                   <div>
                     <p className="label">Avg energy</p>
                     <p className="mt-1 font-display text-2xl">
-                      {myPulses.length
+                      {weekPulses.length
                         ? (
-                            myPulses.reduce((s, p) => s + p.energy, 0) / myPulses.length
+                            weekPulses.reduce((s, p) => s + p.energy, 0) / weekPulses.length
                           ).toFixed(1)
                         : "—"}
                     </p>
                   </div>
                 </div>
 
-                {mine.filter((a) => a.skipReason).length > 0 && (
+                {weekActions.filter((a) => a.skipReason).length > 0 && (
                   <div className="mt-5 border-t border-ink-line pt-4">
                     <p className="label">Reasons she gave</p>
                     <ul className="mt-2 space-y-1">
-                      {mine
+                      {weekActions
                         .filter((a) => a.skipReason)
                         .map((a) => (
                           <li key={a.id} className="text-[14px] text-ink-soft">
@@ -927,7 +988,10 @@ export default function Member360({ params }: { params: { id: string } }) {
                 </div>
                 <textarea
                   value={privateNotes}
-                  onChange={(e) => setPrivateNotes(e.target.value)}
+                  onChange={(e) => {
+                    setPrivateNotesDraft(e.target.value);
+                    setNotesSaved(false);
+                  }}
                   rows={4}
                   placeholder="Clinical-style observations, patterns, things to watch."
                   className="mt-2.5 w-full resize-none rounded-xl border border-ink-line bg-paper px-3 py-2.5 text-[14px] placeholder:text-ink-faint focus:border-effort-target focus:outline-none"
@@ -939,21 +1003,41 @@ export default function Member360({ params }: { params: { id: string } }) {
                 </div>
                 <textarea
                   value={recap}
-                  onChange={(e) => setRecap(e.target.value)}
+                  onChange={(e) => {
+                    setRecapDraft(e.target.value);
+                    setNotesSaved(false);
+                  }}
                   rows={4}
                   placeholder="What you agreed, in her language. This lands in her Coach tab."
                   className="mt-2.5 w-full resize-none rounded-xl border border-ink-line bg-paper px-3 py-2.5 text-[14px] placeholder:text-ink-faint focus:border-effort-target focus:outline-none"
                 />
 
-                <button
-                  disabled={!privateNotes.trim() && !recap.trim()}
-                  onClick={() => {
-                    saveSessionNotes(nextSession.id, {
-                      privateNotes: privateNotes || undefined,
-                      memberRecap: recap || undefined,
-                      status: "complete",
-                    });
-                    if (recap.trim()) {
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {/* Saving private notes must not close the session. It used
+                      to: typing a few lines before the call and pressing the one
+                      button marked the 1:1 complete and dropped it off the
+                      schedule. Completing is now only done by publishing the
+                      recap, which is the thing that actually ends it. */}
+                  <button
+                    disabled={!privateNotes.trim() || notesSaved}
+                    onClick={() => {
+                      saveSessionNotes(nextSession.id, {
+                        privateNotes: privateNotes || undefined,
+                      });
+                      setNotesSaved(true);
+                    }}
+                    className="tap rounded-xl bg-paper-sunk px-4 text-sm text-ink-soft hover:bg-ink-line hover:text-ink disabled:opacity-40"
+                  >
+                    {notesSaved ? "Notes saved" : "Save private notes"}
+                  </button>
+                  <button
+                    disabled={!recap.trim()}
+                    onClick={() => {
+                      saveSessionNotes(nextSession.id, {
+                        privateNotes: privateNotes || undefined,
+                        memberRecap: recap,
+                        status: "complete",
+                      });
                       sendMessage(m.id, {
                         from: "coach",
                         kind: "text",
@@ -962,14 +1046,14 @@ export default function Member360({ params }: { params: { id: string } }) {
                         time: "just now",
                         read: false,
                       });
-                    }
-                    setPrivateNotes("");
-                    setRecap("");
-                  }}
-                  className="tap mt-3 rounded-xl bg-ink px-4 text-sm font-medium text-white disabled:opacity-30"
-                >
-                  Save notes and publish the recap
-                </button>
+                      setPrivateNotesDraft(null);
+                      setRecapDraft(null);
+                    }}
+                    className="tap rounded-xl bg-ink px-4 text-sm font-medium text-white disabled:opacity-30"
+                  >
+                    Publish recap and complete session
+                  </button>
+                </div>
               </div>
             </>
           ) : (

@@ -4,6 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Loader2, ShieldCheck, Trash2 } from "lucide-react";
 import { useStore } from "@/lib/store";
+import ChangePassword from "@/components/ChangePassword";
+import ShareApp from "@/components/ShareApp";
+import DownloadData from "@/components/DownloadData";
 
 /**
  * Her account, and the one screen where she can take it all back.
@@ -73,6 +76,12 @@ export default function Account() {
           <span className="block text-[12px] text-ink-faint">Privacy policy</span>
         </span>
       </Link>
+
+      <DownloadData />
+
+      <ShareApp />
+
+      <ChangePassword />
 
       <div className="mt-8 rounded-2xl border border-danger/25 bg-danger-tint/40 p-4">
         <p className="flex items-center gap-2 text-[15px] font-medium text-danger">

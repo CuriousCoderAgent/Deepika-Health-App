@@ -1,3 +1,4 @@
+import { SUPPORT_EMAIL } from "@/lib/support";
 import Link from "next/link";
 
 export const metadata = {
@@ -15,7 +16,7 @@ export const metadata = {
  * case it has to actually answer, not just link past.
  */
 
-const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || "hello@bharosa.app";
+
 
 export default function DeleteAccount() {
   return (
@@ -75,16 +76,22 @@ export default function DeleteAccount() {
           If you cannot sign in
         </h2>
         <p className="mt-2 text-[15px] leading-relaxed text-ink-soft">
-          Email{" "}
-          <a
-            className="font-medium text-effort-stretch underline"
-            href={`mailto:${SUPPORT_EMAIL}?subject=Delete%20my%20account`}
-          >
-            {SUPPORT_EMAIL}
-          </a>{" "}
-          from the address Deepika knows you by, and say which username to
-          delete. She will confirm with you and do it, normally within a few
-          days.
+          {SUPPORT_EMAIL ? (
+            <>
+              Email{" "}
+              <a
+                className="font-medium text-effort-stretch underline"
+                href={`mailto:${SUPPORT_EMAIL}?subject=Delete%20my%20account`}
+              >
+                {SUPPORT_EMAIL}
+              </a>{" "}
+              from the address Deepika knows you by
+            </>
+          ) : (
+            <>Contact Deepika directly, the way you normally reach her,</>
+          )}
+          {" "}and say which username to delete. She will confirm with you and do it,
+          normally within a few days.
         </p>
 
         <p className="mt-10 border-t border-ink-line pt-5 text-[13px] leading-relaxed text-ink-faint">

@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{BRAND}} — health coaching built around your actual life</title>
+  <meta name="description" content="A simple daily plan and a real coach. {{BRAND}} helps women through midlife build strength, energy and steadiness — without streaks, guilt or calorie counting.">
+  {{^INDEXABLE}}<meta name="robots" content="noindex, nofollow">{{/INDEXABLE}}
+  <meta name="theme-color" content="#F7F4EE">
+  {{#PUBLIC_URL}}<link rel="canonical" href="{{PUBLIC_URL}}/">{{/PUBLIC_URL}}
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="{{BRAND}} — health coaching built around your actual life">
+  <meta property="og:description" content="A simple daily plan and a real coach, for the weeks that don't go to plan.">
+  {{#PUBLIC_URL}}<meta property="og:url" content="{{PUBLIC_URL}}/">
+  <meta property="og:image" content="{{PUBLIC_URL}}/og.png">
+  <meta name="twitter:card" content="summary_large_image">{{/PUBLIC_URL}}
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="top">
+  <div class="wrap top-row">
+    <a class="brand" href="/" aria-label="{{BRAND}} home">
+      <svg class="mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg>
+      <span>{{BRAND}}</span>
+    </a>
+    <nav class="links" aria-label="Sections">
+      <a href="#how">How it works</a>
+      <a href="#inside">What's inside</a>
+      <a href="#coach">Your coach</a>
+      <a href="#privacy">Privacy</a>
+      <a href="#faq">Questions</a>
+    </nav>
+    <a class="btn btn-small" href="{{APP_URL}}">Open the app</a>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- ---------------------------------------------------------------- hero -->
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow">A health-coaching app, with a real coach</p>
+        <h1>Strength, energy and steadiness — built around your actual life.</h1>
+        <p class="lede">
+          {{BRAND}} pairs a simple daily plan with Deepika, a health coach who
+          reads what you log and talks with you about it. It is made for the
+          middle decades of life, when your body, your sleep and your time all
+          change at once.
+        </p>
+        <div class="cta-row">
+          <a class="btn" href="{{APP_URL}}">Open {{BRAND}}</a>
+          {{#PLAY_URL}}<a class="btn btn-quiet" href="{{PLAY_URL}}">Get it on Google Play</a>{{/PLAY_URL}}
+          {{^PLAY_URL}}<span class="soon">Android app on Google Play — coming soon</span>{{/PLAY_URL}}
+        </div>
+        <p class="fine">Works in your phone's browser today. No wearable needed.</p>
+      </div>
+
+      <!-- An illustration of the Today screen, drawn here rather than a
+           screenshot: it carries no member's data and it does not go stale. -->
+      <div class="phone-wrap" aria-hidden="true">
+        <div class="phone">
+          <div class="phone-screen">
+            <p class="p-label">Today</p>
+            <p class="p-title">Three small things.</p>
+            <p class="p-sub">Pick the size that fits today.</p>
+
+            <div class="p-card">
+              <p class="p-name">Protein at lunch</p>
+              <div class="ramp">
+                <span class="step step-on"><i></i>Minimum</span>
+                <span class="step"><i></i>Target</span>
+                <span class="step"><i></i>Stretch</span>
+              </div>
+              <p class="p-note"><span class="tick">&#10003;</span> Counts as done.</p>
+            </div>
+
+            <div class="p-card">
+              <p class="p-name">A walk after dinner</p>
+              <div class="ramp">
+                <span class="step"><i></i>Minimum</span>
+                <span class="step step-on step-target"><i></i>Target</span>
+                <span class="step"><i></i>Stretch</span>
+              </div>
+            </div>
+
+            <p class="p-label p-gap">How are you feeling?</p>
+            <div class="moods">
+              <span>Good</span><span>Okay</span><span class="m-tired">Tired</span><span>Stressed</span>
+            </div>
+          </div>
+        </div>
+        <p class="caption">An illustration of the Today screen.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ----------------------------------------------------------- principles -->
+  <section class="band" aria-labelledby="believe">
+    <div class="wrap">
+      <h2 id="believe">Built for the weeks that don't go to plan</h2>
+      <div class="three">
+        <article>
+          <h3>The smallest version counts</h3>
+          <p>
+            Every action comes in three sizes — Minimum, Target and Stretch.
+            Doing the minimum is a full win, not a consolation prize. A tired
+            Tuesday is not a failed Tuesday.
+          </p>
+        </article>
+        <article>
+          <h3>No streaks to lose</h3>
+          <p>
+            You will never watch a counter fall back to zero. Progress is shown
+            as how many of the last 14 days included at least one healthy
+            action — a number that survives a bad week intact.
+          </p>
+        </article>
+        <article>
+          <h3>A person, not a feed</h3>
+          <p>
+            Deepika reads what you log and adjusts your plan. Nothing is
+            written for you in her name, and the app doesn't pretend to be
+            something it isn't.
+          </p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- -------------------------------------------------------------- how it works -->
+  <section id="how" class="section" aria-labelledby="how-h">
+    <div class="wrap">
+      <h2 id="how-h">How it works</h2>
+      <ol class="steps">
+        <li>
+          <span class="n">1</span>
+          <h3>Tell us about you</h3>
+          <p>
+            A few questions: what you want, how much time you really have, and
+            what you won't do. "I won't count calories" is a perfectly good
+            answer, and it's respected.
+          </p>
+        </li>
+        <li>
+          <span class="n">2</span>
+          <h3>Get a 12-week path</h3>
+          <p>
+            Deepika shapes your plan in three phases — Stabilise, Build,
+            Consolidate — starting small and growing with you.
+          </p>
+        </li>
+        <li>
+          <span class="n">3</span>
+          <h3>Do a little each day</h3>
+          <p>
+            A short list of actions, a quick check-in on energy, sleep and
+            stress, and movement sessions when they suit you.
+          </p>
+        </li>
+        <li>
+          <span class="n">4</span>
+          <h3>Talk to a person</h3>
+          <p>
+            Deepika sees your week before you speak, so your time together goes
+            on you rather than on catching up.
+          </p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ----------------------------------------------------------- what's inside -->
+  <section id="inside" class="section section-tint" aria-labelledby="inside-h">
+    <div class="wrap">
+      <h2 id="inside-h">Everything in one calm place</h2>
+      <p class="section-lede">
+        Nine things, each there because coaching needs it — and nothing that's
+        only there to keep you opening the app.
+      </p>
+      <div class="grid">
+        <article class="feat">
+          <h3>Daily check-in</h3>
+          <p>Energy, sleep, stress and how you're feeling, in a tap. Add detail when you want to.</p>
+        </article>
+        <article class="feat">
+          <h3>Actions in three sizes</h3>
+          <p>Pick Minimum, Target or Stretch to match the day you're actually having.</p>
+        </article>
+        <article class="feat">
+          <h3>Your 12-week journey</h3>
+          <p>See the phase you're in, what's coming next, and how far you've come.</p>
+        </article>
+        <article class="feat">
+          <h3>Movement</h3>
+          <p>Strength sessions with a how-hard-was-it rating, and a way to flag pain so Deepika sees it straight away.</p>
+        </article>
+        <article class="feat">
+          <h3>Protein, simply</h3>
+          <p>Log protein in bowls, rotis and glasses. No calorie counting, no kitchen scales.</p>
+        </article>
+        <article class="feat">
+          <h3>Weekly reflection</h3>
+          <p>A few honest questions — including "what did I ask for that was never going to happen?" — that Deepika reads before you talk.</p>
+        </article>
+        <article class="feat">
+          <h3>Reading that fits</h3>
+          <p>Short articles chosen to match your goals, not a feed to scroll.</p>
+        </article>
+        <article class="feat">
+          <h3>Reports, kept together</h3>
+          <p>Add blood-report and body-composition values to see how they move over time. They go to Deepika; the app records and charts them, and doesn't interpret them.</p>
+        </article>
+        <article class="feat">
+          <h3>Ask Deepika</h3>
+          <p>Message her from the app. The messages are hers.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- -------------------------------------------------------------------- coach -->
+  <section id="coach" class="section" aria-labelledby="coach-h">
+    <div class="wrap coach">
+      <div>
+        <p class="eyebrow eyebrow-warm">Your coach</p>
+        <h2 id="coach-h">Meet Deepika</h2>
+        <p>
+          Deepika is a health coach and personal trainer in India, working with
+          women through the changes of midlife — energy, sleep, strength and
+          everything around them. She is the reason this app exists, and she is
+          who you'll hear from.
+        </p>
+        <p>
+          {{BRAND}} is the tool; she is the coach. The app keeps your history,
+          shows her what she needs to see, and frees up her time for the
+          conversation that actually helps.
+        </p>
+      </div>
+      <aside class="scope" aria-label="What this is and isn't">
+        <h3>Coaching, not medical care</h3>
+        <p>
+          {{BRAND}} doesn't diagnose anything, doesn't interpret test results
+          and doesn't replace your doctor. If something about your health
+          worries you, please see one — Deepika will tell you the same.
+        </p>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------------------ privacy -->
+  <section id="privacy" class="section section-tint" aria-labelledby="privacy-h">
+    <div class="wrap narrow">
+      <h2 id="privacy-h">Your data is yours</h2>
+      <p class="section-lede">
+        This holds things you tell it about your health, so here is what
+        actually happens to them.
+      </p>
+      <ul class="ticks">
+        <li>Only what you enter is stored, and only because the coaching needs it.</li>
+        <li>Deepika can see it. No other member can — there are no public profiles, feeds or leaderboards.</li>
+        <li>No ads, no selling your data, and no analytics trackers in the app.</li>
+        <li>Your password is stored as a hash that nobody can read back.</li>
+        <li>You can delete your account whenever you like, from inside the app. It removes everything immediately.</li>
+      </ul>
+      <p class="links-row">
+        <a href="{{APP_URL}}/privacy">Read the full privacy policy</a>
+        <a href="{{APP_URL}}/delete-account">How to delete your account</a>
+      </p>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------------------- faq -->
+  <section id="faq" class="section" aria-labelledby="faq-h">
+    <div class="wrap narrow">
+      <h2 id="faq-h">Questions people ask</h2>
+      <div class="faq">
+        <details>
+          <summary>Is this medical advice?</summary>
+          <p>No. It's coaching. {{BRAND}} doesn't diagnose, interpret test results or recommend treatment, and it isn't a substitute for a doctor.</p>
+        </details>
+        <details>
+          <summary>What happens if I miss a few days?</summary>
+          <p>Nothing bad. A missed day is "not today", never a failure — there are no streaks to break. If you go quiet, Deepika checks in gently, without guilt or catch-up.</p>
+        </details>
+        <details>
+          <summary>Do I need a smartwatch or any other device?</summary>
+          <p>No. You don't need a wearable to get value from {{BRAND}}.</p>
+        </details>
+        <details>
+          <summary>Is it only for women in midlife?</summary>
+          <p>It is built with women in midlife in mind — sleep, energy, strength and the changes that come with them. The coaching adapts to you, and anyone ready to start is welcome to.</p>
+        </details>
+        <details>
+          <summary>Will it work on my phone?</summary>
+          <p>Yes. Open it in the browser on any Android phone or iPhone. A Google Play version is on its way, and you can add it to your home screen in the meantime.</p>
+        </details>
+        <details>
+          <summary>How do I join?</summary>
+          <p>Open the app and create an account. We're starting with a small first group coached by Deepika; if you've been given an invitation code, enter it when you sign up.</p>
+        </details>
+        <details>
+          <summary>Who can see my reports and check-ins?</summary>
+          <p>Deepika, because she is coaching you. Nobody else — not other members, and not advertisers.</p>
+        </details>
+        <details>
+          <summary>How do I delete my account?</summary>
+          <p>Open <em>Your account</em> in the app and choose delete. It takes effect immediately and removes your account and everything in it. <a href="{{APP_URL}}/delete-account">Here's the full explanation.</a></p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------------- final cta -->
+  <section class="final">
+    <div class="wrap final-inner">
+      <h2>Start with the smallest version.</h2>
+      <p>Sign up, answer a few questions, and take it from there. Everything after that is as small as you need it to be.</p>
+      <div class="cta-row cta-center">
+        <a class="btn btn-light" href="{{APP_URL}}">Open {{BRAND}}</a>
+        {{#PLAY_URL}}<a class="btn btn-ghost" href="{{PLAY_URL}}">Get it on Google Play</a>{{/PLAY_URL}}
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-row">
+    <div>
+      <p class="foot-brand">{{BRAND}}</p>
+      <p class="foot-note">Coaching, not medical care.</p>
+    </div>
+    <nav class="foot-links" aria-label="Footer">
+      <a href="{{APP_URL}}/privacy">Privacy</a>
+      <a href="{{APP_URL}}/delete-account">Deleting your account</a>
+      {{#SUPPORT_EMAIL}}<a href="mailto:{{SUPPORT_EMAIL}}">{{SUPPORT_EMAIL}}</a>{{/SUPPORT_EMAIL}}
+    </nav>
+  </div>
+  <div class="wrap foot-fine">
+    <p>&copy; {{YEAR}} {{BRAND}}. This site has no cookies and no analytics; its typefaces load from Google Fonts.</p>
+  </div>
+</footer>
+</body>
+</html>

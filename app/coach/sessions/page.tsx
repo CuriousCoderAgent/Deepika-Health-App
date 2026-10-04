@@ -37,16 +37,18 @@ export default function SessionsPage() {
         <div className="min-w-0 flex-1">
           <p className="font-mono text-[14px] font-medium">{memberCode(m)}</p>
           <p className="text-[13px] text-ink-soft">{s.type}</p>
+          {/* Under the name rather than beside it: beside it, the chip took the
+              width and "Supervised strength" was cut to "Supervi". */}
+          {s.memberQuestions.length > 0 && (
+            <span className="chip mt-1.5 bg-marigold-tint text-marigold-deep">
+              {s.memberQuestions.length} question{s.memberQuestions.length > 1 ? "s" : ""}
+            </span>
+          )}
         </div>
         <span className="hidden items-center gap-1.5 text-[13px] text-ink-faint sm:flex">
           {s.mode === "Video" ? <Video size={13} /> : <MapPin size={13} />}
           {s.mode}
         </span>
-        {s.memberQuestions.length > 0 && (
-          <span className="chip bg-marigold-tint text-marigold-deep">
-            {s.memberQuestions.length} question{s.memberQuestions.length > 1 ? "s" : ""}
-          </span>
-        )}
         <ChevronRight size={16} className="shrink-0 text-ink-faint" />
       </Link>
     );

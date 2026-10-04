@@ -1,8 +1,15 @@
 # Bharosa — product direction
 
-A brief for whoever is building the mobile app, written 19 Aug 2026. It applies
-whichever shell ships (Expo native or the TWA); the product is the same either
-way.
+Product direction for **this** app — Deepika's coaching practice. Written
+19 Aug 2026, revised 21 Aug.
+
+**Note on what changed.** This was originally written as a brief for whoever
+built the mobile app, at a point when two teams were building candidate
+versions of one product and only one would ship. That is no longer the
+situation: there are now two different products. Codex is building a separate,
+AI-centric, general-market app that does not carry Deepika's name, on its own
+stack. This document is about this app only. Section 2 is kept as a record of
+that period rather than as a live roadmap — see the note on it.
 
 Read `docs/PROJECT-BRIEF.md` for the research this rests on. This document is
 about what to build next and, just as importantly, what not to.
@@ -22,7 +29,14 @@ adherence, and graceful return after imperfect days.
 
 ---
 
-## 2. Where the mobile app is today
+## 2. Where the other mobile app was — historical
+
+> **Superseded 21 Aug 2026.** This section audited Codex's Expo app while it
+> was still a candidate shell for *this* product. It is now a different product
+> on its own stack, so the gap list below is no longer a roadmap for anything
+> here. Kept because the capability inventory — what a member can actually do
+> on a phone versus on the web — is still an accurate description of the web
+> product's surface area, and worth having written down.
 
 Checked against `agent/add-android-mobile-app` at commit `029f5b2`.
 
@@ -140,12 +154,23 @@ What actually drives growth here:
 4. **Getting to first value in under five minutes.** Sign up, answer six
    questions, see a plan. Every extra step loses people.
 
-**The real scaling question is not a feature.** Deepika can coach perhaps 30
-people well. Beyond that the product has to become either multi-coach (other
-coaches run their own cohorts on the same software) or group-programme shaped.
-That is a business-model decision, and it should be made deliberately rather
-than discovered when she is overwhelmed. Worth designing the data model for
-multiple coaches now even if only one uses it — retrofitting that is painful.
+**The real scaling question is not a feature — and it now has an answer.**
+Deepika can coach perhaps 30 people well. The stated intent (21 Aug 2026) is
+that this app grows past that: members sharing it with people who use it
+*without* a one-to-one relationship with her.
+
+That makes two things concrete rather than hypothetical:
+
+- **The data model should tolerate more than one coach**, even while only one
+  uses it. Retrofitting that is painful.
+- **A member with no coach needs a coherent experience.** Every screen that
+  currently assumes a human is reading the other end — messages, the weekly
+  reflection, plan adjustments — needs a considered answer for someone who has
+  no Deepika. Not today's problem; worth not painting into a corner.
+
+The first goal remains the twenty pilot members, coaching-led. The growth path
+is second, and it does not change what this app is: AI does not take over the
+relationship here.
 
 ---
 
@@ -197,12 +222,31 @@ The audience is 38–50, often reading on a phone in poor light.
 
 ---
 
-## 8. If both apps continue
+## 8. The other app
 
-They must agree on: the API contract, what the privacy policy claims, what
-deletion actually does, and the brand. Two apps describing different retention
-policies for the same database is the kind of inconsistency that fails a store
-review and, more importantly, is simply untrue for whoever reads the wrong one.
+Settled 21 Aug 2026: both apps continue, as separate products.
 
-Only one should reach the Play Store. The package name is permanent once an
-installed build exists.
+Codex is building an AI-centric, general-market health app. It is founder-led,
+does not carry Deepika's name, and is not a version of this product. The two
+are not competing to ship — they are different things, and both may reach the
+Play Store.
+
+**What that requires, concretely:**
+
+- **Separate stacks.** Its own Vercel deployment, its own Postgres. It must not
+  read this app's database. The records here belong to Deepika's clients and a
+  general-audience app has no business reaching them. This also means we should
+  *not* add bearer-token auth here to make its login work — that was the right
+  fix when they were one product and is the wrong one now.
+- **Separate names.** Two Play listings with near-identical names is a
+  rejection risk and, more practically, confusing for the twenty women who need
+  to install exactly one of them. Neither app is keeping the working name
+  Bharosa.
+- **Separate package IDs, decided before either publishes.** A package name is
+  permanent from the first install. Both are still free to change today.
+- **Separate privacy policies**, each describing what its own app actually
+  does. Ours is written from this codebase and must not be copied to describe a
+  different one.
+
+They do not need to agree on an API contract, a roadmap, or a feature set. They
+are not the same product and should stop being held to each other.
