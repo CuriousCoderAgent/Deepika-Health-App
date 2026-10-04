@@ -27,3 +27,6 @@ next-env.d.ts
 # Website build output
 website/dist
 website/node_modules
+
+# Compiled output of `npm run test:logic`
+.test-build

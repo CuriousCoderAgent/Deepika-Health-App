@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Mic, Send, CalendarClock, RefreshCw } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { whenLabel } from "@/lib/calendar";
 
 export default function CoachInbox() {
   const { activeMember: m, messages, sendMessage, markRead, sessions } = useStore();
@@ -86,7 +87,7 @@ export default function CoachInbox() {
               <div key={msg.id} className="rounded-2xl bg-paper-sunk/80 p-4">
                 <div className="flex items-center gap-2">
                   <RefreshCw size={13} className="text-ink-soft" />
-                  <p className="label">Plan update · {msg.time}</p>
+                  <p className="label">Plan update · {whenLabel(msg.dayOffset, msg.time)}</p>
                 </div>
                 <p className="mt-1.5 text-[14px] leading-relaxed text-ink-soft">{msg.body}</p>
               </div>
@@ -126,7 +127,7 @@ export default function CoachInbox() {
                     mine ? "text-white/50" : "text-marigold-deep/60"
                   }`}
                 >
-                  {msg.time}
+                  {whenLabel(msg.dayOffset, msg.time)}
                 </p>
               </div>
             </div>

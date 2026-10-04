@@ -77,6 +77,16 @@ export interface Member {
    */
   onboardedAt?: string;
   /**
+   * The calendar date (YYYY-MM-DD, India time) that `dayOffset: 0` currently
+   * refers to for this member. Every day-relative record on her document is
+   * measured from it, and rolling forward is just shifting those offsets by the
+   * days that have passed — see lib/dailyPlan.ts.
+   *
+   * Absent on the seeded sample cohort on purpose: their history is frozen in
+   * time so the Radar always has something to show, and must never be rolled.
+   */
+  anchorDate?: string;
+  /**
    * What she agreed to, and when. `health` is required to use the product at
    * all; `reports` is separate and genuinely optional, because uploading blood
    * work is a different decision from logging how you slept.

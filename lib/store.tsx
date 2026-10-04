@@ -2,7 +2,15 @@
 
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import * as seed from "./seed";
-import { evaluateRadar, radarRules, type RadarRule } from "./radar";
+import { evaluateRadar, radarRules, withShippedRules, type RadarRule } from "./radar";
+import { clockLabel, dateKey } from "./calendar";
+import {
+  engagementFor,
+  isSampleMember,
+  reconcileToday,
+  rollDoc,
+  startPlan,
+} from "./dailyPlan";
 import { draftWeekPlansFor, weekPlansFor } from "./plan";
 import { emptyStateFor } from "./emptyState";
 import {
@@ -148,6 +156,8 @@ interface Ctx extends State {
   updateFeedback: (id: string, patch: Partial<Feedback>) => void;
   saveSessionNotes: (id: string, patch: Partial<Session>) => void;
   replayOnboarding: (memberId: string) => void;
+  /** Deepika removing the fictional sample members. Real members are never touched. */
+  removeSampleMembers: () => Promise<void>;
   reset: () => void;
 }
 
@@ -158,11 +168,56 @@ const StoreContext = createContext<Ctx | null>(null);
  *  copy each person happens to have stored. */
 const withLiveContent = (s: State): State => ({
   ...s,
+  rules: withShippedRules(s.rules),
   modules: seed.modules,
   workouts: seed.workouts,
   articles: seed.articles,
   foodItems: seed.foodItems,
 });
+
+/**
+ * Brings every real member's records up to today.
+ *
+ * Returns the very same object when nothing changed, which is what lets the
+ * midnight check below run cheaply and without re-rendering anything. The
+ * sample cohort is skipped inside rollDoc — see lib/dailyPlan.ts.
+ */
+function rollState(s: State, who: ClientSession | null): State {
+  if (!who) return s;
+  const today = dateKey();
+  const changed = new Map<string, ReturnType<typeof extractMemberDoc>>();
+  for (const m of s.members) {
+    if (isSampleMember(m.id)) continue;
+    const doc = extractMemberDoc(s, m.id);
+    if (!doc) continue;
+    const rolled = rollDoc(doc, today, s.modules);
+    if (rolled !== doc) changed.set(m.id, rolled);
+  }
+  if (!changed.size) return s;
+
+  const rolled = Array.from(changed.values()).filter((d): d is MemberDoc => d !== null);
+  const drop = <T extends { memberId: string }>(rows: T[]) => rows.filter((r) => !changed.has(r.memberId));
+  return {
+    ...s,
+    members: s.members.map((m) => changed.get(m.id)?.member ?? m),
+    actions: [...drop(s.actions), ...rolled.flatMap((d) => d.actions)],
+    pulses: [...drop(s.pulses), ...rolled.flatMap((d) => d.pulses)],
+    workoutLogs: [...drop(s.workoutLogs), ...rolled.flatMap((d) => d.workoutLogs)],
+    messages: [...drop(s.messages), ...rolled.flatMap((d) => d.messages)],
+    sessions: [...drop(s.sessions), ...rolled.flatMap((d) => d.sessions)],
+    foodEntries: [...drop(s.foodEntries), ...rolled.flatMap((d) => d.foodEntries)],
+  };
+}
+
+/** Today's actions for a member after her plan changed — or unchanged, for
+ *  anyone whose time is frozen or whose week was not the one republished. */
+function reconcileIfCurrent(s: State, members: State["members"], memberId: string, week: number) {
+  const m = members.find((x) => x.id === memberId);
+  if (!m || isSampleMember(m.id) || week !== m.week || !m.onboardedAt) return s.actions;
+  const others = s.actions.filter((a) => a.memberId !== memberId);
+  const mine = s.actions.filter((a) => a.memberId === memberId);
+  return [...others, ...reconcileToday(mine, m, dateKey(), s.modules)];
+}
 
 /** Records what the server already holds, so the first save after a load is a
  *  no-op instead of a full rewrite. */
@@ -237,6 +292,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
                   ? stateFromMemberDoc(base, body.doc)
                   : base
             );
+            // Rolled *before* priming: what the server holds is the baseline
+            // for "has anything changed", and a roll is derived, not an edit.
+            // Without this a coach opening the console on a new day would look
+            // like she had edited every member and write the cohort back.
+            next = rollState(next, who);
             primeSaved(savedDocs.current, next, who, {
               /* A member with no document yet is deliberately left unprimed,
                  so her first save creates the row and Deepika can see her in
@@ -251,7 +311,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         }
       }
       if (cancelled) return;
-      setState(next);
+      setState(rollState(next, who));
       setHydrated(true);
     })();
 
@@ -261,6 +321,24 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const key = storageKey(session?.sub ?? "anon");
+
+  // A member who leaves the app open overnight should wake up to a new day, not
+  // yesterday's actions. Checked when the tab comes back to the foreground and
+  // every few minutes while it is open. Not done for Deepika: rolling the whole
+  // cohort in her open console would write every member's document back.
+  useEffect(() => {
+    if (!hydrated || session?.role !== "member") return;
+    const check = () => setState((s) => rollState(s, session));
+    const onVisible = () => {
+      if (document.visibilityState === "visible") check();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    const timer = setInterval(check, 5 * 60_000);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      clearInterval(timer);
+    };
+  }, [hydrated, session]);
 
   // Browser storage stays written either way: it is the only store when there
   // is no database, and an offline mirror when there is one.
@@ -331,11 +409,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const patch = (fn: (s: State) => State) => setState((s) => fn(s));
 
   const value: Ctx = useMemo(() => {
-    const activeMember =
-      state.members.find((m) => m.id === state.activeMemberId) ?? state.members[0];
+    // Engagement is worked out from what each member has actually done, not
+    // stored — see engagementFor. Derived here so it never has to be saved.
+    const members = state.members.map((m) => ({
+      ...m,
+      engagement: engagementFor(m, state.actions, state.pulses, state.messages),
+    }));
+    const activeMember = members.find((m) => m.id === state.activeMemberId) ?? members[0];
 
     const radar = evaluateRadar(
-      state.members,
+      members,
       state.actions,
       state.pulses,
       state.messages,
@@ -346,6 +429,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
     return {
       ...state,
+      members,
       radar,
       activeMember,
       session,
@@ -365,7 +449,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
                   provenance: {
                     source: "member_manual",
                     enteredBy: s.members.find((m) => m.id === a.memberId)?.name.split(" ")[0] ?? "Member",
-                    at: new Date().toISOString().slice(0, 10),
+                    at: dateKey(),
                   },
                 }
               : a
@@ -385,7 +469,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
               enteredBy: byCoach
                 ? "Deepika"
                 : s.members.find((m) => m.id === memberId)?.name.split(" ")[0] ?? "Member",
-              at: new Date().toISOString().slice(0, 10),
+              at: dateKey(),
             },
           };
           return {
@@ -441,7 +525,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
                 ? {
                     activeModuleIds: target.moduleIds,
                     weeklyFocus: target.focus,
-                    lastPlanChange: { at: "just now", rationale },
+                    lastPlanChange: { at: dateKey(), rationale },
                   }
                 : {}),
             };
@@ -458,12 +542,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
                     kind: "plan_update",
                     body: announce,
                     dayOffset: 0,
-                    time: "just now",
+                    time: clockLabel(),
                     read: false,
                   },
                   ...s.messages,
                 ]
               : s.messages,
+            // A republished current week changes what she should be doing
+            // today. Untouched actions follow the new plan; anything she has
+            // already done stays exactly as it was.
+            actions: reconcileIfCurrent(s, members, memberId, week),
           };
         }),
 
@@ -486,7 +574,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
                 enteredBy: byCoach
                   ? "Deepika"
                   : s.members.find((m) => m.id === e.memberId)?.name.split(" ")[0] ?? "Member",
-                at: new Date().toISOString().slice(0, 10),
+                at: dateKey(),
               },
             },
             ...s.foodEntries,
@@ -512,7 +600,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
               ? {
                   ...m,
                   notes: [
-                    { id: `note-${Date.now()}`, at: new Date().toISOString().slice(0, 10), text },
+                    { id: `note-${Date.now()}`, at: dateKey(), text },
                     ...(m.notes ?? []),
                   ],
                 }
@@ -520,10 +608,20 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           ),
         })),
 
+      // Callers pass "just now" as a placeholder. Stored as-is it stays "just
+      // now" for ever, so it is swapped for the actual time it was sent.
       sendMessage: (memberId, m) =>
         patch((s) => ({
           ...s,
-          messages: [{ ...m, id: `m-${Date.now()}`, memberId }, ...s.messages],
+          messages: [
+            {
+              ...m,
+              time: m.time === "just now" ? clockLabel() : m.time,
+              id: `m-${Date.now()}`,
+              memberId,
+            },
+            ...s.messages,
+          ],
         })),
 
       markRead: (memberId) =>
@@ -556,25 +654,79 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         patch((s) => ({ ...s, sessions: s.sessions.map((x) => (x.id === id ? { ...x, ...p } : x)) })),
 
       completeOnboarding: (memberId, d) =>
-        patch((s) => ({
-          ...s,
-          members: s.members.map((m) =>
-            m.id === memberId
-              ? {
-                  ...m,
-                  age: d.age,
-                  gender: d.gender ?? m.gender,
-                  lifeStage: d.lifeStage,
-                  goals: d.goals.filter(Boolean),
-                  wontDo: d.wontDo,
-                  constraints: d.constraints.filter(Boolean),
-                  checkInPreference: d.checkInPreference,
-                  consent: { ...d.consent, at: new Date().toISOString().slice(0, 10) },
-                  onboardedAt: new Date().toISOString().slice(0, 10),
-                }
-              : m
-          ),
-        })),
+        patch((s) => {
+          const today = dateKey();
+          const current = s.members.find((m) => m.id === memberId);
+          if (!current) return s;
+          let member: Member = {
+            ...current,
+            age: d.age,
+            gender: d.gender ?? current.gender,
+            lifeStage: d.lifeStage,
+            goals: d.goals.filter(Boolean),
+            wontDo: d.wontDo,
+            constraints: d.constraints.filter(Boolean),
+            checkInPreference: d.checkInPreference,
+            consent: { ...d.consent, at: today },
+            onboardedAt: today,
+            anchorDate: current.anchorDate ?? today,
+          };
+
+          // Someone with no plan yet starts on the starter plan, so her first
+          // Today has something on it. Skipped for anyone who already has one —
+          // the demo member replaying onboarding must keep Deepika's plan — and
+          // for the sample cohort, whose time is frozen.
+          const hasPlan = Boolean(member.weekPlans?.length) || member.activeModuleIds.length > 0;
+          let actions = s.actions;
+          if (!hasPlan && !isSampleMember(member.id)) {
+            member = startPlan(member, today);
+            actions = [
+              ...s.actions.filter((a) => a.memberId !== memberId),
+              ...reconcileToday(
+                s.actions.filter((a) => a.memberId === memberId),
+                member,
+                today,
+                s.modules
+              ),
+            ];
+          }
+
+          return {
+            ...s,
+            members: s.members.map((m) => (m.id === memberId ? member : m)),
+            actions,
+          };
+        }),
+
+      removeSampleMembers: async () => {
+        // The server first: if it refuses, nothing should vanish from the
+        // screen only to reappear on the next load.
+        if (serverBacked) {
+          const res = await fetch("/api/coach/sample-members", { method: "DELETE" });
+          if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            throw new Error(body.error || "Could not remove them.");
+          }
+        }
+        setState((s) => {
+          const gone = new Set(s.members.filter((m) => isSampleMember(m.id)).map((m) => m.id));
+          gone.forEach((id) => savedDocs.current.delete(id));
+          const keep = <T extends { memberId: string }>(rows: T[]) => rows.filter((r) => !gone.has(r.memberId));
+          const members = s.members.filter((m) => !gone.has(m.id));
+          return {
+            ...s,
+            members,
+            actions: keep(s.actions),
+            pulses: keep(s.pulses),
+            workoutLogs: keep(s.workoutLogs),
+            messages: keep(s.messages),
+            sessions: keep(s.sessions),
+            reports: keep(s.reports),
+            foodEntries: keep(s.foodEntries),
+            activeMemberId: gone.has(s.activeMemberId) ? (members[0]?.id ?? "") : s.activeMemberId,
+          };
+        });
+      },
 
       reset: () => {
         try {
@@ -599,7 +751,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           ),
         })),
     };
-  }, [state, session, hydrated, key]);
+  }, [state, session, hydrated, key, serverBacked]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

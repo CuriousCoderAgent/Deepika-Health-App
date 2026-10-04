@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noEmit": false,
+    "outDir": ".test-build",
+    "incremental": false,
+    "isolatedModules": false,
+    "plugins": [],
+    "rootDir": "."
+  },
+  "include": [],
+  "files": [
+    "lib/calendar.ts",
+    "lib/dailyPlan.ts",
+    "lib/radar.ts",
+    "lib/starterPlan.ts",
+    "lib/persist.ts",
+    "lib/privacy.ts"
+  ]
+}

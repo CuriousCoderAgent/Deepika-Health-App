@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Mic, Play, CalendarClock, ChevronRight, RefreshCw, Check, Apple } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { agoLabel } from "@/lib/calendar";
 import { CategoryIcon, ConsistencyBand } from "@/components/ui";
 import PulseCard from "@/components/PulseCard";
 import { DEMO_MEMBER_ID } from "@/lib/session-client";
@@ -167,7 +168,7 @@ export default function Today() {
               <RefreshCw size={12} />
             </span>
             <p className="text-[13px] font-medium text-effort-stretch">Plan adjusted</p>
-            <span className="ml-auto font-mono text-[10px] text-ink-faint">{m.lastPlanChange.at}</span>
+            <span className="ml-auto font-mono text-[10px] text-ink-faint">{agoLabel(m.lastPlanChange.at, m.anchorDate)}</span>
           </div>
           <p
             className={`mt-1.5 text-[13px] leading-relaxed text-ink-soft ${

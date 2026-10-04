@@ -1,3 +1,4 @@
+import { daysBetween } from "./calendar";
 import type {
   DailyAction,
   Member,
@@ -107,7 +108,31 @@ export const radarRules: RadarRule[] = [
     suggestedAction: "Complete the missing sections together during the next 1:1.",
     enabled: true,
   },
+  {
+    id: "R11",
+    name: "New member",
+    bucket: "celebrate",
+    trigger: "Joined in the last 3 days and you have not written to her yet",
+    suggestedAction: "Send a short hello. It sets the tone for everything after.",
+    enabled: true,
+  },
 ];
+
+/**
+ * The rules as they ship, with a stored copy's on/off switches laid over them.
+ *
+ * Rules are saved on Deepika's own document, so a rule added in a later
+ * release is missing from every copy that already exists — and the evaluator
+ * looks rules up by id. Merging on load means a new rule reaches her without a
+ * migration, and her switches survive. Wording comes from the code, so a fixed
+ * sentence reaches her on the next deploy as well.
+ */
+export function withShippedRules(stored: RadarRule[] | undefined): RadarRule[] {
+  return radarRules.map((def) => {
+    const had = stored?.find((r) => r.id === def.id);
+    return had ? { ...def, enabled: had.enabled } : def;
+  });
+}
 
 export function evaluateRadar(
   members: Member[],
@@ -159,9 +184,17 @@ export function evaluateRadar(
     // Deepika chasing a member who joined this morning. Say what is actually
     // true instead, and only once she has had a few days to start.
     const lastTouch = touched.length ? Math.max(...touched) : null;
+    // How long she has been here, for real members only. The seeded cohort has
+    // no join date and is judged on its history alone.
+    const joinedDays =
+      m.onboardedAt && m.anchorDate ? daysBetween(m.onboardedAt, m.anchorDate) : null;
     if (on("R01")) {
       if (lastTouch === null) {
-        if (m.week >= 1) push(m.id, "R01", "Nothing recorded yet.");
+        // This used to fire for everyone on the day they signed up, which put a
+        // "needs attention" card on Deepika's Radar for a woman who had joined
+        // that morning. Wait until she has had a few days to start.
+        if (joinedDays === null) push(m.id, "R01", "Nothing recorded yet.");
+        else if (joinedDays >= 3) push(m.id, "R01", `Nothing recorded since she joined ${joinedDays} days ago.`);
       } else if (lastTouch <= -3) {
         push(m.id, "R01", `Nothing recorded for ${Math.abs(lastTouch)} days.`);
       }
@@ -234,6 +267,16 @@ export function evaluateRadar(
     const skips = mine.filter((a) => a.completed === "rest");
     if (on("R09") && completions.length >= 4 && skips.length === 0 && m.engagement === "strong") {
       push(m.id, "R09", `${completions.length} consecutive completions, no missed actions.`);
+    }
+
+    // R11 — a new member who has not been greeted yet
+    if (
+      on("R11") &&
+      joinedDays !== null &&
+      joinedDays <= 3 &&
+      !myMessages.some((x) => x.from === "coach")
+    ) {
+      push(m.id, "R11", joinedDays === 0 ? "Joined today." : `Joined ${joinedDays} day${joinedDays > 1 ? "s" : ""} ago.`);
     }
 
     // R10 — admin
