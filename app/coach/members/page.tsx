@@ -16,6 +16,9 @@ const ENGAGEMENT: Record<EngagementState, { label: string; cls: string }> = {
   quiet: { label: "Quiet lately", cls: "bg-attention-tint text-attention" },
 };
 
+const WHEN = (o: number) =>
+  o === 0 ? "today" : o === 1 ? "tomorrow" : `in ${o} days`;
+
 export default function MembersPage() {
   const { members, actions, radar, sessions } = useStore();
   const [q, setQ] = useState("");
@@ -61,46 +64,63 @@ export default function MembersPage() {
             .sort((a, b) => a.dayOffset - b.dayOffset)[0];
           const e = ENGAGEMENT[m.engagement];
 
+          const chips = (
+            <>
+              {flags.length > 0 && (
+                <span className="chip bg-paper-sunk text-ink-faint">
+                  {flags.length} flag{flags.length > 1 ? "s" : ""}
+                </span>
+              )}
+              <span className={`chip ${e.cls}`}>{e.label}</span>
+            </>
+          );
+
           return (
             <Link
               key={m.id}
               href={`/coach/members/${m.id}`}
-              className="card flex items-center gap-4 p-4 transition-shadow hover:shadow-lift"
+              className="card block p-4 transition-shadow hover:shadow-lift"
             >
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-paper-sunk text-sm font-medium text-ink-soft">
-                {m.initials}
-              </span>
+              <div className="flex items-center gap-4">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-paper-sunk text-sm font-medium text-ink-soft">
+                  {m.initials}
+                </span>
 
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-baseline gap-x-2">
-                  <p className="font-mono text-[15px] font-medium">{memberCode(m)}</p>
-                  <span className="text-[13px] text-ink-faint">
-                    {m.age} · {m.city}
-                  </span>
+                {/* Two short lines, each of which fits on a phone. This used to
+                    be one sentence ("Week 5 · Stabilise · 1:1 coaching in 1d")
+                    sharing a row with the chips, so on a 390px screen it was
+                    squeezed to about 80px and broke one word to a line. */}
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-baseline gap-x-2">
+                    <p className="font-mono text-[15px] font-medium">{memberCode(m)}</p>
+                    <span className="text-[13px] text-ink-faint">
+                      {m.age} · {m.city}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 text-[13px] text-ink-soft">
+                    Week {m.week} · {m.phase}
+                  </p>
+                  {next && (
+                    <p className="text-[13px] text-ink-faint">
+                      {next.type} {WHEN(next.dayOffset)}
+                    </p>
+                  )}
                 </div>
-                <p className="mt-0.5 text-[13px] text-ink-soft">
-                  Week {m.week} · {m.phase}
-                  {next &&
-                    ` · ${next.type} ${
-                      next.dayOffset === 0 ? "today" : `in ${next.dayOffset}d`
-                    }`}
-                </p>
+
+                <div className="hidden shrink-0 items-center gap-1 md:flex">
+                  {last7.map((l, i) => (
+                    <EffortRamp key={i} level={l as any} size="sm" />
+                  ))}
+                </div>
+
+                <div className="hidden shrink-0 items-center gap-2 sm:flex">{chips}</div>
+                <ChevronRight size={16} className="shrink-0 text-ink-faint" />
               </div>
 
-              <div className="hidden shrink-0 items-center gap-1 sm:flex">
-                {last7.map((l, i) => (
-                  <EffortRamp key={i} level={l as any} size="sm" />
-                ))}
-              </div>
-
-              <div className="flex shrink-0 items-center gap-2">
-                {flags.length > 0 && (
-                  <span className="chip bg-paper-sunk text-ink-faint">
-                    {flags.length} flag{flags.length > 1 ? "s" : ""}
-                  </span>
-                )}
-                <span className={`chip ${e.cls}`}>{e.label}</span>
-                <ChevronRight size={16} className="text-ink-faint" />
+              {/* Below sm the chips drop under the name instead of fighting it
+                  for width. */}
+              <div className="mt-2.5 flex flex-wrap items-center gap-2 pl-14 sm:hidden">
+                {chips}
               </div>
             </Link>
           );
