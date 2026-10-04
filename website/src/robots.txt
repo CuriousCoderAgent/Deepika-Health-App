@@ -1,0 +1,3 @@
+User-agent: *
+{{#INDEXABLE}}Allow: /
+{{#PUBLIC_URL}}Sitemap: {{PUBLIC_URL}}/sitemap.xml{{/PUBLIC_URL}}{{/INDEXABLE}}{{^INDEXABLE}}Disallow: /{{/INDEXABLE}}

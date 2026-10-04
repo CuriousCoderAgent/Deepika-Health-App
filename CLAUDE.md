@@ -213,6 +213,12 @@ components/
   PulseCard.tsx             Daily Pulse (member + coach-on-behalf modes)
 ```
 
+`website/` is the public launch site — a separate static project, not part of
+the Next app. Own deployment, own domain, no scripts or cookies. The product
+name lives in `website/site.config.json`, so the rename is a one-line change
+there. See `website/README.md` for the launch checklist. Its copy describes
+only what this app really does; if a feature changes, change the page.
+
 **Design tokens** live in `tailwind.config.ts` with comments explaining what
 each colour means semantically. Read those comments before adding a colour.
 
