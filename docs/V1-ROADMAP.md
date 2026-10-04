@@ -8,6 +8,29 @@ true before real members have accounts, and the order to build it in.
 
 ---
 
+## Where this stands (4 October 2026)
+
+This file was written on 10 August, when the app had no server. Most of it has
+since been done, in a different shape from the one planned here:
+
+| Sprint | Planned | What actually shipped |
+| --- | --- | --- |
+| A — Accounts and roles | Magic link or OTP; invite flow; no public sign-up | Username and password with scrypt hashing, **self sign-up** (optionally behind a join code) so Deepika does not mint twenty logins, signed HTTP-only sessions, server-side route protection, coach and member roles. Recovery is coach-mediated (a temporary password), because there is no email service. |
+| B — Persistence | Postgres with row-level security | Neon Postgres, one JSON document per member. **No row-level security** — access is enforced in the API, and coach-private fields are stripped from what a member is sent (`lib/privacy.ts`). Fine at twenty members; the thing to revisit first if it grows. |
+| C — Reports | Private object storage, originals kept, audit log | **Not built.** Members type in values; the file is not uploaded or stored, and the app says so. Values are recorded and trended, never interpreted. |
+| D — AI | Behind a server | **Deliberately not in this app.** It lives in the separate, AI-centric product. See `CLAUDE.md`. |
+
+Two things this roadmap did not anticipate turned out to matter more than any of
+it. A real member's first Today screen was empty (nothing created daily actions)
+and "today" never advanced; both are fixed (`lib/dailyPlan.ts`, `docs/DEPLOYMENT.md`
+→ *Time*). And a member's browser was being sent Deepika's private notes inside
+her own document, hidden only by the interface; the server now enforces it.
+
+What is genuinely still open: session revocation on password change, login rate
+limiting, real file storage for reports, reminders and push notifications (there
+is no push infrastructure), and a coachless experience for the members the
+product is meant to reach beyond Deepika's own cohort.
+
 ## The gap that matters most
 
 V0 has **no authentication and no server**. Every member is a hardcoded

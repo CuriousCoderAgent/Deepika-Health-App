@@ -1,18 +1,20 @@
 # Deployment and environment
 
-## Right now
+## Where this stands (4 October 2026)
 
-The app runs on Vercel with no environment variables set. That works, and it
-signs in with shared preview credentials printed on the login screen:
+Production runs with its environment variables set — `AUTH_SECRET`,
+`COACH_PASSWORD`, `MEMBERS` and a Neon Postgres database linked through Vercel
+Storage — so the login screen no longer prints the preview credentials and
+members can create their own accounts. Sign-up is currently **open to anyone
+with the link**, because `SIGNUP_CODE` is not set; see *Who can sign up*.
 
-| Who | Username | Password |
-| --- | --- | --- |
-| Coach | `deepika` | `deepika2026` |
-| Member | `radhika` | `radhika2026` |
+A deployment with none of these set still works, on shared demo credentials
+printed on the login screen (`deepika` / `deepika2026`, `radhika` / `radhika2026`).
+Those are in the repository and therefore public, so that mode is only for
+sample data. **Never put a real member in it.**
 
-Those are in the repository, which means they are public. That is acceptable
-only while the app holds nothing but sample data. **Set the variables below
-before a real member signs in.**
+For the full list of what is done and what only the owner can do, see
+`docs/LAUNCH-CHECKLIST.md`.
 
 ## Before real members
 
@@ -26,7 +28,11 @@ to an existing build.
 | `COACH_PASSWORD` | Deepika's password. Her username is always `deepika`. |
 | `MEMBERS` | The cohort. See below. |
 | `DATABASE_URL` | Postgres connection string. Optional, but required for self-signup — see Storage. `POSTGRES_URL` is read as an alternative. |
-| `SIGNUP_CODE` | Optional. When set, creating an account asks for this code. |
+| `SIGNUP_CODE` | Optional. When set, creating an account asks for this code. Shown to Deepika, and written into the invite message, on the Members page. |
+| `SUPPORT_EMAIL` | Optional. An inbox someone actually reads. With it unset, the public privacy and deletion pages tell people to contact Deepika directly; with it set they show this address. There is deliberately no placeholder address. |
+| `SEED_DEMO_COHORT` | Optional. Set to `1` to seed the six fictional sample members into an empty database. Off by default, so a new deployment starts empty. |
+| `ANDROID_CERT_SHA256` | Set once Google Play shows the app-signing key. Without it the Android app keeps a URL bar. See `docs/ANDROID.md`. |
+| `ANDROID_PACKAGE_NAME` | Only if the package differs from the default in `app/.well-known/assetlinks.json/route.ts`. |
 
 The login screen stops showing the preview-credentials box once the first
 three are present, which is a quick way to confirm the deployment picked
@@ -77,9 +83,15 @@ Without `DATABASE_URL` the option is not shown at all, rather than shown and
 broken: an environment variable is read-only at runtime, so there is nowhere
 for a new account to go.
 
-**No password reset exists yet.** The form warns about this, and asks for the
-password twice, because a typo is currently an account nobody can get back
-into. Worth building before the cohort grows.
+**Forgotten passwords.** There is no email service, so recovery goes through
+the person who knows the member: Deepika opens the member's page and chooses
+*Reset her password*, which sets a temporary one (shown once, stored only as a
+hash) for her to pass on. The member then changes it from *Your account*, which
+asks for the current password so an unlocked phone is not enough to take the
+account over. This works for accounts held in the database; one whose login is
+in `MEMBERS` belongs to whoever runs the deployment and is changed there.
+The sign-up form still asks for the password twice, because the cheapest
+recovery is a typo that never happened.
 
 ## Storage
 
@@ -112,22 +124,12 @@ host): serverless functions open many short-lived connections and a free-tier
 database will run out of direct ones. Vercel's own integrations already give
 you the pooled one.
 
-The schema creates itself on first request. On a genuinely empty database the
-six demo personas are written once, so the Radar has all four buckets
-populated on day one instead of being empty until real members start logging.
-Delete them when the pilot is real — they will not come back.
-
-### Before the pilot is real
-
-`npm run db:reset` is not a thing, on purpose. To clear the demo cohort:
-
-```sql
-delete from member_state where user_id in
-  ('radhika','megha','anita','shreya','nidhi','priya');
-```
-
-Leave the `app_meta` row alone — it is what stops the demo data being
-reinserted on the next request.
+The schema creates itself on first request. The six fictional sample members
+are **not** seeded unless `SEED_DEMO_COHORT=1`, so a new deployment starts with
+an empty console. A deployment that was already seeded shows them on Deepika's
+Members page with a notice and a **Remove sample members** button, which
+deletes only those six ids (never a real member) and leaves the bootstrap
+marker alone so they are not seeded again.
 
 ## What auth does and does not do today
 
@@ -137,10 +139,17 @@ health data; role separation, so a member cannot open the coach console; a
 forged cookie is rejected by signature check; per-account data isolation, in
 both storage modes.
 
-**Does not:** password reset, rate limiting on login attempts, or account
-removal. Deleting someone means a `delete` against `account` and
-`member_state`, or removing her entry from `MEMBERS` and redeploying,
-depending on which kind of account she has.
+**Does not:** rate-limit login attempts, or end other sessions when a
+password changes — a session cookie is valid for 30 days whatever happens to the
+password, so resetting one does not sign out a lost phone. Both are worth doing
+before the cohort is large. (Password reset and account deletion exist; see
+above and `docs/ANDROID.md`.)
+
+**What a member can read of her own record.** Her document also holds things
+that are Deepika's: her private coach notes, her private notes on each session,
+and unpublished plan drafts. The server strips these from what a member is sent
+and ignores them when she saves (`lib/privacy.ts`), so "she never sees this" is
+true of the network response and not just of the screen.
 
 ## Conflict handling
 
@@ -159,6 +168,27 @@ Once real members sign in with `DATABASE_URL` set, this holds real health
 data about identifiable people, and India's DPDP Act applies: consent,
 retention, and deletion on request. The onboarding flow already captures
 consent in two parts (logging is required, uploading reports is optional and
-separate), and it is stored on her record with a date. Deletion is currently a
-`delete from member_state where user_id = '…'` — worth turning into something
-Deepika can do herself before the cohort grows.
+separate), and it is stored on her record with a date. A member can delete her own
+account from inside the app (immediately and completely), download a copy of
+her data from the same screen, and change her password. Deepika can remove the
+sample members and reset a forgotten password from her console.
+
+## Time
+
+Every date in the app is India time (`Asia/Kolkata`), whatever a phone or a
+server believes. Each member's record stores the date that "today" currently
+means for her (`member.anchorDate`); loading it on a later day shifts every
+day-relative record forward, advances her programme week, and builds the new
+day's actions from her plan (`lib/dailyPlan.ts`). The six sample members are
+exempt on purpose — their history is frozen at one date so the Radar always has
+something to show.
+
+Deepika's console rolls members forward when it loads, not while it is open
+(rolling a whole cohort in an open tab would write every member back). A member
+who leaves the app open overnight rolls at midnight.
+
+## Tests
+
+`npm run test:logic` runs the date, rollover, daily-plan, Radar and privacy
+tests with no browser or database. Run it, and `npm run build`, before
+committing.

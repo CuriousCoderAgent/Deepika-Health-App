@@ -150,12 +150,25 @@ Android-side settings. Everything else ships with a Vercel deploy.
 
 ## Known gaps
 
-**No password reset.** Someone who mistypes her password at sign-up has an
-account nobody can recover. The form warns about it and asks for the password
-twice. Worth building before the cohort grows past people Deepika can sort out
-by hand — it needs email addresses and a mail service, neither of which exist
-yet.
+**The name is not final.** The package ID (`in.bharosa.app`) is permanent from
+the first install, so nothing should be uploaded to Play — not even to internal
+testing, if a tester will install it — until the name is chosen. See `CLAUDE.md`.
 
-**Support address is a placeholder.** `SUPPORT_EMAIL` overrides it; until it is
-set, the privacy policy and deletion page point at `hello@bharosa.app`, which
-nobody is reading.
+**Google needs a login to review the app.** Play Console → *App content* → *App
+access* asks for credentials, because the app is behind a sign-in. Create an
+ordinary member account for this (sign up normally, with the join code if one is
+set) and give those details there. It will appear in Deepika's console like any
+other member; name it so she knows it is the reviewer.
+
+**Store listing assets are not made.** Play needs a 512×512 icon, a 1024×500
+feature graphic and at least two phone screenshots. They show the product name,
+so make them after it is chosen. Copy to start from is in `docs/PLAY-LISTING.md`.
+
+**Password recovery is coach-mediated.** There is no email service, so Deepika
+sets a temporary password from the member's page. That is fine for a coached
+cohort and not for people who find the app on their own.
+
+**Support address.** With `SUPPORT_EMAIL` unset, the privacy and deletion pages
+tell people to contact Deepika directly rather than showing an address. Set it
+before submitting: Play expects a developer contact email, and reviewers click
+the links.

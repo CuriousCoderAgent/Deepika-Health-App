@@ -208,10 +208,25 @@ lib/
   seed.ts                   6 personas, 14 modules, 3 workouts, plans, messages
   radar.ts                  10 rules + evaluator
   store.tsx                 Context, localStorage, all mutations
+  calendar.ts               Dates in India time; the one definition of "today"
+  dailyPlan.ts              Roll a member forward a day; build today's actions
+  starterPlan.ts            The 12-week plan a new member starts on
+  privacy.ts                What a member may read/write of her own document
 components/
   ui.tsx                    EffortRamp, ProvenanceChip, ConsistencyBand, Sparkline
   PulseCard.tsx             Daily Pulse (member + coach-on-behalf modes)
 ```
+
+**Time.** Every record is a `dayOffset` from the date in `member.anchorDate`, and
+loading a member on a later day shifts them all forward. The seeded sample
+cohort has no anchor and is frozen on purpose — never roll them. Anything that
+needs "today" calls `dateKey()` from `lib/calendar.ts`, which is India time, not
+the viewer's clock.
+
+**Coach-private data.** A member's document also holds Deepika's private notes
+and plan drafts. They must never reach the member: `lib/privacy.ts` strips them
+on read and refuses them on write. Anything new that Deepika keeps about a member
+and the member must not see belongs there too.
 
 `website/` is the public launch site — a separate static project, not part of
 the Next app. Own deployment, own domain, no scripts or cookies. The product
@@ -236,8 +251,11 @@ each colour means semantically. Read those comments before adding a colour.
 - **Accessibility floor:** 17px base, `.tap` class for 44px targets, visible
   keyboard focus, `prefers-reduced-motion` respected. The audience is 38–50.
 - Verify with `npm run build` before committing. It type-checks.
-- After changing `lib/radar.ts` or `lib/seed.ts`, confirm all ten rules still
-  fire — the four Radar buckets should all be populated.
+- After changing `lib/radar.ts` or `lib/seed.ts`, run `npm run test:logic` — it
+  checks that the sample cohort still fills all four Radar buckets. There are
+  now eleven rules; R11 (a new member who has not been greeted) only ever fires
+  for real members, never the sample cohort.
+- Run `npm run test:logic` as well as `npm run build` before committing.
 
 ---
 
