@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useStore } from "@/lib/store";
-import { memberCode } from "@/lib/display";
+import MemberName from "@/components/MemberName";
 import { ChevronRight, Video, MapPin } from "lucide-react";
 
 const LABEL = (o: number) =>
@@ -35,7 +35,7 @@ export default function SessionsPage() {
           {m.initials}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="font-mono text-[14px] font-medium">{memberCode(m)}</p>
+          <p className="text-[14px] font-medium"><MemberName member={m} /></p>
           <p className="text-[13px] text-ink-soft">{s.type}</p>
           {/* Under the name rather than beside it: beside it, the chip took the
               width and "Supervised strength" was cut to "Supervi". */}

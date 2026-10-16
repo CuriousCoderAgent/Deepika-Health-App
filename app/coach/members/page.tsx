@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { Search, ChevronRight } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { memberCode } from "@/lib/display";
+import MemberName from "@/components/MemberName";
+import { matchesMember } from "@/lib/display";
 import { isSampleMember } from "@/lib/dailyPlan";
 import InvitePanel from "@/components/InvitePanel";
 import { EffortRamp } from "@/components/ui";
@@ -29,9 +30,7 @@ export default function MembersPage() {
   const real = members.filter((m) => !isSampleMember(m.id)).length;
   const sample = members.length - real;
 
-  const filtered = members.filter((m) =>
-    memberCode(m).toLowerCase().includes(q.toLowerCase())
-  );
+  const filtered = members.filter((m) => matchesMember(m, q));
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-10">
@@ -99,7 +98,7 @@ export default function MembersPage() {
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Find by member ID"
+          placeholder="Find by name"
           className="tap w-full rounded-xl border border-ink-line bg-paper-card pl-9 pr-3 text-sm placeholder:text-ink-faint focus:border-effort-target focus:outline-none"
         />
       </div>
@@ -152,7 +151,7 @@ export default function MembersPage() {
                     squeezed to about 80px and broke one word to a line. */}
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-baseline gap-x-2">
-                    <p className="font-mono text-[15px] font-medium">{memberCode(m)}</p>
+                    <p className="text-[15px] font-medium"><MemberName member={m} /></p>
                     <span className="text-[13px] text-ink-faint">
                       {[m.age || null, m.city || null].filter(Boolean).join(" · ")}
                     </span>

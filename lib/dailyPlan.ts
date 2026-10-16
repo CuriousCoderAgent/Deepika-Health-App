@@ -311,4 +311,40 @@ export function engagementFor(
   return "steady";
 }
 
+/**
+ * Whether today is her first day back after a quiet spell, and so should open
+ * with "good to see you back" rather than the usual greeting.
+ *
+ * Graceful return after imperfect days is the north star (CLAUDE.md), and the
+ * first screen after a gap is where most people decide whether to stay. So it
+ * says the gap does not matter — nothing reset — and frames the day around the
+ * minimum. It never says how long she was away; the Radar's comeback rule
+ * (R08) gives Deepika the same instruction.
+ *
+ * Quiet means nothing of hers in the two days before today: no action marked,
+ * no check-in, no message, no food logged. A "not today" counts as being here
+ * — she opened the app and was honest — which is where this differs from the
+ * Radar's silence rule. It needs at least one earlier sign of her: someone who
+ * has never logged anything has nothing to come back from, and is greeted as
+ * new. Decided on the days before today only, so it holds all day rather than
+ * switching off the moment she taps her mood.
+ */
+export function isWelcomeBack(
+  memberId: string,
+  actions: DailyAction[],
+  pulses: PulseEntry[],
+  messages: Message[],
+  foodEntries: FoodEntry[]
+): boolean {
+  const before = [
+    ...actions.filter((a) => a.memberId === memberId && a.completed).map((a) => a.dayOffset),
+    ...pulses.filter((p) => p.memberId === memberId).map((p) => p.dayOffset),
+    ...messages.filter((x) => x.memberId === memberId && x.from === "member").map((x) => x.dayOffset),
+    ...foodEntries
+      .filter((e) => e.memberId === memberId && e.provenance.source !== "coach_on_behalf")
+      .map((e) => e.dayOffset),
+  ].filter((d) => d < 0);
+  return before.length > 0 && Math.max(...before) <= -3;
+}
+
 export { addDays };

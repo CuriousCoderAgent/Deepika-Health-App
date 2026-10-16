@@ -30,6 +30,9 @@ to an existing build.
 | `DATABASE_URL` | Postgres connection string. Optional, but required for self-signup — see Storage. `POSTGRES_URL` is read as an alternative. |
 | `SIGNUP_CODE` | Optional. When set, creating an account asks for this code. Shown to Deepika, and written into the invite message, on the Members page. |
 | `SUPPORT_EMAIL` | Optional. An inbox someone actually reads. With it unset, the public privacy and deletion pages tell people to contact Deepika directly; with it set they show this address. There is deliberately no placeholder address. |
+| `CRON_SECRET` | Recommended once reminders are in use. Any long random string (`openssl rand -base64 32`). Vercel sends it to the scheduled reminder job and the job refuses calls without it. Unset, the job still runs, and the most a stranger calling it could do is send opted-in members the reminder they were due anyway, a little early — see *Reminders*. |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | Optional. The key pair that signs reminders. Unset, one is generated on first use and kept in the database (`app_meta`), which is the normal case. Set them only to carry the same pair across databases. |
+| `VAPID_SUBJECT` | Optional. Who push services contact about the app's messages. Defaults to `mailto:` the support address, or the app's own URL. |
 | `SEED_DEMO_COHORT` | Optional. Set to `1` to seed the six fictional sample members into an empty database. Off by default, so a new deployment starts empty. |
 | `ANDROID_CERT_SHA256` | Set once Google Play shows the app-signing key. Without it the Android app keeps a URL bar. See `docs/ANDROID.md`. |
 | `ANDROID_PACKAGE_NAME` | Only if the package differs from the default in `app/.well-known/assetlinks.json/route.ts`. |
@@ -187,8 +190,40 @@ Deepika's console rolls members forward when it loads, not while it is open
 (rolling a whole cohort in an open tab would write every member back). A member
 who leaves the app open overnight rolls at midnight.
 
+## Reminders
+
+Check-in reminders are opt-in Web Push: a member turns them on from her
+account page (or from the one-time offer on Today after her first check-in) and
+picks mornings or evenings. Each device she turns them on for is one row in
+`push_subscription`, holding only what the push service needs to reach it.
+Without a database the option is not shown.
+
+`vercel.json` schedules two daily runs of `/api/cron/reminders`, at 02:00 and
+14:00 UTC — 07:30 and 19:30 in India. On the Hobby plan Vercel starts a daily job
+somewhere within its hour, so they arrive between 07:30–08:29 and 19:30–20:29;
+the route also refuses to send outside 06:00–11:00 and 17:00–22:00 India time,
+whoever calls it. Scheduled jobs run on production deployments only.
+
+The rules, all in `lib/reminders.ts` and tested:
+
+- at most one a day per member, whatever number of devices she has;
+- none on a day she has already checked in, marked an action, messaged or logged food;
+- quiet for 4+ days: every other day; 10+: once a week; 30+: none — a long
+  silence is Deepika's to follow up, not a notification's;
+- the wording never mentions anything about her health, since lock screens are
+  public;
+- subscriptions are deleted when she turns reminders off, signs out, or deletes
+  her account, and when a push service reports the device gone.
+
+The route's reply is counts only, never who.
+
+On an iPhone, Apple allows web notifications only for an app added to the Home
+Screen (iOS 16.4 or later); the account page says so, and Today offers the
+Home Screen instead of reminders there. The Android app (`docs/ANDROID.md`)
+delegates notifications to Chrome, so it works there as on the web.
+
 ## Tests
 
-`npm run test:logic` runs the date, rollover, daily-plan, Radar and privacy
-tests with no browser or database. Run it, and `npm run build`, before
+`npm run test:logic` runs the date, rollover, daily-plan, Radar, privacy,
+typed-food, reply-draft and reminder tests with no browser or database. Run it, and `npm run build`, before
 committing.

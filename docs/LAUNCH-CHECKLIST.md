@@ -41,6 +41,26 @@ code, one tap to WhatsApp), **temporary-password reset** by Deepika, members
 
 ---
 
+## Added since launch (16 October 2026)
+
+- **Type what you ate.** "Do roti aur dal" or "2 phulka, palak paneer and a bowl
+  of curd" becomes entries she checks before saving — Hinglish, fractions,
+  grams and household portions understood. It is a word matcher against the
+  food list, not AI, and says so; anything it does not know is handed back to
+  her, never guessed. Phone keyboards' microphones make it voice logging too.
+- **Welcome back.** After two quiet days, Today opens with "Good to see you back.
+  Nothing reset — we are continuing", frames the day around the minimum, and
+  hides the fortnight band that would only draw the gap. It never says how long.
+- **Names in Deepika's console**, with a per-device **privacy screen** (initials
+  only) for when someone can see her screen.
+- **Drafts for Deepika's messages** — hello, gentle check-in, welcome back and
+  others — suggested by each member's Radar flags, and a **Write to her** button
+  on Radar cards that opens the draft ready to edit. Nothing is sent for her.
+- **Check-in reminders**, opt-in, at most one a day, fewer when someone goes
+  quiet (`docs/DEPLOYMENT.md` → *Reminders*).
+- **Add to Home Screen** offer, once, after the first check-in — on an iPhone the
+  only way reminders can work.
+
 ## Only the owner can do these
 
 In rough order. Items 1–4 are small and should be done before anyone is invited.
@@ -80,6 +100,14 @@ In rough order. Items 1–4 are small and should be done before anyone is invite
    *App content → App access*.
 9. **When the name is final**, set `WEBSITE_INDEXABLE=1`, `WEBSITE_PUBLIC_URL` and
    `WEBSITE_PLAY_URL` on the website project and redeploy.
+10. **Set `CRON_SECRET`** on the app project in Vercel (Production): any long
+    random string, e.g. from `openssl rand -base64 32`, then redeploy. Vercel then
+    sends it to the scheduled reminder job, and nobody else can trigger it.
+    Reminders work without it; this only closes the door on a stranger sending
+    members their due reminder a little early (`docs/DEPLOYMENT.md` → *Reminders*).
+11. **Try a reminder on your own phone.** Sign in as a member, check in, accept
+    the reminder offer, and wait for the 7:30 run. Delivery to a real phone could
+    not be tested from the build environment (see *Not tested here*).
 
 ---
 
@@ -87,8 +115,9 @@ In rough order. Items 1–4 are small and should be done before anyone is invite
 
 Honest, so nobody is surprised later:
 
-- **No reminders or push notifications.** There is no push infrastructure; the
-  check-in is something she opens the app to do.
+- **Reminders depend on the phone.** On an iPhone they need the app on the
+  Home Screen and iOS 16.4 or later; in a private/incognito window they cannot
+  be turned on at all. The app says so in each case.
 - **Password recovery needs Deepika.** No email service. Fine for a coached
   cohort, not for people who find the app alone.
 - **Sessions are not revoked** when a password changes (30-day cookie), and there
@@ -98,11 +127,11 @@ Honest, so nobody is surprised later:
 - **Documents grow.** Each member's record is one JSON document that grows daily
   and is rewritten whole on every save. Fine for months; worth splitting before
   it is large.
-- **The coach console shows usernames, not names** ("MEERA-NAIR"). Real signups
-  pick their own usernames, so Deepika may not recognise "mn1987". Showing names
-  is a one-line decision — it is not made because the original design chose IDs
-  for privacy.
 - **Report files are not stored**, only the values typed in. The app says so.
 - **Not tested here:** the Android build on a real phone, the website's web fonts
-  (this environment cannot reach Google Fonts), and the live deployment's sign-up
-  with real email-less devices.
+  (this environment cannot reach Google Fonts), the live deployment's sign-up
+  with real email-less devices, and a reminder arriving on a real phone. The
+  reminder path was tested through the API, a real Postgres, and Google's push
+  service (which accepted the signed, encrypted request and rejected the test
+  device as unknown, as it should); the browser's own subscribe step needs a
+  real phone.

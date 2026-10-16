@@ -78,8 +78,11 @@ Nothing else here matters as much.
 
 - **Food by natural language.** She types or speaks *"two rotis, dal, a bit of
   bhindi"* and gets structured entries with protein estimates she can correct.
-  Today she taps through a picker. This alone could be the difference between
-  a member who logs for three weeks and one who logs for twelve.
+  This alone could be the difference between a member who logs for three weeks
+  and one who logs for twelve. *Built (16 Oct 2026) without AI:
+  `lib/foodParse.ts` matches the food list's dishes and their everyday names,
+  including Hinglish amounts; speaking works through the phone keyboard's
+  microphone.*
 - **Food by photo.** Point the camera at the plate, get a first guess, correct
   it. Native has the advantage here.
 - **Voice for everything.** Driving, cooking, hands full. The audience is
@@ -88,7 +91,8 @@ Nothing else here matters as much.
 ### 3.2 AI that helps the coach, not that replaces her
 
 - **Draft Deepika's replies.** She reviews, edits and sends — the message is
-  always hers. This is the most valuable AI feature in the product, because
+  always hers. *A non-AI first step is built: fixed drafts in her register,
+  suggested by the Radar (`lib/replyDrafts.ts`).* This is the most valuable AI feature in the product, because
   Deepika's time is the constraint on the whole business.
 - **Session prep.** Before a 1:1, a plain summary of what actually happened in
   that member's fortnight: what she logged, what she skipped, what she said.
@@ -133,7 +137,9 @@ Until then, route every interpretive question to Deepika.
 The check-in reminder is the main retention lever, and the fastest way to get
 uninstalled. Timed to her stated preference (already captured at onboarding).
 Quiet, specific, skippable. Never guilt: *"Your evening check-in"*, not
-*"You haven't logged in 3 days!"*
+*"You haven't logged in 3 days!"* *Built (16 Oct 2026): opt-in, offered at her
+onboarding preference, once a day at most, fewer as she goes quiet
+(`lib/reminders.ts`).*
 
 ---
 
@@ -148,7 +154,10 @@ What actually drives growth here:
    this.
 2. **A shareable progress card** — twelve weeks, her own milestones, no health
    data, explicitly opt-in. This is the one honest "viral" mechanic, and it
-   only works if the underlying progress is real.
+   only works if the underlying progress is real. *Held back (16 Oct 2026) on
+   two questions that are not engineering ones: the card would carry either the
+   working name, which is being replaced, or Deepika's name on images members
+   post publicly, which is hers to agree to.*
 3. **Referral with intent.** "Invite a friend" makes sense only if Deepika has
    capacity. Which raises the actual strategic question below.
 4. **Getting to first value in under five minutes.** Sign up, answer six

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ChevronLeft,
   Mic,
@@ -26,7 +26,8 @@ import PulseCard from "@/components/PulseCard";
 import ResetPassword from "@/components/ResetPassword";
 import { isSampleMember } from "@/lib/dailyPlan";
 import { draftWeekPlansFor, PHASE_WEEKS } from "@/lib/plan";
-import { memberLabel } from "@/lib/display";
+import MemberName from "@/components/MemberName";
+import { draftsFor, REPLY_DRAFTS } from "@/lib/replyDrafts";
 import type { EffortLevel, WeekPlan } from "@/lib/types";
 
 const TABS = [
@@ -78,6 +79,22 @@ export default function Member360({ params }: { params: { id: string } }) {
      put back. Held for the visit only. */
   const [shrunk, setShrunk] = useState<Record<string, { target: any; why: string }>>({});
   const [newNote, setNewNote] = useState("");
+
+  /* Arriving from a Radar card's "Write to her" opens with that draft in the
+     box, ready to edit — never sent. Read once, on arrival. */
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("draft");
+    const draft = REPLY_DRAFTS.find((d) => d.id === id);
+    const who = members.find((x) => x.id === params.id);
+    if (!draft || !who) return;
+    setNote(draft.text(who.name.split(" ")[0]));
+    requestAnimationFrame(() => {
+      const box = document.getElementById("send-note") as HTMLTextAreaElement | null;
+      box?.scrollIntoView({ block: "center" });
+      box?.focus();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!m) {
     return (
@@ -146,7 +163,7 @@ export default function Member360({ params }: { params: { id: string } }) {
 
       <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="font-mono text-3xl font-medium leading-tight">{memberLabel(m)}</h1>
+          <h1 className="font-display text-3xl leading-tight"><MemberName member={m} full /></h1>
           <p className="mt-1.5 text-[15px] text-ink-soft">
             {[m.age || null, m.city || null, `Week ${m.week}`, `${m.phase} phase`].filter(Boolean).join(" · ")}
           </p>
@@ -319,6 +336,29 @@ export default function Member360({ params }: { params: { id: string } }) {
 
           <div className="card p-5 md:col-span-2 lg:col-span-1">
             <p className="label">Send her something</p>
+            {!note.trim() && (
+              <div className="mt-2.5">
+                <p className="text-[12px] text-ink-faint">
+                  Start from a draft — you edit it before anything is sent.
+                </p>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {draftsFor(flags.map((f) => f.ruleId)).map(({ draft, suggested }) => (
+                    <button
+                      key={draft.id}
+                      onClick={() => setNote(draft.text(m.name.split(" ")[0]))}
+                      title={suggested ? "Suggested by her Radar" : undefined}
+                      className={`min-h-[36px] rounded-full px-3 text-[12px] transition-colors ${
+                        suggested
+                          ? "bg-effort-tint font-medium text-effort-stretch hover:bg-effort-min/40"
+                          : "bg-paper-sunk text-ink-soft hover:bg-ink-line hover:text-ink"
+                      }`}
+                    >
+                      {draft.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="mt-3 flex gap-2">
               <button
                 onClick={() => setVoiceMode(false)}
@@ -338,9 +378,10 @@ export default function Member360({ params }: { params: { id: string } }) {
               </button>
             </div>
             <textarea
+              id="send-note"
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              rows={3}
+              rows={note.length > 120 ? 5 : 3}
               placeholder={
                 voiceMode
                   ? "What you would say out loud — this becomes the transcript"

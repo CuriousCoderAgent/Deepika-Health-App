@@ -212,9 +212,19 @@ lib/
   dailyPlan.ts              Roll a member forward a day; build today's actions
   starterPlan.ts            The 12-week plan a new member starts on
   privacy.ts                What a member may read/write of her own document
+  foodParse.ts              "2 rotis and dal" → entries she checks; a word matcher, not AI
+  reminders.ts              When a check-in reminder goes out and what it says (pure)
+  push.ts                   Web Push sending and VAPID keys — server-only
+  replyDrafts.ts            Drafts for Deepika's messages, suggested by the Radar
+  display.ts                Members by name in the console; initials behind the
+                            privacy screen (privacyScreen.ts, per device)
 components/
   ui.tsx                    EffortRamp, ProvenanceChip, ConsistencyBand, Sparkline
   PulseCard.tsx             Daily Pulse (member + coach-on-behalf modes)
+  MealText.tsx              Type what you ate → check → add
+  Reminders.tsx             Reminder setting; ReminderPrompt / InstallPrompt are
+                            the one-time offers on Today after a check-in
+  MemberName.tsx            A member's name in the console, or her initials
 ```
 
 **Time.** Every record is a `dayOffset` from the date in `member.anchorDate`, and

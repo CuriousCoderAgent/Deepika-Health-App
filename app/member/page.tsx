@@ -6,8 +6,10 @@ import { useEffect, useState } from "react";
 import { Mic, Play, CalendarClock, ChevronRight, RefreshCw, Check, Apple } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { agoLabel } from "@/lib/calendar";
+import { isWelcomeBack } from "@/lib/dailyPlan";
 import { CategoryIcon, ConsistencyBand } from "@/components/ui";
 import PulseCard from "@/components/PulseCard";
+import ReminderPrompt from "@/components/ReminderPrompt";
 import { DEMO_MEMBER_ID } from "@/lib/session-client";
 import type { EffortLevel } from "@/lib/types";
 
@@ -32,13 +34,18 @@ function greetingFor(
   energy: number | null,
   poorSleep: boolean,
   name: string,
-  hour: number | null
+  hour: number | null,
+  welcomeBack: boolean
 ) {
   // Null until the clock has been read on the client. Rendering a time-based
   // greeting on the server would bake the server's hour into the HTML and
   // then visibly swap it a moment later.
   const hi = hour === null ? `Hello, ${name}.` : `${partOfDay(hour)}, ${name}.`;
 
+  // Deepika's own words for a return (notification template n-4). Never how
+  // long she was away — see isWelcomeBack.
+  if (welcomeBack)
+    return { hi, line: "Good to see you back. Nothing reset — we are continuing." };
   if (poorSleep)
     return {
       hi,
@@ -87,6 +94,7 @@ export default function Today() {
     modules,
     foodEntries,
     replayOnboarding,
+    session,
   } = useStore();
   const router = useRouter();
   const [playing, setPlaying] = useState(false);
@@ -99,7 +107,8 @@ export default function Today() {
     .filter((p) => p.memberId === m.id && p.dayOffset >= -3)
     .sort((a, b) => b.dayOffset - a.dayOffset);
   const poorSleep = recent.filter((p) => p.sleep <= 2).length >= 2;
-  const greeting = greetingFor(recent[0]?.energy ?? null, poorSleep, first, hour);
+  const welcomeBack = isWelcomeBack(m.id, actions, pulses, messages, foodEntries);
+  const greeting = greetingFor(recent[0]?.energy ?? null, poorSleep, first, hour, welcomeBack);
 
   const voiceNote = messages.find(
     (x) => x.memberId === m.id && x.from === "coach" && x.kind === "voice" && x.dayOffset >= -1
@@ -213,7 +222,7 @@ export default function Today() {
                 <span
                   key={i}
                   className="w-full rounded-full bg-marigold/50"
-                  style={{ height: `${5 + Math.abs(Math.sin(i * 1.7)) * 12}px` }}
+                  style={{ height: `${Math.round(5 + Math.abs(Math.sin(i * 1.7)) * 12)}px` }}
                 />
               ))}
             </span>
@@ -235,18 +244,29 @@ export default function Today() {
       <div className="mt-3">
         <PulseCard memberId={m.id} />
       </div>
+      {session?.role === "member" && (
+        <ReminderPrompt
+          checkedInToday={pulses.some((p) => p.memberId === m.id && p.dayOffset === 0)}
+          preferred={m.checkInPreference}
+        />
+      )}
 
       {/* 5 — Focus today. Compact rows, full text always, never an ellipsis
           on the one thing that actually matters: what the minimum is. */}
       <div className="mt-5">
         <div className="flex items-baseline justify-between">
-          <p className="label">Your focus today</p>
+          <p className="label">{welcomeBack ? "Today, just the minimum" : "Your focus today"}</p>
           {todays.length > 0 && (
             <span className="font-mono text-[11px] text-ink-faint">
               {doneCount} of {todays.length}
             </span>
           )}
         </div>
+        {welcomeBack && todays.length > 0 && doneCount === 0 && (
+          <p className="mt-1 text-[13px] leading-relaxed text-ink-soft">
+            Any one of these, at its minimum, is a full day.
+          </p>
+        )}
         <div className="mt-2.5 space-y-2">
           {todays.length === 0 && (
             <div className="card p-4 text-center">
@@ -263,7 +283,7 @@ export default function Today() {
                   : a.completed === "target"
                   ? a.target.label
                   : a.stretch.label
-                : a.minimum.minutes > 0
+                : a.minimum.minutes > 0 && !welcomeBack
                 ? `Minimum ${a.minimum.minutes} min · Target ${a.target.minutes} min`
                 : `Minimum: ${a.minimum.label}`;
             return (
@@ -346,7 +366,13 @@ export default function Today() {
           nothing to count yet, so it says what it is for instead of showing
           fourteen empty squares and reading as a scoreboard she is losing. */}
       <div className="mt-4 rounded-2xl bg-effort-tint px-4 py-3">
-        {activeDays === 0 ? (
+        {welcomeBack ? (
+          // The band would draw the gap. On the day she comes back, it does
+          // not need drawing.
+          <p className="text-[13px] leading-relaxed text-effort-stretch">
+            Nothing to catch up on. Today counts the same as any other day.
+          </p>
+        ) : activeDays === 0 ? (
           <p className="text-[13px] leading-relaxed text-effort-stretch">
             This is where your consistency will show — any day with at least one
             healthy action counts. Nothing to catch up on yet.

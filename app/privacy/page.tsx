@@ -17,7 +17,7 @@ export const metadata = {
  */
 
 
-const UPDATED = "4 October 2026";
+const UPDATED = "16 October 2026";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -62,11 +62,22 @@ export default function Privacy() {
             </li>
             <li>Messages between you and Deepika.</li>
             <li>
+              If you turn on check-in reminders: the address your phone&rsquo;s
+              notification service gives the app for your device, and whether
+              you chose mornings or evenings. Nothing else, and it is removed
+              when you turn reminders off, sign out, or delete your account.
+            </li>
+            <li>
               Values from any blood report or body composition reading you chose
               to upload. Uploading these is optional and separate — you can use
               everything else without it.
             </li>
           </ul>
+          <p>
+            When you type what you ate, the words are matched against the food
+            list on your phone. Only the entries you choose to add are saved —
+            the sentence itself is not kept or sent anywhere.
+          </p>
           <p>
             Your password is stored as a scrypt hash, not as text. Nobody can
             read it back — not Deepika, not us, and not anyone who obtained a
@@ -116,10 +127,18 @@ export default function Privacy() {
           </p>
           <p>
             The app has no analytics, no tracking pixels and no third-party
-            software watching what you do. The single request that leaves for
-            anyone else is to Google Fonts, which loads the typefaces and in
-            doing so sees your IP address — the same as on most of the web, and
-            the only outside party involved at all.
+            software watching what you do. One request goes to Google Fonts,
+            which loads the typefaces and in doing so sees your IP address — the
+            same as on most of the web.
+          </p>
+          <p>
+            Only if you turn on check-in reminders, each reminder travels
+            through your phone&rsquo;s own notification service — Google&rsquo;s
+            on Android, Apple&rsquo;s on an iPhone. The message is encrypted so
+            that service cannot read it, and it never mentions anything about
+            your health in any case: it is a short nudge to check in, written to
+            be safe on a lock screen. Those are the only outside parties
+            involved at all.
           </p>
         </Section>
 

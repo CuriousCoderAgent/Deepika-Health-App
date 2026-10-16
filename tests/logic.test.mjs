@@ -16,6 +16,10 @@ const radar = require("../.test-build/lib/radar.js");
 const starter = require("../.test-build/lib/starterPlan.js");
 const seed = require("../.test-build/lib/seed.js");
 const privacy = require("../.test-build/lib/privacy.js");
+const food = require("../.test-build/lib/foodParse.js");
+const drafts = require("../.test-build/lib/replyDrafts.js");
+const display = require("../.test-build/lib/display.js");
+const rem = require("../.test-build/lib/reminders.js");
 
 // ---------------------------------------------------------------- fixtures
 const TODAY = "2026-10-06"; // a Tuesday
@@ -42,6 +46,12 @@ const onboarded = (over = {}) =>
 test("dateKey uses India time, flipping at 00:00 IST (18:30 UTC)", () => {
   assert.equal(cal.dateKey(new Date("2026-10-04T18:29:59Z")), "2026-10-04");
   assert.equal(cal.dateKey(new Date("2026-10-04T18:30:00Z")), "2026-10-05");
+});
+
+test("hourOf is the hour in India, not the viewer's", () => {
+  assert.equal(cal.hourOf(new Date("2026-10-04T18:29:59Z")), 23);
+  assert.equal(cal.hourOf(new Date("2026-10-04T18:30:00Z")), 0);
+  assert.equal(cal.hourOf(new Date("2026-10-05T03:30:00Z")), 9);
 });
 
 test("daysBetween handles month ends, leap years and direction", () => {
@@ -310,4 +320,326 @@ test("a member cannot write coach-private fields by sending them", () => {
   const fresh = privacy.acceptFromMember(forged, null);
   assert.equal(fresh.member.notes, undefined);
   assert.equal(fresh.sessions[0].privateNotes, undefined);
+});
+
+// --------------------------------------------------------- typed food logging
+const FOODS = seed.foodItems;
+const parse = (text) => food.parseMeal(text, FOODS);
+/** "Roti / chapati" → { id, qty } pairs, in the order they were understood. */
+const got = (text) => parse(text).items.map((p) => [p.item.id, p.qty]);
+
+test("a meal typed the way it is said becomes entries", () => {
+  assert.deepEqual(got("two rotis, dal and a bowl of curd"), [
+    ["f-roti", 2], ["f-dal", 1], ["f-curd", 1],
+  ]);
+  const r = parse("two rotis, dal and a bowl of curd");
+  assert.equal(r.items[0].protein, 6, "protein follows the list's figure per roti");
+  assert.deepEqual(r.unknown, []);
+  assert.deepEqual(got("2rotis+dal"), [["f-roti", 2], ["f-dal", 1]]);
+});
+
+test("Hinglish amounts and names", () => {
+  assert.deepEqual(got("do roti aur aadha katori dal"), [["f-roti", 2], ["f-dal", 0.5]]);
+  assert.deepEqual(got("ek glass doodh"), [["f-milk", 1]]);
+  assert.deepEqual(got("dedh phulka"), [["f-roti", 1.5]]);
+  assert.deepEqual(got("rajma chawal"), [["f-rajma", 1], ["f-rice", 1]]);
+});
+
+test("the most specific name wins", () => {
+  const r = parse("palak paneer with 2 chapatis");
+  assert.deepEqual(r.items.map((p) => [p.item.id, p.qty]), [["f-paneer", 1], ["f-roti", 2]]);
+  assert.equal(r.items[0].heard, "palak paneer", "she can see why it is paneer");
+  assert.deepEqual(got("aloo paratha"), [["f-paratha", 1]]);
+  assert.deepEqual(got("chana dal"), [["f-dal", 1]]);
+  assert.deepEqual(got("2 egg omelette"), [["f-egg", 2]]);
+});
+
+test("grams, millilitres and counted units convert to the list's portions", () => {
+  assert.deepEqual(got("paneer 100g"), [["f-paneer", 2]]);
+  assert.deepEqual(got("100 gm paneer"), [["f-paneer", 2]]);
+  assert.deepEqual(got("4 cubes of paneer"), [["f-paneer", 1]]);
+  assert.deepEqual(got("200g chicken"), [["f-chicken", 2]]);
+  assert.deepEqual(got("200 ml milk"), [["f-milk", 1]]);
+  assert.deepEqual(got("half litre milk"), [["f-milk", 2.5]]);
+  assert.deepEqual(got("20 almonds"), [["f-almonds", 2]]);
+  assert.deepEqual(got("20 badam"), [["f-almonds", 2]], "the count is of almonds whatever she calls them");
+  assert.deepEqual(got("a handful of almonds"), [["f-almonds", 1]]);
+});
+
+test("fractions, ranges and multipliers", () => {
+  assert.deepEqual(got("1½ roti"), [["f-roti", 1.5]]);
+  assert.deepEqual(got("1 1/2 roti"), [["f-roti", 1.5]]);
+  assert.deepEqual(got("one and a half rotis"), [["f-roti", 1.5]]);
+  assert.deepEqual(got("½ bowl rajma"), [["f-rajma", 0.5]]);
+  assert.deepEqual(got("half a bowl of rajma"), [["f-rajma", 0.5]]);
+  assert.deepEqual(got("2-3 rotis"), [["f-roti", 2.5]]);
+  assert.deepEqual(got("roti x2"), [["f-roti", 2]]);
+  assert.deepEqual(got("a couple of eggs"), [["f-egg", 2]]);
+  assert.deepEqual(got("500 rotis"), [["f-roti", 20]], "absurd amounts are capped, not saved");
+});
+
+test("an amount after the dish is that dish's, and the same dish adds up", () => {
+  assert.deepEqual(got("rotis 2, dal"), [["f-roti", 2], ["f-dal", 1]]);
+  assert.deepEqual(got("roti, dal, 2 more rotis"), [["f-roti", 3], ["f-dal", 1]]);
+  assert.deepEqual(got("roti, roti 2"), [["f-roti", 3]]);
+});
+
+test("what it does not know is handed back, never guessed", () => {
+  const r = parse("2 samosas and chai");
+  assert.deepEqual(r.items.map((p) => p.item.id), ["f-chai"]);
+  assert.deepEqual(r.unknown, [{ name: "samosas", qty: 2 }]);
+
+  const after = parse("dal 2 samosas");
+  assert.deepEqual(after.items.map((p) => [p.item.id, p.qty]), [["f-dal", 1]], "the 2 is the samosas'");
+  assert.deepEqual(after.unknown, [{ name: "samosas", qty: 2 }]);
+
+  assert.deepEqual(parse("pizza").items, []);
+  assert.deepEqual(parse("pizza").unknown, [{ name: "pizza", qty: 1 }]);
+  assert.deepEqual(parse("veg sandwich").unknown, [{ name: "veg sandwich", qty: 1 }]);
+  assert.deepEqual(parse("I had 2 ragi rotis").unknown, [], "how it was made is not another food");
+  assert.deepEqual(got("I had 2 ragi rotis"), [["f-roti", 2]]);
+  assert.deepEqual(parse(""), { items: [], unknown: [], skipped: [], meal: null });
+});
+
+test("no-protein extras are recognised and left out", () => {
+  const r = parse("2 rotis with ghee and pickle");
+  assert.deepEqual(r.items.map((p) => [p.item.id, p.qty]), [["f-roti", 2]]);
+  assert.deepEqual(r.skipped, ["ghee", "pickle"]);
+  assert.deepEqual(r.unknown, []);
+  assert.deepEqual(parse("black coffee").items, []);
+  assert.deepEqual(parse("black coffee").skipped, ["black coffee"]);
+  assert.deepEqual(got("chai with milk"), [["f-chai", 1]], "tea with milk is not also a glass of milk");
+  assert.deepEqual(got("butter chicken"), [["f-chicken", 1]]);
+});
+
+test("the meal is read from the text when it names exactly one", () => {
+  const r = parse("for lunch: dal chawal");
+  assert.equal(r.meal, "Lunch");
+  assert.deepEqual(r.items.map((p) => p.item.id), ["f-dal", "f-rice"]);
+  assert.equal(parse("breakfast and lunch: poha").meal, null);
+  const tea = parse("tea time makhana");
+  assert.equal(tea.meal, "Snack");
+  assert.deepEqual(tea.items.map((p) => p.item.id), ["f-makhana"], "tea time is not a cup of tea");
+  assert.equal(food.mealForHour(10), "Breakfast");
+  assert.equal(food.mealForHour(11), "Lunch");
+  assert.equal(food.mealForHour(16), "Snack");
+  assert.equal(food.mealForHour(19), "Dinner");
+});
+
+test("quantities read and step the way a portion does", () => {
+  assert.equal(food.formatQty(0.5), "½");
+  assert.equal(food.formatQty(1), "1");
+  assert.equal(food.formatQty(2.5), "2½");
+  assert.deepEqual([0.5, 1, 1.5, 2.5, 20].map((q) => food.stepQty(q, 1)), [1, 2, 2, 3, 20]);
+  assert.deepEqual([0.5, 1, 1.5, 2, 2.5].map((q) => food.stepQty(q, -1)), [0.5, 0.5, 1, 1, 2]);
+});
+
+test("every name points at one dish on the list", () => {
+  const ids = new Set(FOODS.map((f) => f.id));
+  const owner = new Map();
+  for (const [id, names] of Object.entries(food.SYNONYMS)) {
+    assert.ok(ids.has(id), `${id} is not on the food list`);
+    for (const n of names) {
+      assert.ok(!owner.has(n) || owner.get(n) === id, `"${n}" is under ${owner.get(n)} and ${id}`);
+      owner.set(n, id);
+    }
+  }
+  for (const n of food.NO_PROTEIN) assert.ok(!owner.has(n), `"${n}" is both a dish and a no-protein extra`);
+});
+
+// ------------------------------------------------------------- welcome back
+const touch = {
+  action: (dayOffset, completed = "minimum") => action({ id: `a${dayOffset}${completed}`, dayOffset, completed }),
+  pulse: (dayOffset) => ({ id: `p${dayOffset}`, memberId: "priya-s", dayOffset, energy: 3, sleep: 3, stress: 3, symptoms: [], provenance: { source: "member_manual", enteredBy: "Priya", at: TODAY } }),
+  message: (dayOffset, from = "member") => ({ id: `m${dayOffset}${from}`, memberId: "priya-s", from, kind: "text", body: "", dayOffset, time: "", read: true }),
+  food: (dayOffset, source = "member_manual") => ({ id: `f${dayOffset}${source}`, memberId: "priya-s", dayOffset, name: "Dal", qty: 1, unitLabel: "bowl", protein: 5, meal: "Lunch", provenance: { source, enteredBy: "x", at: TODAY } }),
+};
+const back = ({ actions = [], pulses = [], messages = [], food = [] } = {}) =>
+  dp.isWelcomeBack("priya-s", actions, pulses, messages, food);
+
+test("welcome back after two quiet days, from any sign of her", () => {
+  assert.equal(back({ actions: [touch.action(-3)] }), true);
+  assert.equal(back({ pulses: [touch.pulse(-4)] }), true);
+  assert.equal(back({ messages: [touch.message(-6)] }), true);
+  assert.equal(back({ food: [touch.food(-3)] }), true);
+});
+
+test("not welcome back when she was here in the last two days", () => {
+  assert.equal(back({ actions: [touch.action(-5), touch.action(-2)] }), false);
+  assert.equal(back({ actions: [touch.action(-5)], pulses: [touch.pulse(-1)] }), false);
+  assert.equal(back({ actions: [touch.action(-5), touch.action(-1, "rest")] }), false, "a 'not today' is being here");
+  assert.equal(back({ actions: [touch.action(-5)], food: [touch.food(-1)] }), false);
+});
+
+test("not welcome back for someone who has never started", () => {
+  assert.equal(back(), false);
+  assert.equal(back({ actions: [touch.action(-4, null)] }), false, "a planned action is not a sign of her");
+  assert.equal(back({ messages: [touch.message(-5, "coach")] }), false, "Deepika writing is not her");
+  assert.equal(back({ food: [touch.food(-5, "coach_on_behalf")] }), false);
+});
+
+test("welcome back holds all day, once she starts", () => {
+  assert.equal(back({ actions: [touch.action(-4), touch.action(0)], pulses: [touch.pulse(0)] }), true);
+});
+
+test("the sample cohort's Priya is the returning member the seed says she is", () => {
+  assert.equal(
+    dp.isWelcomeBack("priya", seed.dailyActions, seed.pulses, seed.messages, seed.foodEntries),
+    true
+  );
+  assert.equal(
+    dp.isWelcomeBack("radhika", seed.dailyActions, seed.pulses, seed.messages, seed.foodEntries),
+    false
+  );
+});
+
+// ------------------------------------------------------- Deepika's console
+test("drafts answering her open Radar flags come first", () => {
+  const order = drafts.draftsFor(["R08"]).map((d) => [d.draft.id, d.suggested]);
+  assert.deepEqual(order[0], ["welcome-back", true]);
+  assert.equal(order.filter(([, s]) => s).length, 1);
+  assert.equal(drafts.draftForRules(["R06"]), null, "an unanswered message needs a real reply, not a draft");
+  assert.equal(drafts.draftForRules(["R06", "R01"]).id, "check-in");
+  assert.equal(drafts.draftsFor([]).length, drafts.REPLY_DRAFTS.length, "every draft is always on offer");
+});
+
+test("every draft is addressed to her and keeps to the app's rules", () => {
+  for (const d of drafts.REPLY_DRAFTS) {
+    const text = d.text("Meera");
+    assert.ok(text.includes("Meera"), `${d.id} does not use her name`);
+    assert.ok(!/\d+\s*days?/i.test(text), `${d.id} mentions a number of days`);
+    assert.ok(!/\b(missed|behind|failed|streak|should have)\b/i.test(text), `${d.id} has guilt copy`);
+  }
+});
+
+test("names in the console: short, searchable, and initials behind the privacy screen", () => {
+  const meera = member({ id: "mn84", name: "Meera Nair", initials: "MN" });
+  assert.equal(display.shortName(meera), "Meera N.");
+  assert.equal(display.shortName(member({ name: "Radhika" })), "Radhika");
+  assert.equal(display.shortName(member({ id: "x9", name: "  " })), "X9");
+  assert.equal(display.initialsOf(meera), "MN");
+  assert.equal(display.initialsOf(member({ name: "Anita Rao", initials: "" })), "AR");
+  assert.ok(display.matchesMember(meera, "meera"));
+  assert.ok(display.matchesMember(meera, "nair"));
+  assert.ok(display.matchesMember(meera, "MN84"), "the username still finds her");
+  assert.ok(!display.matchesMember(meera, "anita"));
+});
+
+// ---------------------------------------------------------------- reminders
+/** A member last rolled forward on `anchor`, with records relative to it. */
+const remDoc = ({ anchor = TODAY, onboardedAt = "2026-09-01", pulses = [], actions = [], food = [] } = {}) =>
+  doc(onboarded({ anchorDate: anchor, onboardedAt }), {
+    pulses: pulses.map((d) => touch.pulse(d)),
+    actions: actions.map((d) => touch.action(d)),
+    foodEntries: food.map(([d, src]) => touch.food(d, src)),
+  });
+const decide = (d, lastSentOn = null, slot = "evening") => rem.decideReminder(slot, d, lastSentOn, TODAY);
+
+test("a reminder goes out when she has not checked in today", () => {
+  const r = decide(remDoc({ pulses: [-1] }));
+  assert.equal(r.send, true);
+  assert.equal(r.title, "Bharosa");
+  assert.match(r.body, /check-in/);
+  assert.match(decide(remDoc({ pulses: [-1] }), null, "morning").body, /Good morning/);
+});
+
+test("never twice a day, and never once she has shown up", () => {
+  assert.deepEqual(decide(remDoc({ pulses: [-1] }), TODAY), { send: false, reason: "already sent today" });
+  assert.equal(decide(remDoc({ pulses: [0] })).reason, "already here today");
+  assert.equal(decide(remDoc({ actions: [0] })).reason, "already here today");
+  assert.equal(decide(remDoc({ food: [[0, "member_manual"]] })).reason, "already here today");
+  assert.equal(decide(remDoc({ pulses: [-1], food: [[0, "coach_on_behalf"]] })).send, true, "Deepika logging for her is not her");
+});
+
+test("records from a document not yet rolled forward are read in today's frame", () => {
+  // Last opened three days ago, when she checked in "today": that is three days ago now.
+  const stale = remDoc({ anchor: "2026-10-03", pulses: [0] });
+  assert.deepEqual(rem.quietness(stale, TODAY), { quietDays: 3, hereToday: false });
+  assert.equal(decide(stale).send, true);
+});
+
+test("the quieter she goes, the fewer reminders — and after a month, none", () => {
+  const quiet = (days) => remDoc({ pulses: [-days] });
+  assert.equal(decide(quiet(4), "2026-10-05").reason, "quiet: every other day at most");
+  assert.equal(decide(quiet(4), "2026-10-04").send, true);
+  assert.match(decide(quiet(4), "2026-10-04").body, /No catching up/, "after a gap, the wording changes");
+  assert.equal(decide(quiet(12), "2026-10-01").reason, "quiet: weekly at most");
+  assert.equal(decide(quiet(12), "2026-09-29").send, true);
+  assert.equal(decide(quiet(30)).send, false);
+  assert.equal(decide(quiet(30)).reason, "quiet for a month — Deepika's call, not the app's");
+});
+
+test("someone who has never logged anything is quiet since she joined", () => {
+  assert.equal(decide(remDoc({ onboardedAt: TODAY })).send, true);
+  assert.equal(decide(remDoc({ onboardedAt: "2026-08-01" })).send, false);
+  assert.equal(decide(null).reason, "no record yet");
+});
+
+test("no reminder text carries anything about her health", () => {
+  for (const d of [remDoc({ pulses: [-1] }), remDoc({ pulses: [-5] })]) {
+    for (const slot of rem.SLOTS) {
+      const r = rem.decideReminder(slot, d, null, TODAY);
+      assert.ok(!/sleep|energy|symptom|protein|weight|pain|period|mood|\d/i.test(r.body), r.body);
+    }
+  }
+});
+
+test("reminders only go out at sensible hours in India", () => {
+  assert.ok(rem.inSlotWindow("morning", 7));
+  assert.ok(!rem.inSlotWindow("morning", 5));
+  assert.ok(!rem.inSlotWindow("morning", 11));
+  assert.ok(rem.inSlotWindow("evening", 19));
+  assert.ok(!rem.inSlotWindow("evening", 22));
+});
+
+test("a subscription can only point at a real push service", () => {
+  assert.ok(rem.isPushEndpoint("https://fcm.googleapis.com/fcm/send/abc"));
+  assert.ok(rem.isPushEndpoint("https://web.push.apple.com/QGx"));
+  assert.ok(rem.isPushEndpoint("https://updates.push.services.mozilla.com/wpush/v2/x"));
+  assert.ok(rem.isPushEndpoint("https://wns2-par02p.notify.windows.com/w/?token=x"));
+  assert.ok(!rem.isPushEndpoint("http://fcm.googleapis.com/fcm/send/abc"), "https only");
+  assert.ok(!rem.isPushEndpoint("https://fcm.googleapis.com:8443/x"), "no other ports");
+  assert.ok(!rem.isPushEndpoint("https://169.254.169.254/latest/meta-data"));
+  assert.ok(!rem.isPushEndpoint("https://fcm.googleapis.com.evil.example/x"));
+  assert.ok(!rem.isPushEndpoint("https://evil.example/?u=https://fcm.googleapis.com"));
+  assert.ok(rem.isPushKey("B".repeat(87), 80, 100));
+  assert.ok(!rem.isPushKey("B".repeat(87) + "<", 80, 100));
+});
+
+test("a run decides once per member, sends to each device, and forgets dead ones", async () => {
+  const sent = [];
+  const dropped = [];
+  const marked = [];
+  const docs = {
+    meera: remDoc({ pulses: [-1] }),
+    asha: remDoc({ pulses: [0] }), // already here today
+  };
+  const devices = [
+    { endpoint: "https://fcm.googleapis.com/a", userId: "meera", p256dh: "k", auth: "a", lastSentOn: null },
+    { endpoint: "https://fcm.googleapis.com/b", userId: "meera", p256dh: "k", auth: "a", lastSentOn: null },
+    { endpoint: "https://fcm.googleapis.com/c", userId: "asha", p256dh: "k", auth: "a", lastSentOn: null },
+  ];
+  const deps = {
+    devices: async () => devices,
+    readDoc: async (id) => docs[id] ?? null,
+    markSent: async (id, day) => marked.push([id, day]),
+    drop: async (e) => dropped.push(e),
+    send: async (d, msg) => {
+      sent.push([d.endpoint, msg.body]);
+      return d.endpoint.endsWith("/b") ? "gone" : "sent";
+    },
+  };
+  const summary = await rem.runReminders("evening", TODAY, 19, deps);
+  assert.deepEqual(summary, {
+    slot: "evening", inWindow: true, members: 2, sent: 1,
+    skipped: { "already here today": 1 }, gone: 1, failed: 0,
+  });
+  assert.deepEqual(sent.map(([e]) => e), ["https://fcm.googleapis.com/a", "https://fcm.googleapis.com/b"]);
+  assert.deepEqual(dropped, ["https://fcm.googleapis.com/b"]);
+  assert.deepEqual(marked, [["meera", TODAY]]);
+  assert.ok(!JSON.stringify(summary).includes("meera"), "the summary never names anyone");
+
+  const outside = await rem.runReminders("evening", TODAY, 3, deps);
+  assert.equal(outside.inWindow, false);
+  assert.equal(outside.members, 0, "outside the window nothing is even read");
 });

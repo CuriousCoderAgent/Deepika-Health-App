@@ -26,5 +26,19 @@ export default function ServiceWorker() {
     }
   }, []);
 
+  // The browser offers to install the app exactly once per page load, often
+  // before Today has even rendered. Held here, at the root, so the offer is
+  // still there when components/InstallPrompt.tsx decides it is a good moment
+  // — rather than as a banner on first launch, when it means nothing yet.
+  useEffect(() => {
+    const hold = (e: Event) => {
+      e.preventDefault();
+      (window as Window & { __installOffer?: Event }).__installOffer = e;
+      window.dispatchEvent(new Event("install-offer"));
+    };
+    window.addEventListener("beforeinstallprompt", hold);
+    return () => window.removeEventListener("beforeinstallprompt", hold);
+  }, []);
+
   return null;
 }

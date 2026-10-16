@@ -75,6 +75,17 @@ export function clockLabel(at: Date = new Date()): string {
   return clockFormat.format(at).toLowerCase();
 }
 
+const hourFormat = new Intl.DateTimeFormat("en-GB", {
+  timeZone: TIME_ZONE,
+  hour: "2-digit",
+  hourCycle: "h23",
+});
+
+/** The hour in India, 0–23. */
+export function hourOf(at: Date = new Date()): number {
+  return Number(hourFormat.format(at)) % 24;
+}
+
 export function isDateKey(v: unknown): v is string {
   return typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
 }

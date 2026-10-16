@@ -127,6 +127,8 @@ interface Ctx extends State {
   addCoachNote: (memberId: string, text: string) => void;
   addReport: (r: Omit<Report, "id">) => void;
   addFood: (e: Omit<FoodEntry, "id" | "provenance">, byCoach?: boolean) => void;
+  /** Several at once — a typed meal. Returns the new ids, for undo. */
+  addFoods: (e: Omit<FoodEntry, "id" | "provenance">[], byCoach?: boolean) => string[];
   removeFood: (id: string) => void;
   setProteinTarget: (memberId: string, grams: number | undefined) => void;
   completeOnboarding: (
@@ -360,10 +362,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   // own document. Deepika sends the members she has actually edited, so her
   // copy of the cohort never lands on top of someone who logged something
   // while the console was open.
+  //
+  // A save still waiting when the app is hidden or closed is sent at once (see
+  // the flush below). Phones are put away mid-sentence: tap "Add", swipe the
+  // app away, and a save due 900ms later never happened — the change survived
+  // only in this browser's storage, and the server's older copy won on the
+  // next open.
+  const pendingSave = useRef<(() => void) | null>(null);
   useEffect(() => {
     if (!hydrated || !serverBacked || !session) return;
 
-    const timer = setTimeout(() => {
+    const run = (leaving: boolean) => {
       const body: { doc?: MemberDoc; docs?: MemberDoc[]; coach?: CoachDoc } = {};
 
       if (session.role === "coach") {
@@ -392,19 +401,50 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         body.doc = doc;
       }
 
+      const payload = JSON.stringify(body);
       fetch("/api/state", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: payload,
+        // Outlives the page when she is leaving. Browsers cap such a request
+        // at 64KB; a larger document goes as an ordinary request, which
+        // usually still completes while a page is being hidden.
+        keepalive: leaving && payload.length < 60_000,
       }).catch(() => {
         // Failed writes drop their cached signature so the next change retries
         // this content rather than skipping it as already saved.
         savedDocs.current.clear();
       });
-    }, 900);
+    };
 
-    return () => clearTimeout(timer);
+    const timer = setTimeout(() => {
+      pendingSave.current = null;
+      run(false);
+    }, 900);
+    pendingSave.current = () => {
+      clearTimeout(timer);
+      pendingSave.current = null;
+      run(true);
+    };
+
+    return () => {
+      clearTimeout(timer);
+      pendingSave.current = null;
+    };
   }, [state, hydrated, serverBacked, session]);
+
+  useEffect(() => {
+    const flush = () => pendingSave.current?.();
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("pagehide", flush);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("pagehide", flush);
+    };
+  }, []);
 
   const patch = (fn: (s: State) => State) => setState((s) => fn(s));
 
@@ -426,6 +466,28 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       state.rules,
       state.resolvedRadar
     );
+
+    // One stamp per call and an index per entry: a typed meal saves several
+    // entries in the same millisecond, and their ids must still differ.
+    const addFoodEntries = (
+      entries: Omit<FoodEntry, "id" | "provenance">[],
+      byCoach?: boolean
+    ): string[] => {
+      const stamp = Date.now();
+      const ids = entries.map((_, i) => (entries.length === 1 ? `fe-${stamp}` : `fe-${stamp}-${i}`));
+      patch((s) => {
+        const provenance = (memberId: string): FoodEntry["provenance"] => ({
+          source: byCoach ? "coach_on_behalf" : "member_manual",
+          enteredBy: byCoach
+            ? "Deepika"
+            : s.members.find((m) => m.id === memberId)?.name.split(" ")[0] ?? "Member",
+          at: dateKey(),
+        });
+        const added = entries.map((e, i) => ({ ...e, id: ids[i], provenance: provenance(e.memberId) }));
+        return { ...s, foodEntries: [...added, ...s.foodEntries] };
+      });
+      return ids;
+    };
 
     return {
       ...state,
@@ -562,24 +624,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           reports: [{ ...r, id: `rep-${Date.now()}` }, ...s.reports],
         })),
 
-      addFood: (e, byCoach) =>
-        patch((s) => ({
-          ...s,
-          foodEntries: [
-            {
-              ...e,
-              id: `fe-${Date.now()}`,
-              provenance: {
-                source: byCoach ? "coach_on_behalf" : "member_manual",
-                enteredBy: byCoach
-                  ? "Deepika"
-                  : s.members.find((m) => m.id === e.memberId)?.name.split(" ")[0] ?? "Member",
-                at: dateKey(),
-              },
-            },
-            ...s.foodEntries,
-          ],
-        })),
+      addFood: (e, byCoach) => {
+        addFoodEntries([e], byCoach);
+      },
+
+      addFoods: (entries, byCoach) => addFoodEntries(entries, byCoach),
 
       removeFood: (id) =>
         patch((s) => ({ ...s, foodEntries: s.foodEntries.filter((x) => x.id !== id) })),

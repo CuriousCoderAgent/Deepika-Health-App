@@ -143,6 +143,19 @@ async function init(): Promise<void> {
       user_id    text primary key,
       deleted_at timestamptz not null default now()
     );
+    -- Check-in reminders, one row per device she turned them on for. Only
+    -- what a push service needs to reach that browser, and which part of the
+    -- day she chose; nothing about her health. See lib/reminders.ts.
+    create table if not exists push_subscription (
+      endpoint     text primary key,
+      user_id      text not null,
+      p256dh       text not null,
+      auth         text not null,
+      slot         text not null default 'evening',
+      created_at   timestamptz not null default now(),
+      last_sent_on date
+    );
+    create index if not exists push_subscription_user on push_subscription (user_id);
   `);
 
   // The marker, not a row count, decides whether to seed. Counting would
@@ -271,6 +284,7 @@ export async function deleteMemberAccount(userId: string): Promise<void> {
     await client.query("begin");
     await client.query("delete from member_state where user_id = $1", [userId]);
     await client.query("delete from account where user_id = $1", [userId]);
+    await client.query("delete from push_subscription where user_id = $1", [userId]);
     await client.query(
       `insert into deleted_account (user_id) values ($1)
        on conflict (user_id) do update set deleted_at = now()`,
@@ -331,4 +345,112 @@ export async function deleteSampleMembers(ids: string[]): Promise<number> {
     [ids]
   );
   return r.rowCount ?? 0;
+}
+
+/* ------------------------------------------------------------ app settings */
+
+export async function readMeta(key: string): Promise<string | null> {
+  await ensureReady();
+  const r = await db().query("select value from app_meta where key = $1", [key]);
+  return r.rows[0]?.value ?? null;
+}
+
+/** Writes a value unless one is already there; returns whichever is stored.
+ *  Two cold starts racing to create the same setting both end up with one. */
+export async function writeMetaOnce(key: string, value: string): Promise<string> {
+  await ensureReady();
+  await db().query(
+    "insert into app_meta (key, value) values ($1, $2) on conflict (key) do nothing",
+    [key, value]
+  );
+  return (await readMeta(key)) ?? value;
+}
+
+/* ---------------------------------------------------------------- reminders */
+
+export interface PushRow {
+  endpoint: string;
+  userId: string;
+  p256dh: string;
+  auth: string;
+  slot: string;
+  lastSentOn: string | null;
+}
+
+/**
+ * Saves a device. An endpoint is one browser on one phone; if it was
+ * registered to someone else before (a shared phone, a new sign-in), it is
+ * hers now. Her chosen time applies to all her devices, so she gets one
+ * reminder a day, not one per phone.
+ */
+export async function savePushSubscription(
+  userId: string,
+  sub: { endpoint: string; p256dh: string; auth: string },
+  slot: string
+): Promise<void> {
+  await ensureReady();
+  await db().query(
+    `insert into push_subscription (endpoint, user_id, p256dh, auth, slot)
+       values ($1, $2, $3, $4, $5)
+     on conflict (endpoint) do update
+       set last_sent_on = case when push_subscription.user_id = excluded.user_id
+                               then push_subscription.last_sent_on end,
+           user_id = excluded.user_id, p256dh = excluded.p256dh,
+           auth = excluded.auth, slot = excluded.slot`,
+    [sub.endpoint, userId, sub.p256dh, sub.auth, slot]
+  );
+  await db().query("update push_subscription set slot = $2 where user_id = $1", [userId, slot]);
+}
+
+export async function pushStatusFor(userId: string): Promise<{ devices: number; slot: string | null }> {
+  await ensureReady();
+  const r = await db().query(
+    "select count(*)::int as n, max(slot) as slot from push_subscription where user_id = $1",
+    [userId]
+  );
+  return { devices: r.rows[0]?.n ?? 0, slot: r.rows[0]?.slot ?? null };
+}
+
+export async function hasPushEndpoint(userId: string, endpoint: string): Promise<boolean> {
+  await ensureReady();
+  const r = await db().query("select 1 from push_subscription where user_id = $1 and endpoint = $2", [userId, endpoint]);
+  return (r.rowCount ?? 0) > 0;
+}
+
+/** One device, or — with no endpoint — every device of hers. */
+export async function deletePushSubscriptions(userId: string, endpoint?: string): Promise<void> {
+  await ensureReady();
+  if (endpoint) {
+    await db().query("delete from push_subscription where user_id = $1 and endpoint = $2", [userId, endpoint]);
+  } else {
+    await db().query("delete from push_subscription where user_id = $1", [userId]);
+  }
+}
+
+/** A push service said the device is gone for good. */
+export async function dropPushEndpoint(endpoint: string): Promise<void> {
+  await ensureReady();
+  await db().query("delete from push_subscription where endpoint = $1", [endpoint]);
+}
+
+export async function pushSubscriptionsFor(slot: string): Promise<PushRow[]> {
+  await ensureReady();
+  const r = await db().query(
+    `select endpoint, user_id, p256dh, auth, slot, to_char(last_sent_on, 'YYYY-MM-DD') as last_sent_on
+       from push_subscription where slot = $1`,
+    [slot]
+  );
+  return r.rows.map((x) => ({
+    endpoint: x.endpoint,
+    userId: x.user_id,
+    p256dh: x.p256dh,
+    auth: x.auth,
+    slot: x.slot,
+    lastSentOn: x.last_sent_on ?? null,
+  }));
+}
+
+export async function markPushSent(userId: string, day: string): Promise<void> {
+  await ensureReady();
+  await db().query("update push_subscription set last_sent_on = $2::date where user_id = $1", [userId, day]);
 }
