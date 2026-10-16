@@ -1182,6 +1182,16 @@ export const foodItems: FoodItem[] = [
   { id: "f-peanuts", name: "Peanuts", category: "snack", unitLabel: "handful", proteinPerUnit: 8 },
   { id: "f-almonds", name: "Almonds", category: "snack", unitLabel: "10 almonds", proteinPerUnit: 3 },
   { id: "f-makhana", name: "Makhana", category: "snack", unitLabel: "bowl", proteinPerUnit: 3 },
+  // Added with type-what-you-ate logging, because these are among the first
+  // things anyone types and every one of them would otherwise come back as
+  // "not recognised". Same rule as the rest: a home portion, an average,
+  // editable. Tea is mostly the milk in it; fruit is here so a banana is
+  // recognised, not because it counts for much.
+  { id: "f-chai", name: "Chai / coffee with milk", category: "dairy", unitLabel: "cup", proteinPerUnit: 1 },
+  { id: "f-lassi", name: "Lassi", category: "dairy", unitLabel: "glass", proteinPerUnit: 5 },
+  { id: "f-khichdi", name: "Khichdi", category: "grain", unitLabel: "bowl", proteinPerUnit: 5 },
+  { id: "f-bread", name: "Bread / toast", category: "grain", unitLabel: "slice", proteinPerUnit: 3 },
+  { id: "f-fruit", name: "Fruit (any)", category: "snack", unitLabel: "piece", proteinPerUnit: 1 },
 ];
 
 /** A day already part-logged, so the screen is not empty on first open. */

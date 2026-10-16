@@ -27,9 +27,9 @@ and "today" never advanced; both are fixed (`lib/dailyPlan.ts`, `docs/DEPLOYMENT
 her own document, hidden only by the interface; the server now enforces it.
 
 What is genuinely still open: session revocation on password change, login rate
-limiting, real file storage for reports, reminders and push notifications (there
-is no push infrastructure), and a coachless experience for the members the
-product is meant to reach beyond Deepika's own cohort.
+limiting, real file storage for reports, and a coachless experience for the
+members the product is meant to reach beyond Deepika's own cohort. Reminders
+now exist — opt-in Web Push, see `docs/DEPLOYMENT.md` → *Reminders*.
 
 ## The gap that matters most
 

@@ -7,6 +7,7 @@ import { useStore } from "@/lib/store";
 import ChangePassword from "@/components/ChangePassword";
 import ShareApp from "@/components/ShareApp";
 import DownloadData from "@/components/DownloadData";
+import Reminders from "@/components/Reminders";
 
 /**
  * Her account, and the one screen where she can take it all back.
@@ -76,6 +77,8 @@ export default function Account() {
           <span className="block text-[12px] text-ink-faint">Privacy policy</span>
         </span>
       </Link>
+
+      <Reminders />
 
       <DownloadData />
 

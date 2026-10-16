@@ -5,11 +5,9 @@ import { useMemo, useState } from "react";
 import { ChevronLeft, Minus, Plus, Search, Trash2, X } from "lucide-react";
 import { useStore } from "@/lib/store";
 import BottomSheet from "@/components/BottomSheet";
-import { ProvenanceChip } from "@/components/ui";
+import MealText from "@/components/MealText";
+import { formatQty, MEALS, stepQty, type Meal } from "@/lib/foodParse";
 import type { FoodEntry, FoodItem } from "@/lib/types";
-
-const MEALS = ["Breakfast", "Lunch", "Snack", "Dinner"] as const;
-type Meal = (typeof MEALS)[number];
 
 /**
  * Protein log.
@@ -27,9 +25,11 @@ type Meal = (typeof MEALS)[number];
  *  - What she ate recently comes first, because real diets repeat.
  *  - Every figure is an average and every figure is editable. If she knows
  *    her dal is thicker than most, hers is the better number.
+ *  - Or she types the meal the way she would say it, and checks what was
+ *    understood before it is saved (components/MealText.tsx).
  */
 export default function FoodLog() {
-  const { activeMember: m, foodItems, foodEntries, addFood, removeFood } = useStore();
+  const { activeMember: m, foodItems, foodEntries, addFood, addFoods, removeFood } = useStore();
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [meal, setMeal] = useState<Meal>("Lunch");
@@ -39,6 +39,11 @@ export default function FoodLog() {
   const [protein, setProtein] = useState(0);
   const [proteinTouched, setProteinTouched] = useState(false);
   const [customName, setCustomName] = useState("");
+  const [custom, setCustom] = useState(false);
+  // A typed phrase the list did not know, being added by hand — once saved,
+  // the typed-meal box stops asking about it.
+  const [customFrom, setCustomFrom] = useState<string | null>(null);
+  const [handled, setHandled] = useState<string[]>([]);
 
   const today = useMemo(
     () => foodEntries.filter((e) => e.memberId === m.id && e.dayOffset === 0),
@@ -75,6 +80,21 @@ export default function FoodLog() {
     setQty(1);
     setProteinTouched(false);
     setCustomName("");
+    setCustom(false);
+    setCustomFrom(null);
+    setSheetOpen(true);
+  };
+
+  const openCustom = (name: string, amount: number, mealFor: Meal) => {
+    setMeal(mealFor);
+    setPicked(null);
+    setQuery("");
+    setQty(amount);
+    setProtein(0);
+    setProteinTouched(true);
+    setCustomName(name.charAt(0).toUpperCase() + name.slice(1));
+    setCustom(true);
+    setCustomFrom(name);
     setSheetOpen(true);
   };
 
@@ -86,7 +106,7 @@ export default function FoodLog() {
   };
 
   const changeQty = (next: number) => {
-    const q = Math.max(1, Math.min(20, next));
+    const q = Math.max(0.5, Math.min(20, Math.round(next * 2) / 2));
     setQty(q);
     // Scale the suggestion with quantity, unless she has typed her own number.
     if (!proteinTouched && picked) setProtein(picked.proteinPerUnit * q);
@@ -106,6 +126,8 @@ export default function FoodLog() {
       proteinEdited: proteinTouched || !picked,
       meal,
     });
+    if (customFrom) setHandled((h) => [...h, customFrom]);
+    setCustomFrom(null);
     setSheetOpen(false);
   };
 
@@ -164,6 +186,28 @@ export default function FoodLog() {
         )}
       </div>
 
+      <MealText
+        foods={foodItems}
+        handled={handled}
+        onAdd={(rows, mealFor) =>
+          addFoods(
+            rows.map((r) => ({
+              memberId: m.id,
+              dayOffset: 0,
+              itemId: r.item.id,
+              name: r.item.name,
+              qty: r.qty,
+              unitLabel: r.item.unitLabel,
+              protein: r.protein,
+              proteinEdited: false,
+              meal: mealFor,
+            }))
+          )
+        }
+        onUndo={(ids) => ids.forEach((id) => removeFood(id))}
+        onAddYourself={openCustom}
+      />
+
       {/* By meal, because that is how eating is remembered. */}
       <div className="mt-5 space-y-3">
         {MEALS.map((meal) => {
@@ -207,7 +251,32 @@ export default function FoodLog() {
         onClose={() => setSheetOpen(false)}
         title={picked ? picked.name : `Add to ${meal.toLowerCase()}`}
       >
-        {!picked ? (
+        {!picked && custom ? (
+          <div>
+            <CustomEditor
+              name={customName}
+              qty={qty}
+              protein={protein}
+              onName={setCustomName}
+              onQty={changeQty}
+              onProtein={(v) => {
+                setProtein(v);
+                setProteinTouched(true);
+              }}
+              onSave={save}
+            />
+            <button
+              onClick={() => {
+                setCustom(false);
+                setCustomFrom(null);
+                setQuery("");
+              }}
+              className="tap mt-1 w-full rounded-xl text-[13px] text-ink-soft hover:text-ink"
+            >
+              Pick from the list instead
+            </button>
+          </div>
+        ) : !picked ? (
           <div>
             <div className="relative">
               <Search
@@ -247,41 +316,21 @@ export default function FoodLog() {
                   <p className="text-[14px] text-ink-soft">
                     Not in the list — add it yourself.
                   </p>
-                  <input
-                    value={customName || query}
-                    onChange={(e) => setCustomName(e.target.value)}
-                    placeholder="What was it?"
-                    className="tap mt-2.5 w-full rounded-xl border border-ink-line bg-paper px-3 text-[16px] focus:border-effort-target focus:outline-none"
-                  />
                   <button
                     onClick={() => {
-                      setCustomName(customName || query);
-                      setPicked(null);
+                      setCustomName(query.trim());
+                      setQty(1);
                       setProtein(0);
                       setProteinTouched(true);
-                      setQuery("");
+                      setCustom(true);
                     }}
                     className="tap mt-2 w-full rounded-xl bg-paper-card text-[14px] font-medium text-ink"
                   >
-                    Continue
+                    Add &ldquo;{query.trim()}&rdquo;
                   </button>
                 </div>
               )}
             </div>
-
-            {customName && (
-              <CustomEditor
-                name={customName}
-                qty={qty}
-                protein={protein}
-                onQty={changeQty}
-                onProtein={(v) => {
-                  setProtein(v);
-                  setProteinTouched(true);
-                }}
-                onSave={save}
-              />
-            )}
           </div>
         ) : (
           <div>
@@ -290,18 +339,18 @@ export default function FoodLog() {
             </p>
             <div className="mt-2.5 flex items-center gap-3">
               <button
-                onClick={() => changeQty(qty - 1)}
+                onClick={() => changeQty(stepQty(qty, -1))}
                 aria-label="Less"
                 className="tap flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-paper-sunk text-ink-soft hover:bg-ink-line"
               >
                 <Minus size={17} />
               </button>
               <div className="flex-1 text-center">
-                <p className="font-display text-[1.8rem] leading-none">{qty}</p>
+                <p className="font-display text-[1.8rem] leading-none">{formatQty(qty)}</p>
                 <p className="mt-0.5 text-[12px] text-ink-faint">{picked.unitLabel}</p>
               </div>
               <button
-                onClick={() => changeQty(qty + 1)}
+                onClick={() => changeQty(stepQty(qty, 1))}
                 aria-label="More"
                 className="tap flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-paper-sunk text-ink-soft hover:bg-ink-line"
               >
@@ -372,7 +421,7 @@ function Row({ entry, onRemove }: { entry: FoodEntry; onRemove: () => void }) {
     <div className="flex items-center gap-3 py-2.5">
       <div className="min-w-0 flex-1">
         <p className="text-[14px] leading-snug">
-          {entry.qty > 1 && <span className="text-ink-soft">{entry.qty} × </span>}
+          {entry.qty !== 1 && <span className="text-ink-soft">{formatQty(entry.qty)} × </span>}
           {entry.name}
         </p>
         <p className="text-[12px] leading-snug text-ink-faint">
@@ -398,6 +447,7 @@ function CustomEditor({
   name,
   qty,
   protein,
+  onName,
   onQty,
   onProtein,
   onSave,
@@ -405,18 +455,26 @@ function CustomEditor({
   name: string;
   qty: number;
   protein: number;
+  onName: (s: string) => void;
   onQty: (n: number) => void;
   onProtein: (n: number) => void;
   onSave: () => void;
 }) {
   return (
-    <div className="mt-4 rounded-xl bg-paper-sunk/60 p-3.5">
-      <p className="text-[14px] font-medium">{name}</p>
+    <div className="rounded-xl bg-paper-sunk/60 p-3.5">
+      <input
+        value={name}
+        onChange={(e) => onName(e.target.value)}
+        placeholder="What was it?"
+        aria-label="What was it?"
+        className="tap w-full rounded-xl border border-ink-line bg-paper px-3 text-[16px] font-medium focus:border-effort-target focus:outline-none"
+      />
       <div className="mt-2.5 flex items-center gap-2">
         <input
           type="number"
-          inputMode="numeric"
-          min={1}
+          inputMode="decimal"
+          min={0.5}
+          step={0.5}
           value={qty}
           onChange={(e) => onQty(Number(e.target.value))}
           aria-label="How many servings"
@@ -436,7 +494,8 @@ function CustomEditor({
       </div>
       <button
         onClick={onSave}
-        className="tap mt-3 w-full rounded-xl bg-effort-stretch text-sm font-medium text-white"
+        disabled={!name.trim()}
+        className="tap mt-3 w-full rounded-xl bg-effort-stretch text-sm font-medium text-white disabled:opacity-50"
       >
         Add it
       </button>

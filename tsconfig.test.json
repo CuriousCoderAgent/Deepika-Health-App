@@ -17,6 +17,10 @@
     "lib/radar.ts",
     "lib/starterPlan.ts",
     "lib/persist.ts",
-    "lib/privacy.ts"
+    "lib/privacy.ts",
+    "lib/foodParse.ts",
+    "lib/replyDrafts.ts",
+    "lib/display.ts",
+    "lib/reminders.ts"
   ]
 }

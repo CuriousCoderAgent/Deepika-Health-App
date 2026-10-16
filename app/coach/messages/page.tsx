@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useStore } from "@/lib/store";
-import { memberCode } from "@/lib/display";
+import MemberName from "@/components/MemberName";
 import { whenLabel } from "@/lib/calendar";
 import { Mic, ChevronRight, RefreshCw } from "lucide-react";
 
@@ -39,7 +39,7 @@ export default function MessagesPage() {
             </span>
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline gap-2">
-                <p className="font-mono text-[14px] font-medium">{memberCode(m)}</p>
+                <p className="text-[14px] font-medium"><MemberName member={m} /></p>
                 <span className="text-[12px] text-ink-faint">{whenLabel(last.dayOffset, last.time)}</span>
                 {unread > 0 && (
                   <span className="chip ml-auto bg-attention-tint text-attention">

@@ -21,7 +21,7 @@
  * JavaScript and CSS are local, but nothing personal is ever read from disk.
  */
 
-const VERSION = "v1";
+const VERSION = "v2";
 const ASSETS = `assets-${VERSION}`;
 const SHELL = `shell-${VERSION}`;
 const OFFLINE_URL = "/offline";
@@ -99,4 +99,45 @@ self.addEventListener("fetch", (event) => {
       )
     );
   }
+});
+
+/*
+ * Check-in reminders (lib/reminders.ts). The server sends only a title, a
+ * line of text and where to open — never anything about her health — and
+ * that is all that is shown. Opening one brings the app forward if it is
+ * already open, rather than stacking a second copy.
+ */
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = {};
+  }
+  const title = typeof data.title === "string" ? data.title : "Check-in";
+  const body = typeof data.body === "string" ? data.body : "";
+  const url = typeof data.url === "string" && data.url.startsWith("/") ? data.url : "/member";
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon: "/icons/icon-192.png",
+      tag: "check-in",
+      data: { url },
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || "/member";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windows) => {
+      for (const w of windows) {
+        if (new URL(w.url).origin === self.location.origin && "focus" in w) {
+          return w.navigate(url).then((nav) => (nav || w).focus()).catch(() => w.focus());
+        }
+      }
+      return self.clients.openWindow(url);
+    })
+  );
 });

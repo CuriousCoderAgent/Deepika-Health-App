@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { isSampleMember } from "@/lib/dailyPlan";
+import { PrivacyScreenSwitch } from "@/components/MemberName";
 
 const nav = [
   { href: "/coach", label: "Radar", icon: Radar, hint: "Who needs me today" },
@@ -51,6 +52,9 @@ export default function CoachLayout({ children }: { children: React.ReactNode })
           </form>
           <p className="label mt-4">Coach console</p>
           <p className="mt-1 font-display text-xl leading-tight">Deepika</p>
+          <div className="mt-2">
+            <PrivacyScreenSwitch />
+          </div>
         </div>
 
         <nav className="mt-6 flex-1 px-3">
@@ -108,14 +112,17 @@ export default function CoachLayout({ children }: { children: React.ReactNode })
           <p className="label">Coach console</p>
           <p className="font-display text-lg leading-tight">Deepika</p>
         </div>
-        <form action="/api/auth/logout" method="post">
-          <button
-            type="submit"
-            className="tap inline-flex items-center gap-1.5 rounded-xl px-3 text-[13px] text-ink-soft hover:bg-paper-sunk hover:text-ink"
-          >
-            <LogOut size={15} /> Sign out
-          </button>
-        </form>
+        <div className="flex items-center gap-1">
+          <PrivacyScreenSwitch compact />
+          <form action="/api/auth/logout" method="post">
+            <button
+              type="submit"
+              className="tap inline-flex items-center gap-1.5 rounded-xl px-3 text-[13px] text-ink-soft hover:bg-paper-sunk hover:text-ink"
+            >
+              <LogOut size={15} /> Sign out
+            </button>
+          </form>
+        </div>
       </div>
 
       {/* Mobile nav */}

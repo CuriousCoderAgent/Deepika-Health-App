@@ -5,7 +5,8 @@ import { useState } from "react";
 import { ChevronRight, Check, SlidersHorizontal, X } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { bucketMeta } from "@/lib/radar";
-import { memberCode } from "@/lib/display";
+import MemberName from "@/components/MemberName";
+import { draftForRules } from "@/lib/replyDrafts";
 import { dateKey, longDate } from "@/lib/calendar";
 import { Sparkline } from "@/components/ui";
 import type { DailyAction, Member, PulseEntry, RadarBucket, RadarEvent } from "@/lib/types";
@@ -226,9 +227,9 @@ export default function RadarPage() {
                       <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-1.5">
                         <Link
                           href={`/coach/members/${m.id}`}
-                          className="font-mono text-[13px] font-medium hover:underline"
+                          className="text-[13px] font-medium hover:underline"
                         >
-                          {memberCode(m)}
+                          <MemberName member={m} />
                         </Link>
                         <span className="text-[11px] text-ink-faint">Wk {m.week}</span>
                         {items.length > 1 && (
@@ -290,14 +291,27 @@ export default function RadarPage() {
                     <div className="mt-2 flex items-center gap-2">
                       <button
                         onClick={() => items.forEach((i) => resolveRadar(i.id))}
-                        className="tap -ml-2 inline-flex items-center gap-1 rounded-lg px-2 text-[12px] text-ink-faint hover:bg-paper-sunk hover:text-ink"
+                        className="tap -ml-2 inline-flex min-w-0 items-center gap-1 rounded-lg px-2 text-[12px] text-ink-faint hover:bg-paper-sunk hover:text-ink"
                       >
                         <Check size={12} />
                         {items.length > 1 ? `All ${items.length} handled` : "Handled"}
                       </button>
+                      {(() => {
+                        // Most of what the Radar asks is "write to her": open
+                        // her page with a draft in the box, to edit and send.
+                        const draft = draftForRules(items.map((i) => i.ruleId));
+                        return draft ? (
+                          <Link
+                            href={`/coach/members/${m.id}?draft=${draft.id}`}
+                            className="tap ml-auto inline-flex items-center gap-1 whitespace-nowrap rounded-lg bg-effort-tint px-2 text-[12px] font-medium text-effort-stretch hover:bg-effort-min/40"
+                          >
+                            Write to her
+                          </Link>
+                        ) : null;
+                      })()}
                       <Link
                         href={`/coach/members/${m.id}`}
-                        className="tap ml-auto inline-flex items-center gap-1 rounded-lg bg-paper-sunk px-2 text-[12px] text-ink hover:bg-ink-line"
+                        className={`tap ${draftForRules(items.map((i) => i.ruleId)) ? "" : "ml-auto "}inline-flex items-center gap-1 rounded-lg bg-paper-sunk px-2 text-[12px] text-ink hover:bg-ink-line`}
                       >
                         Open <ChevronRight size={12} />
                       </Link>
