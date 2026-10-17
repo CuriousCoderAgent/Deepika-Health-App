@@ -21,7 +21,7 @@ export const dynamic = "force-dynamic";
 const NO_STORE = { "Cache-Control": "private, no-store" };
 
 export async function POST(req: Request) {
-  const user = await readSessionToken(cookies().get(sessionCookieName)?.value);
+  const user = await readSessionToken((await cookies()).get(sessionCookieName)?.value);
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   if (user.role !== "coach") return NextResponse.json({ error: "Not allowed" }, { status: 403 });
   if (!isConfigured()) {

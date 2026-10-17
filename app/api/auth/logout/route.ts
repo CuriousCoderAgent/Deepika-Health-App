@@ -10,7 +10,7 @@ export async function POST(req: Request) {
   // Signing out also stops her reminders. A reminder arriving on a phone she
   // has signed out of — perhaps handed on, perhaps shared — would be hers on
   // someone else's screen. She turns them back on from her account page.
-  const user = await readSessionToken(cookies().get(sessionCookieName)?.value);
+  const user = await readSessionToken((await cookies()).get(sessionCookieName)?.value);
   if (user?.role === "member" && isConfigured()) {
     await deletePushSubscriptions(user.sub).catch((err) => {
       console.error("[logout] could not clear reminders", err);
