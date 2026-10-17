@@ -16,6 +16,42 @@ sample data. **Never put a real member in it.**
 For the full list of what is done and what only the owner can do, see
 `docs/LAUNCH-CHECKLIST.md`.
 
+## Next.js version
+
+**Next.js 14.2.35**, since 17 October 2026 (it was 14.2.25).
+
+This is the last 14.x release, and it is a stopgap. It fixes everything that
+was ever fixed on 14.x — seven advisories, two of them high. But 14.x left
+Next.js's support window in October 2025, its last patch came in December
+2025, and nothing published since has been fixed on it: those fixes exist only
+for 15.x and 16.x. The move to 15.5 is a separate change, because it brings
+React 19 with it. (`source-map-js` went to 1.2.2 at the same time, for
+GHSA-68fv-2mgg-jv7q; it only runs at build time.)
+
+`npm audit --omit=dev` on 14.2.35 still lists 23 advisories against `next`
+(2 critical, 8 high, 11 moderate, 2 low) and 4 against the copy of `postcss`
+that Next keeps for itself (2 high). Two more, published on 14 October 2026,
+are not in the audit database yet. None of them reaches this app as it is
+deployed on Vercel: each needs something the app does not have, or something
+that Vercel does instead of Next.
+
+| What the advisory needs | Advisories | Why it does not apply here |
+| --- | --- | --- |
+| Server Actions | 6 high, 2 moderate: GHSA-h25m-26qc-wcjf, GHSA-q4gf-8mx6-v5v3, GHSA-8h8q-6873-q5fj, GHSA-m99w-x7hq-7vfj, GHSA-89xv-2m56-2m9x, GHSA-p3m5-59mp-jv5r (not in the audit yet), GHSA-4c39-4ccg-62r3, GHSA-955p-x3mx-jcvp | The app has none. With none in the build, Next answers any Server Action request with "not found" before it reads the body. |
+| Next's own image optimizer, `/_next/image` | 2 critical — remote code execution with AVIF files (GHSA-2xp9-vwfh-vxw4) and with SVG files (GHSA-2464-fhr4-w9xw, not in the audit yet) — and 3 moderate: GHSA-9g9p-9gw9-jx7f, GHSA-3x4c-7xq6-9pq8, GHSA-h64f-5h5j-jqjh | Next's optimizer never runs on Vercel: Next refuses image requests in Vercel's runtime, and Vercel's own image service does the work. Vercel's changelog for the August release says the apps it hosts were protected from the AVIF one without upgrading; the three moderate ones describe themselves as self-hosting problems. Vercel has said nothing yet about the SVG one. The app never uses `next/image` in any case. |
+| A Windows server | 1 critical: GHSA-p293-qw3h-jr36 | Vercel runs Linux. |
+| `rewrites` or `redirects` in `next.config.mjs` | 1 high, 1 moderate: GHSA-p9j2-gv94-2wf4, GHSA-ggv3-7p47-pfv8 | There are none. |
+| Next's built-in Node server, sent a WebSocket upgrade | 1 high: GHSA-c4j6-fc7j-m34r | "Vercel-hosted deployments are not affected." |
+| Pages Router with `i18n` | 1 high: GHSA-36qx-fr4f-26g5 | App Router only, and no `i18n`. |
+| CSP nonces, or `beforeInteractive` scripts | 2 moderate: GHSA-ffhc-5mcf-pf4q, GHSA-gx5p-jg67-6x7h | Neither is used. |
+| A `fetch()` on the server that sends a body | 2 moderate: GHSA-68g3-v927-f742, GHSA-4633-3j49-mh5q | Every `fetch()` in the app runs in the browser. |
+| A shared cache that mixes up the variants of a page | 1 moderate, 2 low: GHSA-wfc6-r584-vfw7, GHSA-vfv6-92ff-j949, GHSA-3g8h-86w9-wvmq | The only responses a cache may keep are page shells, which are the same for everyone and carry no member data; her data comes from `/api/state`, which sends no caching headers, so no shared cache keeps it. The worst case is a page that fails to load until the cache refreshes — not a leak. |
+| Untrusted CSS passed to `postcss` | 2 high, 2 moderate, in the `postcss@8.4.31` nested under `next` | It only runs at build time, on this repository's own CSS. |
+
+**Self-hosting is different.** Under `next start` — the Railway option — the
+WebSocket one (high) and two of the image-optimizer ones (GHSA-3x4c-7xq6-9pq8,
+GHSA-h64f-5h5j-jqjh) can apply. Do not move off Vercel while this is on 14.x.
+
 ## Before real members
 
 In Vercel → Settings → Environment Variables. Tick Production, Preview and
