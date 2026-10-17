@@ -10,7 +10,7 @@ and the short list of things only the owner can do.
 | | State |
 | --- | --- |
 | **The app** (Vercel, `deepika-health-app`) | Running on its own Neon database with `AUTH_SECRET`, `COACH_PASSWORD` and `MEMBERS` set; no demo credentials shown. Sign-up is **open to anyone with the link**. |
-| **The website** (`website/`) | Built and tested, **not yet deployed**. Creating the public Vercel project needs the owner's go-ahead (item 1 below). It ships `noindex` until the name is final. |
+| **The website** (Vercel, `deepika-health-site`) | Live at **https://deepika-health-site.vercel.app** since 17 October 2026 — its own project, separate from the app and its database, built from `website/` on every push to `main`. Vercel Authentication is off on it, as on the app, so the link opens for anyone. `noindex` until the name is final. |
 | **The Android app** | The pipeline builds a real bundle (`.github/workflows/android.yml`), signed with a throwaway key until the owner adds the upload-key secrets. **Nothing is published.** |
 
 ## Fixed in the launch pass
@@ -65,13 +65,11 @@ code, one tap to WhatsApp), **temporary-password reset** by Deepika, members
 
 In rough order. Items 1–4 are small and should be done before anyone is invited.
 
-1. **Deploy the website.** In Vercel, *Add New → Project*, import this repository,
-   and set **Root Directory** to `website`; leave the rest to `website/vercel.json`.
-   Use a neutral project name (it becomes the temporary public URL while the product
-   name is undecided). It builds and runs as-is, `noindex`, with "Android app coming
-   soon". Nothing about it touches the app or its database. Optionally set the build
-   ignore command to `git diff --quiet HEAD^ HEAD -- .` so it only rebuilds when the
-   site changes. The step-by-step is in `website/README.md`.
+1. **The website is deployed** (done 17 October 2026, see *What is live*). Left for
+   later: give it its own domain in the `deepika-health-site` project's Domains
+   settings once the name is chosen, then set `WEBSITE_PUBLIC_URL` there and
+   redeploy. Optionally set its build ignore command to
+   `git diff --quiet HEAD^ HEAD -- .` so it only rebuilds when the site changes.
 2. **Decide whether sign-up is open or invitation-only.** Right now anyone with
    the link can create an account and appear in Deepika's console. For a first
    cohort of twenty this is the one decision with real consequences. **Recommend:**
