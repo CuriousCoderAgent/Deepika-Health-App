@@ -18,39 +18,47 @@ For the full list of what is done and what only the owner can do, see
 
 ## Next.js version
 
-**Next.js 14.2.35**, since 17 October 2026 (it was 14.2.25).
+**Next.js 15.5.28, with React 19**, since 17 October 2026. Before that it was
+14.2.35, briefly, and 14.2.25.
 
-This is the last 14.x release, and it is a stopgap. It fixes everything that
-was ever fixed on 14.x — seven advisories, two of them high. But 14.x left
-Next.js's support window in October 2025, its last patch came in December
-2025, and nothing published since has been fixed on it: those fixes exist only
-for 15.x and 16.x. The move to 15.5 is a separate change, because it brings
-React 19 with it. (`source-map-js` went to 1.2.2 at the same time, for
-GHSA-68fv-2mgg-jv7q; it only runs at build time.)
+15.5.28 is the newest 15.x and the first release that fixes every advisory
+published against `next` so far. That includes two from 14 October 2026 that
+`npm audit` does not list yet — GHSA-2464-fhr4-w9xw (critical: the image
+optimizer with SVG files) and GHSA-p3m5-59mp-jv5r (high: Server Actions) —
+which is why it is 15.5.28, and not 15.5.24, where August's two critical fixes
+landed.
 
-`npm audit --omit=dev` on 14.2.35 still lists 23 advisories against `next`
-(2 critical, 8 high, 11 moderate, 2 low) and 4 against the copy of `postcss`
-that Next keeps for itself (2 high). Two more, published on 14 October 2026,
-are not in the audit database yet. None of them reaches this app as it is
-deployed on Vercel: each needs something the app does not have, or something
-that Vercel does instead of Next.
+`npm audit --omit=dev` lists nothing against `next` itself any more. What it
+still shows is the copy of `postcss` that Next keeps for itself, 8.4.31: four
+advisories, two of them high, and every one needs untrusted CSS to be fed to
+it. Next only runs it at build time, on this repository's own CSS, so none of
+them reaches the app. Next moved to a fixed `postcss` in 16.x only.
 
-| What the advisory needs | Advisories | Why it does not apply here |
-| --- | --- | --- |
-| Server Actions | 6 high, 2 moderate: GHSA-h25m-26qc-wcjf, GHSA-q4gf-8mx6-v5v3, GHSA-8h8q-6873-q5fj, GHSA-m99w-x7hq-7vfj, GHSA-89xv-2m56-2m9x, GHSA-p3m5-59mp-jv5r (not in the audit yet), GHSA-4c39-4ccg-62r3, GHSA-955p-x3mx-jcvp | The app has none. With none in the build, Next answers any Server Action request with "not found" before it reads the body. |
-| Next's own image optimizer, `/_next/image` | 2 critical — remote code execution with AVIF files (GHSA-2xp9-vwfh-vxw4) and with SVG files (GHSA-2464-fhr4-w9xw, not in the audit yet) — and 3 moderate: GHSA-9g9p-9gw9-jx7f, GHSA-3x4c-7xq6-9pq8, GHSA-h64f-5h5j-jqjh | Next's optimizer never runs on Vercel: Next refuses image requests in Vercel's runtime, and Vercel's own image service does the work. Vercel's changelog for the August release says the apps it hosts were protected from the AVIF one without upgrading; the three moderate ones describe themselves as self-hosting problems. Vercel has said nothing yet about the SVG one. The app never uses `next/image` in any case. |
-| A Windows server | 1 critical: GHSA-p293-qw3h-jr36 | Vercel runs Linux. |
-| `rewrites` or `redirects` in `next.config.mjs` | 1 high, 1 moderate: GHSA-p9j2-gv94-2wf4, GHSA-ggv3-7p47-pfv8 | There are none. |
-| Next's built-in Node server, sent a WebSocket upgrade | 1 high: GHSA-c4j6-fc7j-m34r | "Vercel-hosted deployments are not affected." |
-| Pages Router with `i18n` | 1 high: GHSA-36qx-fr4f-26g5 | App Router only, and no `i18n`. |
-| CSP nonces, or `beforeInteractive` scripts | 2 moderate: GHSA-ffhc-5mcf-pf4q, GHSA-gx5p-jg67-6x7h | Neither is used. |
-| A `fetch()` on the server that sends a body | 2 moderate: GHSA-68g3-v927-f742, GHSA-4633-3j49-mh5q | Every `fetch()` in the app runs in the browser. |
-| A shared cache that mixes up the variants of a page | 1 moderate, 2 low: GHSA-wfc6-r584-vfw7, GHSA-vfv6-92ff-j949, GHSA-3g8h-86w9-wvmq | The only responses a cache may keep are page shells, which are the same for everyone and carry no member data; her data comes from `/api/state`, which sends no caching headers, so no shared cache keeps it. The worst case is a page that fails to load until the cache refreshes — not a leak. |
-| Untrusted CSS passed to `postcss` | 2 high, 2 moderate, in the `postcss@8.4.31` nested under `next` | It only runs at build time, on this repository's own CSS. |
+**The image optimizer is off.** Nothing here uses `next/image`, so
+`next.config.mjs` sets `images: { unoptimized: true }`: Vercel then sets up no
+image optimization for the deployment, and under `next start` `/_next/image`
+returns 404. Seven of the advisories behind this upgrade were in that
+optimizer, two of them remote code execution, and not running it is the
+cheapest defence against the next one. Switch it back on only together with a
+real use of `next/image`.
 
-**Self-hosting is different.** Under `next start` — the Railway option — the
-WebSocket one (high) and two of the image-optimizer ones (GHSA-3x4c-7xq6-9pq8,
-GHSA-h64f-5h5j-jqjh) can apply. Do not move off Vercel while this is on 14.x.
+**15.x stops getting security fixes around 21 October 2026.** Next.js keeps a
+major version in maintenance for two years after its first release, and 15.0
+came out on 21 October 2024. From then on, new advisories are fixed in 16.x
+only, so 16 is the next upgrade, and it should not wait for the next critical
+advisory. For this app it means at least: `middleware.ts` becomes `proxy.ts`
+(the old name is deprecated), `next lint` is gone (move to the ESLint CLI —
+the upgrade codemod offers to do it), `next build` uses Turbopack, and Node.js
+has to be 20.9 or later (Vercel builds on 24.x already).
+
+What the move to 15 changed in the code:
+
+- `cookies()` returns a promise. It is awaited in `app/page.tsx` and in every
+  route handler that reads the session.
+- A page's `params` arrive as a promise. The five `[id]` pages are client
+  components and unwrap them with React's `use()`.
+- Fonts still load through the `<link>` in `app/layout.tsx`, not `next/font`;
+  the comment there says why.
 
 ## Before real members
 
