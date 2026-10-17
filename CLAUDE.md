@@ -157,8 +157,9 @@ being deliberate about which one this is before it ships either way.
 
 ## Stack and commands
 
-Next.js 14 (App Router) · TypeScript · Tailwind · React context, persisted to
-Postgres when `DATABASE_URL` is set and to `localStorage` when it is not.
+Next.js 15 (App Router) · React 19 · TypeScript · Tailwind · React context,
+persisted to Postgres when `DATABASE_URL` is set and to `localStorage` when it
+is not. Which Next.js release, and why: `docs/DEPLOYMENT.md` → *Next.js version*.
 
 Storage is per account either way — one document per member, split and
 rejoined by `lib/persist.ts`. `lib/db.ts` is server-only; importing it from a

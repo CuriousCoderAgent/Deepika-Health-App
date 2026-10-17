@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import {
   ChevronLeft,
   Mic,
@@ -42,7 +42,8 @@ type Tab = (typeof TABS)[number];
 
 const PHASE_ORDER: WeekPlan["phase"][] = ["Stabilise", "Build", "Consolidate"];
 
-export default function Member360({ params }: { params: { id: string } }) {
+export default function Member360(props: { params: Promise<{ id: string }> }) {
+  const params = use(props.params);
   const store = useStore();
   const {
     members,
