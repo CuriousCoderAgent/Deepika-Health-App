@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Activity, CalendarHeart, Home, MessageCircle, TrendingUp } from "lucide-react";
 import { useStore } from "@/lib/store";
+import Toaster from "@/components/Toast";
 
 const tabs = [
   { href: "/member", label: "Today", icon: Home },
@@ -74,7 +75,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
           {/* Bottom sheets portal in here, so they stay inside the phone frame
               on a desktop instead of covering the browser window. */}
           <div id="sheet-root" />
-
+          <Toaster />
 
           <nav className="safe-bottom shrink-0 border-t border-ink-line bg-paper-card/95 backdrop-blur">
             <div className="flex">

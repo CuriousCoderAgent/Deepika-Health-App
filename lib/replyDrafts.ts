@@ -17,6 +17,9 @@ export interface ReplyDraft {
   label: string;
   /** Radar rules this answers. When one is open for her, it is suggested first. */
   ruleIds: string[];
+  /** Offered ahead of every other suggestion when its rule is open: a pain
+   *  flag is answered before a hello. */
+  urgent?: boolean;
   text: (firstName: string) => string;
 }
 
@@ -69,6 +72,16 @@ export const REPLY_DRAFTS: ReplyDraft[] = [
     text: (n) =>
       `Looking forward to our session, ${n}. If there's something you'd like to talk about, add it as a question in the app and I'll have it in front of me.`,
   },
+  /* Asks, and holds the next session — it does not say what the pain is or
+     what to do about it. That part is Deepika's to write, or a doctor's. */
+  {
+    id: "something-hurt",
+    label: "Something hurt",
+    ruleIds: ["R12"],
+    urgent: true,
+    text: (n) =>
+      `${n}, thank you for flagging that something hurt — that is exactly what the flag is for. Please leave the next session until we've spoken. Where did you feel it, what were you doing when it started, and how does it feel today?`,
+  },
 ];
 
 /** Every draft, with the ones that answer her open Radar flags first. */
@@ -78,7 +91,12 @@ export function draftsFor(openRuleIds: string[]): { draft: ReplyDraft; suggested
     draft,
     suggested: draft.ruleIds.some((r) => open.has(r)),
   }));
-  return [...all.filter((d) => d.suggested), ...all.filter((d) => !d.suggested)];
+  const suggested = all.filter((d) => d.suggested);
+  return [
+    ...suggested.filter((d) => d.draft.urgent),
+    ...suggested.filter((d) => !d.draft.urgent),
+    ...all.filter((d) => !d.suggested),
+  ];
 }
 
 /** The one to offer from a Radar card, if any. */

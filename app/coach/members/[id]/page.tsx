@@ -14,19 +14,13 @@ import {
   Circle,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
-import {
-  EffortRamp,
-  ProvenanceChip,
-  Sparkline,
-  ScopeNotice,
-  ConsistencyBand,
-  CategoryIcon,
-} from "@/components/ui";
+import { EffortRamp, ProvenanceChip, ScopeNotice, CategoryIcon } from "@/components/ui";
 import PulseCard from "@/components/PulseCard";
 import ResetPassword from "@/components/ResetPassword";
 import { isSampleMember } from "@/lib/dailyPlan";
 import { draftWeekPlansFor, PHASE_WEEKS } from "@/lib/plan";
 import MemberName from "@/components/MemberName";
+import HerWeek from "@/components/HerWeek";
 import { draftsFor, REPLY_DRAFTS } from "@/lib/replyDrafts";
 import type { EffortLevel, WeekPlan } from "@/lib/types";
 
@@ -124,23 +118,6 @@ export default function Member360({ params }: { params: { id: string } }) {
   const myReports = reports
     .filter((r) => r.memberId === m.id)
     .sort((a, b) => b.collectedOn.localeCompare(a.collectedOn));
-
-  const days14 = Array.from({ length: 14 }).map((_, i) => {
-    const off = i - 13;
-    const day = mine.filter((a) => a.dayOffset === off);
-    return {
-      dayOffset: off,
-      level: (day.find((a) => a.completed === "stretch")
-        ? "stretch"
-        : day.find((a) => a.completed === "target")
-        ? "target"
-        : day.find((a) => a.completed === "minimum")
-        ? "minimum"
-        : day.find((a) => a.completed === "rest")
-        ? "rest"
-        : null) as any,
-    };
-  });
 
   const todays = mine.filter((a) => a.dayOffset === 0);
 
@@ -244,30 +221,7 @@ export default function Member360({ params }: { params: { id: string } }) {
             </div>
           </div>
 
-          <div className="card p-5">
-            <p className="label">Last 14 days</p>
-            <div className="mt-3">
-              <ConsistencyBand days={days14} showDayLetters />
-            </div>
-            <p className="mt-2.5 text-[14px] text-ink-soft">
-              Active on{" "}
-              {days14.filter((d) => d.level && d.level !== "rest").length} of 14 days.
-            </p>
-          </div>
-
-          <div className="card p-5">
-            <p className="label">Energy and sleep</p>
-            <div className="mt-3 space-y-3">
-              <div>
-                <p className="text-[13px] text-ink-soft">Energy</p>
-                <Sparkline values={myPulses.map((p) => p.energy)} color="#6E8F73" height={28} />
-              </div>
-              <div>
-                <p className="text-[13px] text-ink-soft">Sleep</p>
-                <Sparkline values={myPulses.map((p) => p.sleep)} color="#8FA9C4" height={28} />
-              </div>
-            </div>
-          </div>
+          <HerWeek memberId={m.id} />
 
           <div className="card p-5 md:col-span-2">
             <div className="flex items-baseline justify-between">

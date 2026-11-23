@@ -2,6 +2,9 @@
 
 import React from "react";
 import { Dumbbell, Apple, Moon, HeartPulse, Repeat, type LucideIcon } from "lucide-react";
+import { dateKey } from "@/lib/calendar";
+import { dayLetter } from "@/lib/dayView";
+import { useWidth } from "@/lib/useWidth";
 import type { EffortLevel, ModuleCategory, Provenance, SourceType } from "@/lib/types";
 
 /* ------------------------------------------------------------------ */
@@ -162,7 +165,7 @@ export function Stat({ label, value, note }: { label: string; value: string; not
 }
 
 /* ------------------------------------------------------------------ */
-/* Sparkline — used for pulse trends. No axes, no grid, no dashboard.  */
+/* Sparkline — the evidence behind a Radar flag. No axes, no grid.      */
 /* ------------------------------------------------------------------ */
 
 export function Sparkline({
@@ -178,31 +181,35 @@ export function Sparkline({
   min?: number;
   max?: number;
 }) {
+  // Drawn at its real width. It used to stretch a 100-unit viewBox across the
+  // card, which squashed every dot into a lozenge.
+  const [ref, width] = useWidth<HTMLDivElement>();
   if (values.length < 2) {
     return <p className="text-xs text-ink-faint">Not enough days yet.</p>;
   }
-  const w = 100;
-  const pts = values.map((v, i) => {
-    const x = (i / (values.length - 1)) * w;
-    const y = height - ((v - min) / (max - min)) * (height - 6) - 3;
-    return `${x},${y}`;
-  });
+  const inset = 4;
+  const pts = values.map((v, i) => ({
+    x: inset + (i / (values.length - 1)) * Math.max(0, width - 2 * inset),
+    y: height - 4 - ((v - min) / (max - min)) * (height - 8),
+  }));
   return (
-    <svg viewBox={`0 0 ${w} ${height}`} className="w-full" preserveAspectRatio="none" style={{ height }}>
-      <polyline
-        points={pts.join(" ")}
-        fill="none"
-        stroke={color}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        vectorEffect="non-scaling-stroke"
-      />
-      {pts.map((pt, i) => {
-        const [x, y] = pt.split(",").map(Number);
-        return <circle key={i} cx={x} cy={y} r={1.8} fill={color} vectorEffect="non-scaling-stroke" />;
-      })}
-    </svg>
+    <div ref={ref} style={{ height }} aria-hidden="true">
+      {width > 0 && (
+        <svg width={width} height={height} className="block">
+          <polyline
+            points={pts.map((p) => `${p.x},${p.y}`).join(" ")}
+            fill="none"
+            stroke={color}
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          {pts.map((p, i) => (
+            <circle key={i} cx={p.x} cy={p.y} r={i === pts.length - 1 ? 3.5 : 2.5} fill={color} stroke="#FFFFFF" strokeWidth={1.5} />
+          ))}
+        </svg>
+      )}
+    </div>
   );
 }
 
@@ -211,26 +218,26 @@ export function Sparkline({
 /* Shows "9 of the last 14 days", never "17-day streak at risk".       */
 /* ------------------------------------------------------------------ */
 
-/** Sunday, 9 August 2026 is "today" throughout this prototype's seed data. */
-const WEEKDAY_LETTERS = ["S", "M", "T", "W", "T", "F", "S"];
-function letterForOffset(offset: number) {
-  return WEEKDAY_LETTERS[((offset % 7) + 7) % 7];
-}
-
 export function ConsistencyBand({
   days,
   showDayLetters = false,
+  compact = false,
 }: {
   days: { level: EffortLevel | "rest" | null; dayOffset?: number }[];
   showDayLetters?: boolean;
+  /** A thinner strip, for a row in a list. */
+  compact?: boolean;
 }) {
+  // The letters are real weekdays. They used to assume today was a Sunday —
+  // true of the seeded demo date and of one real day in seven.
+  const today = dateKey();
   return (
     <div>
-      <div className="flex gap-1" aria-hidden="true">
+      <div className={`flex ${compact ? "gap-[3px]" : "gap-1"}`} aria-hidden="true">
         {days.map((d, i) => (
           <span
             key={i}
-            className={`h-6 flex-1 rounded-[3px] ${
+            className={`${compact ? "h-3.5 rounded-[2px]" : "h-6 rounded-[3px]"} flex-1 ${
               d.level === "stretch"
                 ? "bg-effort-stretch"
                 : d.level === "target"
@@ -245,10 +252,15 @@ export function ConsistencyBand({
         ))}
       </div>
       {showDayLetters && (
-        <div className="mt-1 flex gap-1">
+        <div className="mt-1 flex gap-1" aria-hidden="true">
           {days.map((d, i) => (
-            <span key={i} className="flex-1 text-center font-mono text-[9px] text-ink-faint">
-              {d.dayOffset !== undefined ? letterForOffset(d.dayOffset) : ""}
+            <span
+              key={i}
+              className={`flex-1 text-center font-mono text-[9px] ${
+                d.dayOffset === 0 ? "font-semibold text-ink-soft" : "text-ink-faint"
+              }`}
+            >
+              {d.dayOffset !== undefined ? dayLetter(d.dayOffset, today) : ""}
             </span>
           ))}
         </div>

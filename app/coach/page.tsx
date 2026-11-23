@@ -1,15 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ChevronRight, Check, SlidersHorizontal, X } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { bucketMeta } from "@/lib/radar";
 import MemberName from "@/components/MemberName";
 import { draftForRules } from "@/lib/replyDrafts";
 import { dateKey, longDate } from "@/lib/calendar";
-import { Sparkline } from "@/components/ui";
-import type { DailyAction, Member, PulseEntry, RadarBucket, RadarEvent } from "@/lib/types";
+import { lastDays, lastSeen } from "@/lib/dayView";
+import { ConsistencyBand, Sparkline } from "@/components/ui";
+import { toast } from "@/components/Toast";
+import type { Member, PulseEntry, RadarBucket, RadarEvent } from "@/lib/types";
 
 const ORDER: RadarBucket[] = ["attention", "prepare", "celebrate", "admin"];
 
@@ -17,42 +19,97 @@ const ORDER: RadarBucket[] = ["attention", "prepare", "celebrate", "admin"];
  * The evidence behind a flag, drawn from the same data the rule evaluated —
  * not a fresh chart. Only meaningful for buckets where a trend is the point;
  * Prepare and Administrative are single facts, not trends, so they get none.
+ *
+ * A rating over time is a line. Whether she did anything on each of fourteen
+ * days is not — it used to be drawn as a line zig-zagging between 0 and 1 —
+ * so those rules show the fourteen days themselves, the same band every other
+ * screen uses.
  */
-function sparkFor(
-  ruleId: string,
-  mine: DailyAction[],
-  myPulses: PulseEntry[]
-): { values: number[]; min: number; max: number; color: string } | null {
+type Evidence =
+  | { kind: "trend"; values: number[]; min: number; max: number; color: string }
+  | { kind: "days" }
+  | null;
+
+function evidenceFor(ruleId: string, myPulses: PulseEntry[]): Evidence {
   if (ruleId === "R03" || ruleId === "R04") {
     const key = ruleId === "R03" ? "energy" : "sleep";
     const vals = myPulses
-      .filter((p) => p.dayOffset >= -6)
+      .filter((p) => p.dayOffset >= -6 && (key === "energy" || p.sleep >= 1))
       .sort((a, b) => a.dayOffset - b.dayOffset)
       .map((p) => p[key as "energy" | "sleep"]);
-    return vals.length >= 2 ? { values: vals, min: 1, max: 5, color: "#B4674A" } : null;
+    return vals.length >= 2 ? { kind: "trend", values: vals, min: 1, max: 5, color: "#B4674A" } : null;
   }
-  if (ruleId === "R01" || ruleId === "R02" || ruleId === "R08" || ruleId === "R09") {
-    const offs = Array.from({ length: 14 }, (_, i) => i - 13);
-    const vals = offs.map((o) =>
-      mine.some((a) => a.dayOffset === o && a.completed && a.completed !== "rest") ? 1 : 0
-    );
-    const color = ruleId === "R08" || ruleId === "R09" ? "#3F6B57" : "#B4674A";
-    return { values: vals, min: 0, max: 1, color };
-  }
+  if (ruleId === "R01" || ruleId === "R02" || ruleId === "R08" || ruleId === "R09") return { kind: "days" };
   return null;
 }
 
 export default function RadarPage() {
-  const { radar, members, actions, pulses, rules, toggleRule, resolveRadar } = useStore();
+  const {
+    radar,
+    members,
+    actions,
+    pulses,
+    messages,
+    sessions,
+    foodEntries,
+    workoutLogs,
+    rules,
+    toggleRule,
+    resolveRadar,
+    reopenRadar,
+  } = useStore();
   const [showRules, setShowRules] = useState(false);
   /* Below lg the four buckets are tabs rather than columns. Stacked, they ran
      to about nine screens of scrolling for a normal day's flags, which is not
      a thing anyone does on a phone between clients. */
   const [openBucket, setOpenBucket] = useState<RadarBucket>("attention");
 
+  /* Handled takes a flag off the page at once, so it gets the same Undo the
+     member has for a mis-tap — a card that vanished used to be gone for good.
+     It names no one: this toast can be on a shared screen. */
+  /* …and the Undo covers everything handled while it is still on screen. When
+     a card goes, the next one slides up under the same finger, so a second
+     tap lands on someone else's "Handled" — one Undo has to bring back both. */
+  const lately = useRef<{ at: number; items: RadarEvent[] }>({ at: 0, items: [] });
+  const handle = (items: RadarEvent[]) => {
+    const now = Date.now();
+    const all = now - lately.current.at < 6500 ? [...lately.current.items, ...items] : items;
+    lately.current = { at: now, items: all };
+    items.forEach((i) => resolveRadar(i.id));
+    const many = all.length > 1;
+    const comesBack = !all.some((i) => i.pattern)
+      ? ""
+      : many
+      ? " Any pattern still true in a week comes back."
+      : " If it is still true in a week, it comes back.";
+    toast(
+      `${many ? `${all.length} flags handled.` : "Handled."}${comesBack}`,
+      {
+        label: "Undo",
+        run: () => {
+          all.forEach((i) => reopenRadar(i.id));
+          lately.current = { at: 0, items: [] };
+        },
+      }
+    );
+  };
+
   const byBucket = (b: RadarBucket) => radar.filter((r) => r.bucket === b && !r.resolved);
   const memberOf = (id: string) => members.find((m) => m.id === id)!;
   const openCount = radar.filter((r) => !r.resolved).length;
+
+  // The day in four numbers, each a count of people — and each a way in.
+  const data = { actions, pulses, messages, foodEntries, workoutLogs };
+  const hereToday = members.filter((m) => lastSeen(m.id, data) === 0).length;
+  const waiting = new Set(messages.filter((x) => x.from === "member" && !x.read).map((x) => x.memberId)).size;
+  const soon = sessions.filter((x) => x.status === "scheduled" && x.dayOffset >= 0 && x.dayOffset <= 1).length;
+  const quiet = members.filter((m) => m.engagement === "quiet").length;
+  const glance = [
+    { label: "Here today", value: String(hereToday), note: `of ${members.length} ${members.length === 1 ? "member" : "members"}`, href: "/coach/members" },
+    { label: "Waiting for a reply", value: String(waiting), note: waiting === 1 ? "member" : "members", href: "/coach/messages" },
+    { label: "Sessions by tomorrow", value: String(soon), note: "to prepare", href: "/coach/sessions" },
+    { label: "Gone quiet", value: String(quiet), note: quiet === 1 ? "member" : "members", href: "/coach/members?filter=quiet" },
+  ];
 
   /**
    * Flags gathered per person, in the order the Radar already ranked them.
@@ -97,6 +154,20 @@ export default function RadarPage() {
         </button>
       </div>
 
+      {members.length > 0 && (
+        <div className="mt-6 grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+          {glance.map((g) => (
+            <Link key={g.label} href={g.href} className="card press block px-4 py-3 transition-shadow hover:shadow-lift">
+              <p className="text-[12px] leading-snug text-ink-faint">{g.label}</p>
+              <p className="mt-0.5 flex items-baseline gap-1.5">
+                <span className="text-[1.5rem] font-semibold leading-tight text-ink">{g.value}</span>
+                <span className="text-[12px] text-ink-faint">{g.note}</span>
+              </p>
+            </Link>
+          ))}
+        </div>
+      )}
+
       {/* Rule transparency. The whole point: Deepika can read why anything fired. */}
       {showRules && (
         <div className="mt-6 card animate-rise p-5">
@@ -107,6 +178,11 @@ export default function RadarPage() {
                 There is no risk score here and no model. If something appeared on
                 your Radar, one of these sentences became true. Switch any of them
                 off and it stops firing immediately.
+              </p>
+              <p className="mt-2 max-w-xl text-[13px] leading-relaxed text-ink-soft">
+                <span className="font-medium text-ink">Handled</span> clears that one flag.
+                A new message, session or pain flag always shows again, and a pattern
+                that is still true comes back after a week.
               </p>
             </div>
             <button
@@ -242,14 +318,17 @@ export default function RadarPage() {
 
                     <div className="mt-2 divide-y divide-ink-line">
                       {items.map((r) => {
-                        const mine = actions.filter((a) => a.memberId === m.id);
                         const myPulses = pulses.filter((p) => p.memberId === m.id);
-                        const spark = sparkFor(r.ruleId, mine, myPulses);
+                        const spark = evidenceFor(r.ruleId, myPulses);
 
                         return (
                           <div key={r.id} className="pt-2.5 first:pt-0">
                             <div className="flex items-start gap-1.5">
-                              <p className="min-w-0 flex-1 text-[13px] leading-snug">
+                              <p
+                                className={`min-w-0 flex-1 text-[13px] leading-snug ${
+                                  r.ruleId === "R12" ? "font-medium text-attention" : ""
+                                }`}
+                              >
                                 {r.detail}
                               </p>
                               <span
@@ -260,15 +339,20 @@ export default function RadarPage() {
                               </span>
                             </div>
 
-                            {spark && (
+                            {spark?.kind === "trend" && (
                               <div className="mt-2">
                                 <Sparkline
                                   values={spark.values}
                                   min={spark.min}
                                   max={spark.max}
                                   color={spark.color}
-                                  height={22}
+                                  height={26}
                                 />
+                              </div>
+                            )}
+                            {spark?.kind === "days" && (
+                              <div className="mt-2" title="Her last 14 days, today on the right">
+                                <ConsistencyBand days={lastDays(m.id, 14, data)} compact />
                               </div>
                             )}
 
@@ -277,7 +361,7 @@ export default function RadarPage() {
                             </p>
                             {items.length > 1 && (
                               <button
-                                onClick={() => resolveRadar(r.id)}
+                                onClick={() => handle([r])}
                                 className="tap -ml-2 mt-0.5 inline-flex items-center gap-1 rounded-lg px-2 text-[12px] text-ink-faint hover:bg-paper-sunk hover:text-ink"
                               >
                                 <Check size={12} /> Handled
@@ -288,33 +372,37 @@ export default function RadarPage() {
                       })}
                     </div>
 
-                    <div className="mt-2 flex items-center gap-2">
+                    {/* Wraps instead of squeezing: in a narrow column the two
+                        ways in drop under "Handled" rather than losing letters. */}
+                    <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
                       <button
-                        onClick={() => items.forEach((i) => resolveRadar(i.id))}
-                        className="tap -ml-2 inline-flex min-w-0 items-center gap-1 rounded-lg px-2 text-[12px] text-ink-faint hover:bg-paper-sunk hover:text-ink"
+                        onClick={() => handle(items)}
+                        className="tap -ml-2 mr-auto inline-flex items-center gap-1 whitespace-nowrap rounded-lg px-2 text-[12px] text-ink-faint hover:bg-paper-sunk hover:text-ink"
                       >
                         <Check size={12} />
                         {items.length > 1 ? `All ${items.length} handled` : "Handled"}
                       </button>
-                      {(() => {
-                        // Most of what the Radar asks is "write to her": open
-                        // her page with a draft in the box, to edit and send.
-                        const draft = draftForRules(items.map((i) => i.ruleId));
-                        return draft ? (
-                          <Link
-                            href={`/coach/members/${m.id}?draft=${draft.id}`}
-                            className="tap ml-auto inline-flex items-center gap-1 whitespace-nowrap rounded-lg bg-effort-tint px-2 text-[12px] font-medium text-effort-stretch hover:bg-effort-min/40"
-                          >
-                            Write to her
-                          </Link>
-                        ) : null;
-                      })()}
-                      <Link
-                        href={`/coach/members/${m.id}`}
-                        className={`tap ${draftForRules(items.map((i) => i.ruleId)) ? "" : "ml-auto "}inline-flex items-center gap-1 rounded-lg bg-paper-sunk px-2 text-[12px] text-ink hover:bg-ink-line`}
-                      >
-                        Open <ChevronRight size={12} />
-                      </Link>
+                      <div className="ml-auto flex items-center gap-2">
+                        {(() => {
+                          // Most of what the Radar asks is "write to her": open
+                          // her page with a draft in the box, to edit and send.
+                          const draft = draftForRules(items.map((i) => i.ruleId));
+                          return draft ? (
+                            <Link
+                              href={`/coach/members/${m.id}?draft=${draft.id}`}
+                              className="tap inline-flex items-center whitespace-nowrap rounded-lg bg-effort-tint px-2.5 text-[12px] font-medium text-effort-stretch hover:bg-effort-min/40"
+                            >
+                              Write to her
+                            </Link>
+                          ) : null;
+                        })()}
+                        <Link
+                          href={`/coach/members/${m.id}`}
+                          className="tap inline-flex items-center gap-0.5 whitespace-nowrap rounded-lg bg-paper-sunk px-2.5 text-[12px] text-ink hover:bg-ink-line"
+                        >
+                          Open <ChevronRight size={12} className="shrink-0" />
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 ))}

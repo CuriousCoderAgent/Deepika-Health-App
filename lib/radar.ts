@@ -1,4 +1,4 @@
-import { daysBetween } from "./calendar";
+import { dateKey, daysBetween } from "./calendar";
 import type {
   DailyAction,
   Member,
@@ -7,6 +7,8 @@ import type {
   RadarBucket,
   RadarEvent,
   Session,
+  Workout,
+  WorkoutLog,
 } from "./types";
 
 /**
@@ -28,6 +30,18 @@ export interface RadarRule {
 }
 
 export const radarRules: RadarRule[] = [
+  /* First in the list because it is first on the page. When a member flags
+     that something hurt, her own screen tells her Deepika will see it before
+     anything else and to leave the next session until she has replied — so
+     this rule is the other half of a promise, not one signal among twelve. */
+  {
+    id: "R12",
+    name: "Something hurt",
+    bucket: "attention",
+    trigger: "She flagged that something hurt during a session in the last 4 weeks",
+    suggestedAction: "Reply before her next session — she has been told to wait for you. Coach within scope, or refer.",
+    enabled: true,
+  },
   {
     id: "R01",
     name: "No recent interaction",
@@ -134,6 +148,72 @@ export function withShippedRules(stored: RadarRule[] | undefined): RadarRule[] {
   });
 }
 
+/**
+ * "Handled", and how long it lasts.
+ *
+ * It used to be a list of `member-rule` ids kept for ever. So the first time
+ * Deepika marked "session tomorrow" as handled for someone, no later session of
+ * hers ever reached the Radar again — and the same for a message waiting, or a
+ * week of silence. The page went blind one member and one rule at a time, and
+ * nothing on it said so.
+ *
+ * Handled now means *this one*:
+ *
+ *  - A flag about one particular thing — this session, this message, this pain
+ *    flag, this symptom report — carries that thing's id. Handling it never
+ *    hides the next one, and it stays handled for good.
+ *  - A flag about a pattern — a quiet spell, low energy, sessions slipping —
+ *    has no single thing to point at. Handling it hides it for a week, and if
+ *    the pattern is still true after that, it comes back.
+ *
+ * Each entry is stored as `id|YYYY-MM-DD`, the day it was handled. Entries from
+ * before this (no date) no longer count, so anything they were hiding returns
+ * once.
+ */
+export const HANDLED_DAYS = 7;
+
+/** Enough for months of a full cohort, and a bound on a list that only grows. */
+const HANDLED_KEPT = 500;
+
+const handledId = (entry: string) => {
+  const cut = entry.lastIndexOf("|");
+  return cut < 0 ? entry : entry.slice(0, cut);
+};
+
+/** Her Handled list with this flag added, stamped with the day. */
+export function markHandled(list: string[], id: string, today: string): string[] {
+  return [...list.filter((e) => handledId(e) !== id), `${id}|${today}`].slice(-HANDLED_KEPT);
+}
+
+/** …and with it taken back off, for the Undo. */
+export function reopenHandled(list: string[], id: string): string[] {
+  return list.filter((e) => handledId(e) !== id);
+}
+
+/** Which ids are handled: `ever` for one-off flags, `lately` for patterns. */
+function handledSets(list: string[], today: string) {
+  const ever = new Set<string>();
+  const lately = new Set<string>();
+  for (const entry of list) {
+    const cut = entry.lastIndexOf("|");
+    if (cut < 0) continue;
+    const id = entry.slice(0, cut);
+    const age = daysBetween(entry.slice(cut + 1), today);
+    if (!Number.isFinite(age)) continue;
+    ever.add(id);
+    if (age < HANDLED_DAYS) lately.add(id);
+  }
+  return { ever, lately };
+}
+
+/** The most recent of some dated records, as a stable id: the newest day, and
+ *  the lowest id on that day so it does not depend on the order they arrive. */
+const newestId = (rows: { id: string; dayOffset: number }[]): string | undefined =>
+  [...rows].sort((a, b) => b.dayOffset - a.dayOffset || (a.id < b.id ? -1 : 1))[0]?.id;
+
+const whenWas = (dayOffset: number) =>
+  dayOffset >= 0 ? "today" : dayOffset === -1 ? "yesterday" : `${-dayOffset} days ago`;
+
 export function evaluateRadar(
   members: Member[],
   actions: DailyAction[],
@@ -141,19 +221,29 @@ export function evaluateRadar(
   messages: Message[],
   sessions: Session[],
   rules: RadarRule[],
-  resolvedIds: string[]
+  resolvedIds: string[],
+  workoutLogs: WorkoutLog[] = [],
+  workouts: Workout[] = [],
+  today: string = dateKey()
 ): RadarEvent[] {
   const events: RadarEvent[] = [];
   const on = (id: string) => rules.find((r) => r.id === id)?.enabled;
   const rule = (id: string) => rules.find((r) => r.id === id)!;
+  const handled = handledSets(resolvedIds, today);
 
+  /**
+   * `occurrence` is the id of the one thing this flag is about, when there is
+   * one. It must be a record's id — never a count or a day offset, which both
+   * change overnight and would hand Deepika the same flag again each morning.
+   */
   const push = (
     memberId: string,
     ruleId: string,
-    detail: string
+    detail: string,
+    occurrence?: string
   ) => {
     const r = rule(ruleId);
-    const id = `${memberId}-${ruleId}`;
+    const id = occurrence ? `${memberId}-${ruleId}-${occurrence}` : `${memberId}-${ruleId}`;
     events.push({
       id,
       memberId,
@@ -163,8 +253,9 @@ export function evaluateRadar(
       bucket: r.bucket,
       detail,
       suggestedAction: r.suggestedAction,
-      resolved: resolvedIds.includes(id),
+      resolved: occurrence ? handled.ever.has(id) : handled.lately.has(id),
       snoozed: false,
+      pattern: !occurrence,
     });
   };
 
@@ -172,6 +263,24 @@ export function evaluateRadar(
     const mine = actions.filter((a) => a.memberId === m.id);
     const myPulses = pulses.filter((x) => x.memberId === m.id);
     const myMessages = messages.filter((x) => x.memberId === m.id);
+
+    // R12 — she flagged that something hurt. One flag per session logged, so
+    // handling the first never hides a second. Kept for four weeks rather than
+    // one: this is the flag that must not age off the page unanswered.
+    if (on("R12")) {
+      const hurt = workoutLogs
+        .filter((w) => w.memberId === m.id && w.painFlag && w.dayOffset <= 0 && w.dayOffset >= -28)
+        .sort((a, b) => b.dayOffset - a.dayOffset);
+      for (const w of hurt) {
+        const name = workouts.find((x) => x.id === w.workoutId)?.name ?? "a session";
+        push(
+          m.id,
+          "R12",
+          `Flagged that something hurt in ${name}, ${whenWas(w.dayOffset)}.${w.feltLike ? ` She wrote: “${w.feltLike}”` : ""}`,
+          w.id
+        );
+      }
+    }
 
     // R01 — silence
     const touched = [
@@ -235,13 +344,13 @@ export function evaluateRadar(
     const flagged = myPulses.filter((x) => x.dayOffset >= -7 && x.symptoms.length > 0);
     if (on("R05") && flagged.length >= 2) {
       const all = Array.from(new Set(flagged.flatMap((f) => f.symptoms)));
-      push(m.id, "R05", `Reported: ${all.join(", ")}.`);
+      push(m.id, "R05", `Reported: ${all.join(", ")}.`, newestId(flagged));
     }
 
     // R06 — unanswered
     const unread = myMessages.filter((x) => x.from === "member" && !x.read);
     if (on("R06") && unread.length > 0) {
-      push(m.id, "R06", `${unread.length} message${unread.length > 1 ? "s" : ""} awaiting a reply.`);
+      push(m.id, "R06", `${unread.length} message${unread.length > 1 ? "s" : ""} awaiting a reply.`, newestId(unread));
     }
 
     // R07 — session prep
@@ -250,16 +359,22 @@ export function evaluateRadar(
     );
     if (on("R07") && upcoming.length > 0) {
       const s = upcoming[0];
-      push(m.id, "R07", `${s.type} ${s.dayOffset === 0 ? "today" : "tomorrow"} at ${s.time}.`);
+      push(m.id, "R07", `${s.type} ${s.dayOffset === 0 ? "today" : "tomorrow"} at ${s.time}.`, s.id);
     }
 
-    // R08 — comeback
-    const done = mine
-      .filter((a) => a.completed && a.completed !== "rest")
-      .map((a) => a.dayOffset)
-      .sort((a, b) => b - a);
+    // R08 — comeback. Counted in days, not completions: marking two things on
+    // the day she came back used to read as "no gap" and cancel the flag. The
+    // occurrence is what she last did *before* the gap, which stays the same
+    // however much she does on the day she returns.
+    const doneActions = mine.filter((a) => a.completed && a.completed !== "rest");
+    const done = Array.from(new Set(doneActions.map((a) => a.dayOffset))).sort((a, b) => b - a);
     if (on("R08") && done.length >= 2 && done[0] - done[1] >= 3 && done[0] >= -1) {
-      push(m.id, "R08", `First action after ${done[0] - done[1]} inactive days.`);
+      push(
+        m.id,
+        "R08",
+        `First action after ${done[0] - done[1]} inactive days.`,
+        newestId(doneActions.filter((a) => a.dayOffset === done[1]))
+      );
     }
 
     // R09 — quiet progress
@@ -285,7 +400,10 @@ export function evaluateRadar(
     }
   }
 
-  return events;
+  // A pain flag goes above everything else, whoever it belongs to. The page
+  // groups by person in the order the flags arrive, so this puts her card at
+  // the top of Needs attention and the flag at the top of her card.
+  return [...events.filter((e) => e.ruleId === "R12"), ...events.filter((e) => e.ruleId !== "R12")];
 }
 
 export const bucketMeta: Record<

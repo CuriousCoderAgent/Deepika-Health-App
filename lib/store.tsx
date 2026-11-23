@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import * as seed from "./seed";
-import { evaluateRadar, radarRules, withShippedRules, type RadarRule } from "./radar";
+import { evaluateRadar, markHandled, radarRules, reopenHandled, withShippedRules, type RadarRule } from "./radar";
 import { clockLabel, dateKey } from "./calendar";
 import {
   engagementFor,
@@ -153,7 +153,10 @@ interface Ctx extends State {
   sendMessage: (memberId: string, m: Omit<Message, "id" | "memberId">) => void;
   markRead: (memberId: string) => void;
   toggleRule: (id: string) => void;
+  /** Mark a Radar flag handled — see lib/radar.ts for how long that lasts. */
   resolveRadar: (id: string) => void;
+  /** Take a "handled" back, for the Undo. */
+  reopenRadar: (id: string) => void;
   addFeedback: (f: Omit<Feedback, "id">) => void;
   updateFeedback: (id: string, patch: Partial<Feedback>) => void;
   saveSessionNotes: (id: string, patch: Partial<Session>) => void;
@@ -464,7 +467,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       state.messages,
       state.sessions,
       state.rules,
-      state.resolvedRadar
+      state.resolvedRadar,
+      state.workoutLogs,
+      state.workouts
     );
 
     // One stamp per call and an index per entry: a typed meal saves several
@@ -686,12 +691,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         })),
 
       resolveRadar: (id) =>
-        patch((s) => ({
-          ...s,
-          resolvedRadar: s.resolvedRadar.includes(id)
-            ? s.resolvedRadar.filter((x) => x !== id)
-            : [...s.resolvedRadar, id],
-        })),
+        patch((s) => ({ ...s, resolvedRadar: markHandled(s.resolvedRadar, id, dateKey()) })),
+
+      reopenRadar: (id) =>
+        patch((s) => ({ ...s, resolvedRadar: reopenHandled(s.resolvedRadar, id) })),
 
       addFeedback: (f) =>
         patch((s) => ({ ...s, feedback: [{ ...f, id: `f-${Date.now()}` }, ...s.feedback] })),

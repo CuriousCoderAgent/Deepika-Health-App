@@ -6,6 +6,7 @@ import { useState } from "react";
 import { ChevronLeft, Check, MessageCircle } from "lucide-react";
 import { useStore } from "@/lib/store";
 import ExerciseFigure from "@/components/ExerciseFigure";
+import { REST_REASONS as REASONS } from "@/components/QuickDone";
 import type { EffortLevel } from "@/lib/types";
 
 const LEVELS: { key: EffortLevel; name: string; cls: string; ring: string }[] = [
@@ -14,7 +15,6 @@ const LEVELS: { key: EffortLevel; name: string; cls: string; ring: string }[] = 
   { key: "stretch", name: "Stretch", cls: "bg-effort-stretch", ring: "ring-effort-stretch" },
 ];
 
-const REASONS = ["Ran out of time", "Too tired", "Not feeling well", "Family came first", "Travelling"];
 
 export default function ActionDetail({ params }: { params: { id: string } }) {
   const router = useRouter();

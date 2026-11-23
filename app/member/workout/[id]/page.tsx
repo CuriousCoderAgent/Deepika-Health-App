@@ -8,7 +8,13 @@ import ExerciseFigure from "@/components/ExerciseFigure";
 import ExerciseSheet from "@/components/ExerciseSheet";
 import type { EffortLevel, ExerciseSet } from "@/lib/types";
 
-export default function WorkoutDetail({ params }: { params: { id: string } }) {
+export default function WorkoutDetail({
+  params,
+  searchParams,
+}: {
+  params: { id: string };
+  searchParams?: { day?: string };
+}) {
   const { workouts, activeMember, logWorkout, actions, completeAction } = useStore();
   const w = workouts.find((x) => x.id === params.id);
 
@@ -27,9 +33,15 @@ export default function WorkoutDetail({ params }: { params: { id: string } }) {
     );
   }
 
-  const linked = actions.find(
-    (a) => a.memberId === activeMember.id && a.dayOffset === 0 && a.workoutId === w.id
-  );
+  /* Reached from "Did one of these and didn't tap it?", the session was
+     yesterday's — and logging it against today would leave yesterday blank and
+     put a session on a day she did not train. Only yesterday, and only when
+     the session really was on her plan then; anything else is today. */
+  const on = (day: number) =>
+    actions.find((a) => a.memberId === activeMember.id && a.dayOffset === day && a.workoutId === w.id);
+  const yesterdays = searchParams?.day === "-1" ? on(-1) : undefined;
+  const day = yesterdays ? -1 : 0;
+  const linked = yesterdays ?? on(0);
 
   if (stage === "done") {
     return (
@@ -37,7 +49,7 @@ export default function WorkoutDetail({ params }: { params: { id: string } }) {
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-effort-target text-white">
           <Check size={28} strokeWidth={2.5} />
         </div>
-        <h1 className="mt-6 font-display text-2xl">Logged.</h1>
+        <h1 className="mt-6 font-display text-2xl">{day === -1 ? "Logged for yesterday." : "Logged."}</h1>
         <p className="mx-auto mt-2 max-w-[17rem] text-[15px] leading-relaxed text-ink-soft">
           {pain
             ? "You flagged discomfort, so Deepika will see this before anything else today. Do not do the next session until she has replied."
@@ -63,7 +75,9 @@ export default function WorkoutDetail({ params }: { params: { id: string } }) {
           <ChevronLeft size={16} /> Back
         </button>
 
-        <h1 className="mt-4 font-display text-2xl">How did that go?</h1>
+        <h1 className="mt-4 font-display text-2xl">
+          {day === -1 ? "How did it go yesterday?" : "How did that go?"}
+        </h1>
 
         <div className="mt-6">
           <p className="label">What did you get through?</p>
@@ -150,7 +164,7 @@ export default function WorkoutDetail({ params }: { params: { id: string } }) {
             logWorkout({
               memberId: activeMember.id,
               workoutId: w.id,
-              dayOffset: 0,
+              dayOffset: day,
               completedLevel: level,
               rpe,
               painFlag: pain,
@@ -177,14 +191,20 @@ export default function WorkoutDetail({ params }: { params: { id: string } }) {
   return (
     <div className="animate-rise px-5 pt-6">
       <Link
-        href="/member/movement"
+        href={day === -1 ? "/member" : "/member/movement"}
         className="tap -ml-2 inline-flex items-center gap-1 rounded-lg px-2 text-sm text-ink-faint hover:text-ink"
       >
-        <ChevronLeft size={16} /> Movement
+        <ChevronLeft size={16} /> {day === -1 ? "Today" : "Movement"}
       </Link>
 
       <h1 className="mt-3 font-display text-[1.55rem] leading-tight">{w.name}</h1>
       <p className="mt-1 text-[14px] leading-relaxed text-ink-soft">{w.intent}</p>
+
+      {day === -1 && (
+        <p className="mt-3 rounded-xl bg-paper-sunk/70 px-3.5 py-2.5 text-[13px] leading-relaxed text-ink-soft">
+          You&rsquo;re logging this for <span className="font-medium text-ink">yesterday</span>.
+        </p>
+      )}
 
       <div className="mt-4 grid grid-cols-3 gap-2">
         {(["minimum", "target", "stretch"] as EffortLevel[]).map((l) => (
@@ -259,7 +279,7 @@ export default function WorkoutDetail({ params }: { params: { id: string } }) {
         onClick={() => setStage("finish")}
         className="tap mt-6 w-full rounded-xl bg-ink text-sm font-medium text-white"
       >
-        I have finished
+        {day === -1 ? "I did this yesterday" : "I have finished"}
       </button>
 
       <div className="h-8" />
