@@ -358,9 +358,15 @@ export default async function google({ base, browser, db, problems, alsoRunning,
 
   const logged = app.output().split("\n").filter((line) => /\[google\]/.test(line));
   const leaked = app.output().includes(CLIENT.clientSecret) || fake.asked.some((q) => app.output().includes(q.state));
+  // The two that used to refuse without a word: an answer for another attempt
+  // (G12, "state") and a return with no attempt behind it (G14). The first
+  // real sign-in on the live site failed once on one of these, and nothing in
+  // the log said which. Pressing Cancel (G11) is not a refusal and is not logged
+  // as one.
+  const says = (words) => logged.some((line) => line.includes(`sign-in refused: ${words}`));
   check(
-    "G23 the server log names each refusal, and holds neither the client secret nor anything from an attempt",
-    logged.length >= 5 && !leaked,
-    `${logged.length} lines, e.g. ${logged.slice(0, 2).join(" | ")}`
+    "G23 the server log names each refusal — the quiet ones too — and holds neither the client secret nor anything from an attempt",
+    logged.length >= 7 && says("the state that came back is not this attempt's") && says("it came back with no attempt cookie") && !logged.some((line) => line.includes("access_denied")) && !leaked,
+    `${logged.length} lines, e.g. ${logged.slice(0, 3).join(" | ")}`
   );
 }

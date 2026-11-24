@@ -16,6 +16,12 @@
  *   4. Only then: who is this, here?
  *
  * The cookie is cleared whatever happens. An attempt is used once.
+ *
+ * She is never told which step said no. The server log is: every refusal
+ * writes one line there (`[google] sign-in refused: …`), with nothing of hers
+ * in it — no address, no code, no state. The checks in step 1 used to refuse
+ * in silence, and the first real sign-in on the live site failed once that
+ * way: nothing was left to say which check it had been.
  */
 
 import { NextResponse, type NextRequest } from "next/server";
@@ -50,7 +56,15 @@ export async function GET(req: NextRequest) {
   if (!config) return NextResponse.json({ error: "Not found." }, { status: 404 });
 
   const origin = appOrigin(req.url);
-  const flow = openFlow(req.cookies.get(FLOW_COOKIE)?.value, authSecret());
+  const sealed = req.cookies.get(FLOW_COOKIE)?.value;
+  const flow = openFlow(sealed, authSecret());
+  if (!flow && cameFromSomewhere(req)) {
+    refused(
+      sealed
+        ? "the attempt cookie was out of date, or not one of ours"
+        : "it came back with no attempt cookie — started in another browser, or more than ten minutes before"
+    );
+  }
 
   let outcome: Outcome;
   try {
@@ -66,6 +80,18 @@ export async function GET(req: NextRequest) {
   return res;
 }
 
+/** One line in the server log saying which check turned an attempt away. */
+function refused(why: string) {
+  console.warn(`[google] sign-in refused: ${why}`);
+}
+
+/** Whether this looks like a return from Google at all. A bare request to
+ *  this address — a scanner, a bookmark — is not worth a line in the log. */
+function cameFromSomewhere(req: NextRequest): boolean {
+  const params = new URL(req.url).searchParams;
+  return params.has("state") || params.has("code") || params.has("error");
+}
+
 /** The page to go back to when it did not work, and which sentence to show. */
 function sorry(flow: GoogleFlow | null, notice: string): string {
   if (flow?.intent === "link") return `/member/account?google=${notice}`;
@@ -75,13 +101,27 @@ function sorry(flow: GoogleFlow | null, notice: string): string {
 async function decide(req: NextRequest, config: GoogleConfig, flow: GoogleFlow, origin: string): Promise<Outcome> {
   const params = new URL(req.url).searchParams;
 
-  if (!sameString(params.get("state") ?? "", flow.state)) return { to: sorry(flow, "failed") };
+  if (!sameString(params.get("state") ?? "", flow.state)) {
+    refused(
+      "the state that came back is not this attempt's — a newer attempt was started in the same browser before this one returned, or the link did not come from Google"
+    );
+    return { to: sorry(flow, "failed") };
+  }
   // She pressed Cancel on Google's page, or Google declined.
-  if (params.get("error")) {
-    return { to: sorry(flow, params.get("error") === "access_denied" ? "cancelled" : "failed") };
+  const error = params.get("error");
+  if (error) {
+    // Cancelling is her choice, not a refusal.
+    if (error === "access_denied") return { to: sorry(flow, "cancelled") };
+    // Google's own word for it, and only if it looks like one of Google's:
+    // anybody can type anything after "error=".
+    refused(`Google answered with an error: ${/^[a-z_]{1,40}$/.test(error) ? error : "one that is not a word of Google's"}`);
+    return { to: sorry(flow, "failed") };
   }
   const code = params.get("code");
-  if (!code) return { to: sorry(flow, "failed") };
+  if (!code) {
+    refused("Google sent back neither a code nor an error");
+    return { to: sorry(flow, "failed") };
+  }
 
   const idToken = await exchangeCode(config, {
     code,
@@ -121,6 +161,7 @@ async function decide(req: NextRequest, config: GoogleConfig, flow: GoogleFlow, 
   // Two taps at once: the other one made the account. Sign her in to it.
   const raced = await readAccountByGoogle(person.sub);
   if (raced) return { to: "/member", session: { sub: raced.userId, role: "member", name: raced.name } };
+  refused("no account could be made — none of the usernames tried for the name was free");
   return { to: sorry(flow, "failed") };
 }
 
@@ -129,7 +170,10 @@ async function connect(req: NextRequest, flow: GoogleFlow, person: GooglePerson,
   const session = await readSessionToken(req.cookies.get(sessionCookieName)?.value);
   // Still her, still signed in — the attempt was started for one account and
   // finishes for that one or not at all.
-  if (!session || session.role !== "member" || session.sub !== flow.user) return { to: "/?google=failed" };
+  if (!session || session.role !== "member" || session.sub !== flow.user) {
+    refused("connecting Google: no longer signed in as the member who started it");
+    return { to: "/?google=failed" };
+  }
   // Deepika's own address opens the console. It cannot also open a member's account.
   if (isDeepika) return { to: "/member/account?google=in-use" };
 
