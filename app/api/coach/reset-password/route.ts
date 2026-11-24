@@ -41,7 +41,7 @@ export async function POST(req: Request) {
       result.reason === "sample"
         ? "That is a sample member, not a real account."
         : result.reason === "env"
-          ? "Her password is set in the deployment settings (the MEMBERS variable), so it can't be reset here."
+          ? "That password is set in the deployment settings (the MEMBERS variable), so it can't be reset here."
           : "There is no account with that username.";
     return NextResponse.json({ error: message }, { status: result.reason === "none" ? 404 : 409, headers: NO_STORE });
   }

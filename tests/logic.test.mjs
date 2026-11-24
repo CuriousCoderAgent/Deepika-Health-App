@@ -1026,6 +1026,74 @@ test("the library is written so that anyone assigned a module can read it about 
   assert.deepEqual(said, []);
 });
 
+/**
+ * Everything a source file can put on a screen: string literals, the fixed
+ * parts of template strings, and text between JSX tags. Comments are not part
+ * of the syntax tree, so they are not read — and here most of them say "her".
+ */
+function screenText(file, code) {
+  const ts = require("typescript");
+  const source = ts.createSourceFile(file, code, ts.ScriptTarget.Latest, true);
+  const found = [];
+  const add = (node, text) =>
+    found.push({ line: source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1, text });
+  const visit = (node) => {
+    if (ts.isImportDeclaration(node)) return; // "@/components/HerWeek" is a path, not copy
+    if (ts.isStringLiteralLike(node) || ts.isJsxText(node)) add(node, node.text);
+    else if (ts.isTemplateExpression(node)) {
+      add(node, [node.head, ...node.templateSpans.map((s) => s.literal)].map((part) => part.text).join(" … "));
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return found;
+}
+
+test("screen text is read from source, and comments are not", () => {
+  // The check below is only as good as this reader, so it is tested first.
+  const code = [
+    'import Her from "@/components/HerWeek";',
+    "// a comment may say her",
+    'const label = busy ? "Resetting…" : "Reset her password";',
+    "const line = `Week ${week} is on his Journey now.`;",
+    'const row = <p title="Her last 14 days">{/* she */} See her app <b>{name}</b></p>;',
+  ].join("\n");
+  assert.deepEqual(
+    screenText("sample.tsx", code).map((x) => `${x.line}: ${x.text.trim()}`),
+    ["3: Resetting…", "3: Reset her password", "4: Week  …  is on his Journey now.", "5: Her last 14 days", "5: See her app"]
+  );
+});
+
+test("the console never spells a member's pronoun out itself", () => {
+  // pronouns() in lib/display.ts is the one place "she" and "he" are written
+  // down. A "her" typed straight into a console string is wrong about someone:
+  // the password-reset error still said "Her password is set…" after every
+  // screen had been fixed, because an API route sends it and no page holds it.
+  //
+  // The console is these folders and the components only it uses. A component
+  // the member app shares (PulseCard, Toast) is left out: most of its text is
+  // read by members, and may say "she" of Deepika.
+  const consoleOnly =
+    /\/(app\/coach|app\/api\/coach)\/|\/components\/(HerWeek|QuickFind|MemberName|InvitePanel|ResetPassword)\.tsx$|\/lib\/(radar|replyDrafts)\.ts$/;
+  const files = ["app", "components", "lib"].flatMap(sources).filter(([file]) => consoleOnly.test(file));
+  assert.ok(files.length >= 15, `the console's files were found (${files.length})`);
+  const typed = [];
+  for (const [file, code] of files) {
+    for (const { line, text } of screenText(file, code)) {
+      // A line that names Deepika is about her, and "she" is right for her.
+      if (/\bDeepika\b/.test(text)) continue;
+      const word = text.match(/\b(she|her|hers|herself|he|him|his|himself|women|men)\b/i)?.[0];
+      if (word) typed.push(`${file.replace(/^.*\/(?=(app|components|lib)\/)/, "")}:${line}  “${word}” in: ${text.replace(/\s+/g, " ").trim().slice(0, 90)}`);
+    }
+  }
+  assert.equal(
+    typed.length,
+    0,
+    `console copy that assumes who a member is:\n  ${typed.join("\n  ")}\n` +
+      "Take the word from pronouns() in lib/display.ts, or write the sentence without one."
+  );
+});
+
 test("no screen works out today's date for itself", () => {
   // `new Date().toISOString().slice(0, 10)` is the date in London: from
   // midnight to 5:30 in the morning in India it is still yesterday there. The

@@ -338,6 +338,8 @@ each colour means semantically. Read those comments before adding a colour.
   asked. Copy about members in general says "a member". Text a member reads
   about herself — the module library above all — is written with no "she" in
   it at all. Deepika is still "she": that is who she is, not an assumption.
+  `npm run test:logic` reads the console's source for a pronoun typed straight
+  into a string — an error an API route sends to the console counts too.
 - **A rating of 0 means "not rated".** The one-tap mood saves sleep as 0. Any
   rule or sentence that reads sleep has to skip it (`lowSleepNights` in
   `lib/dayView.ts`), or a mood-only check-in reads as a bad night.
