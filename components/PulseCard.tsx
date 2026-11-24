@@ -50,6 +50,9 @@ export default function PulseCard({
 }) {
   const { members, pulses, submitPulse } = useStore();
   const existing = pulses.find((p) => p.memberId === memberId && p.dayOffset === 0);
+  // Only read when Deepika is the one filling this in: the member's own card
+  // says "you" throughout.
+  const they = pronouns(members.find((x) => x.id === memberId));
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [v, setV] = useState({
@@ -154,7 +157,9 @@ export default function PulseCard({
       </div>
 
       <div className="mt-5">
-        <p className="text-[14px] font-medium">Anything Deepika should know?</p>
+        <p className="text-[14px] font-medium">
+          {asCoach ? `Anything ${they.subject} said worth keeping?` : "Anything Deepika should know?"}
+        </p>
         <textarea
           value={note}
           onChange={(e) => setNote(e.target.value)}
@@ -176,7 +181,7 @@ export default function PulseCard({
         }}
         className="tap mt-5 w-full rounded-xl bg-effort-stretch text-sm font-medium text-white transition-opacity disabled:opacity-30"
       >
-        {asCoach ? `Save on ${pronouns(members.find((x) => x.id === memberId)).possessive} behalf` : "Done"}
+        {asCoach ? `Save on ${they.possessive} behalf` : "Done"}
       </button>
 
       {asCoach && (
@@ -186,14 +191,18 @@ export default function PulseCard({
       )}
       {!ready && (
         <p className="mt-2 text-center text-[12px] text-ink-faint">
-          All three help Deepika read the week properly.
+          {asCoach ? "Energy, sleep and mental state — all three, to save." : "All three help Deepika read the week properly."}
         </p>
       )}
     </>
   );
 
   const sheet = (
-    <BottomSheet open={sheetOpen} onClose={() => setSheetOpen(false)} title="How are you today?">
+    <BottomSheet
+      open={sheetOpen}
+      onClose={() => setSheetOpen(false)}
+      title={asCoach ? `${they.Possessive} check-in today` : "How are you today?"}
+    >
       {detailForm}
     </BottomSheet>
   );

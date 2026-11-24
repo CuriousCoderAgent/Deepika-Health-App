@@ -461,4 +461,45 @@ export default async function flow({ base, browser, db, problems, coachPassword,
       !/\b(he|him|his|himself)\b/i.test(his),
     whereItSays(his, "she|her|hers|herself|he|him|his|himself") || his.slice(0, 300)
   );
+
+  // ------------------------------ F. a check-in Deepika enters during a call
+  // "+ Add details" on Deepika's side opened nothing: the sheet it opens had
+  // nowhere to go in the console. So sleep — the one rating a mood tap cannot
+  // record — could not be entered for a member at all, nor a symptom or a
+  // note. He is still "they" here: nobody has asked him.
+  await c.getByRole("button", { name: "Overview", exact: true }).click();
+  await c.getByRole("button", { name: "+ Add details" }).click();
+  const onBehalf = c.getByRole("dialog", { name: "Their check-in today" });
+  const sheetText = (await seen(onBehalf)) ? await textOf(onBehalf) : "";
+  check(
+    "F1  the details of a check-in open in the console, worded for Deepika and not for the member",
+    says(sheetText, ["Anything they said worth keeping?", "Save on their behalf", "recorded as coach-entered"]) && !/Deepika should know|How are you/i.test(sheetText),
+    sheetText.slice(0, 240) || "no sheet opened"
+  );
+  // With no sheet there is nothing to fill in: F2 then fails on its own
+  // account rather than the run stopping at a button that is not there.
+  let closedAgain = false;
+  let pulse = null;
+  if (sheetText) {
+    for (const rating of ["Energy 4 out of 5", "Sleep 2 out of 5", "Mental state 3 out of 5"]) {
+      await onBehalf.getByRole("button", { name: rating, exact: true }).click();
+    }
+    await onBehalf.getByRole("button", { name: "Night waking", exact: true }).click();
+    await onBehalf.locator("textarea").fill("Up at three again, said so on the call");
+    await onBehalf.getByRole("button", { name: "Save on their behalf", exact: true }).click();
+    closedAgain = await gone(onBehalf);
+    const entered = (d) => d.pulses?.find((p) => p.dayOffset === 0 && p.provenance?.source === "coach_on_behalf");
+    pulse = entered(await db.memberWhen(ARJUN.username, (d) => Boolean(entered(d)))) ?? null;
+  }
+  check(
+    "F2  what she enters is saved to his day — sleep, symptom and note — and marked as entered by Deepika",
+    closedAgain &&
+      pulse?.energy === 4 &&
+      pulse?.sleep === 2 &&
+      pulse?.stress === 3 &&
+      pulse?.symptoms?.join() === "Night waking" &&
+      /three again/.test(pulse?.note ?? "") &&
+      pulse?.provenance?.enteredBy === "Deepika",
+    JSON.stringify(pulse ?? "nothing saved")
+  );
 }
