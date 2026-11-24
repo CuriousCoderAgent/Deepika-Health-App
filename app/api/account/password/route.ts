@@ -34,7 +34,7 @@ export async function POST(req: Request) {
 
   const result = await changePassword(user.sub, current, next);
   if (!result.ok) {
-    const status = result.reason === "wrong" ? 403 : result.reason === "weak" ? 400 : 409;
+    const status = result.reason === "wrong" ? 403 : result.reason === "weak" ? 400 : 409; // env, google
     return NextResponse.json({ error: result.message }, { status });
   }
   return NextResponse.json({ ok: true });

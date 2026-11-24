@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import GoogleMark from "@/components/GoogleMark";
 
 /**
  * One form for everyone, in two modes.
@@ -9,6 +10,10 @@ import { Loader2 } from "lucide-react";
  * Signing in does not ask you what kind of person you are — the account
  * decides which surface you land on, so a member is never shown a door marked
  * "coach". Creating an account is the same form with the fields it needs.
+ *
+ * Where Google sign-in is switched on (lib/google.ts) there is a second way
+ * through, under the first: "Continue with Google". It is a plain form that
+ * posts to /api/auth/google — no script from Google runs on this page.
  */
 
 const label = "block text-[13px] font-medium text-ink-soft";
@@ -29,11 +34,19 @@ function suggestUsername(name: string): string {
 export default function LoginForm({
   canSignUp,
   needsCode,
+  google = false,
+  notice = null,
+  startIn = "signin",
 }: {
   canSignUp: boolean;
   needsCode: boolean;
+  /** Whether "Continue with Google" is offered on this deployment. */
+  google?: boolean;
+  /** What to say about a Google sign-in that has just come back without one. */
+  notice?: { text: string; problem: boolean } | null;
+  startIn?: "signin" | "create";
 }) {
-  const [mode, setMode] = useState<"signin" | "create">("signin");
+  const [mode, setMode] = useState<"signin" | "create">(canSignUp ? startIn : "signin");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -45,14 +58,18 @@ export default function LoginForm({
 
   const creating = mode === "create";
 
+  const [said, setSaid] = useState(notice);
+
   const switchMode = () => {
     setMode(creating ? "signin" : "create");
     setError(null);
+    setSaid(null);
     setPassword("");
     setConfirm("");
   };
 
   const onName = (v: string) => {
+    setSaid(null);
     setName(v);
     if (!touchedUsername) setUsername(suggestUsername(v));
   };
@@ -99,140 +116,191 @@ export default function LoginForm({
     }
   }
 
+  // Creating an account with Google is still creating an account: where a
+  // join code is asked for, it is asked for here too, and checked before she
+  // is sent anywhere.
+  const googleNeedsCode = creating && needsCode && !code.trim();
+
   return (
-    <form onSubmit={submit} className="space-y-3">
-      {creating && (
-        <div>
-          <label htmlFor="name" className={label}>
-            Your name
-          </label>
-          <input
-            id="name"
-            name="name"
-            autoComplete="name"
-            value={name}
-            onChange={(e) => onName(e.target.value)}
-            className={field}
-          />
-        </div>
+    <div>
+      {said && (
+        <p
+          role={said.problem ? "alert" : "status"}
+          className={`mb-4 rounded-xl px-3 py-2.5 text-[13px] leading-relaxed ${
+            said.problem ? "bg-danger-tint text-danger" : "bg-paper-sunk/80 text-ink"
+          }`}
+        >
+          {said.text}
+        </p>
       )}
 
-      <div>
-        <label htmlFor="username" className={label}>
-          {creating ? "Choose a username" : "Username"}
-        </label>
-        <input
-          id="username"
-          name="username"
-          autoComplete={creating ? "off" : "username"}
-          autoCapitalize="none"
-          autoCorrect="off"
-          value={username}
-          onChange={(e) => {
-            setTouchedUsername(true);
-            setUsername(e.target.value);
-          }}
-          className={field}
-        />
+      <form onSubmit={submit} className="space-y-3">
         {creating && (
-          <p className="mt-1 text-[11px] text-ink-faint">
-            This is what you'll type to sign in. Letters, numbers, dots and
-            dashes.
-          </p>
+          <div>
+            <label htmlFor="name" className={label}>
+              Your name
+            </label>
+            <input
+              id="name"
+              name="name"
+              autoComplete="name"
+              value={name}
+              onChange={(e) => onName(e.target.value)}
+              className={field}
+            />
+          </div>
         )}
-      </div>
 
-      <div>
-        <label htmlFor="password" className={label}>
-          {creating ? "Create a password" : "Password"}
-        </label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete={creating ? "new-password" : "current-password"}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className={field}
-        />
-        {creating && (
-          <p className="mt-1 text-[11px] text-ink-faint">
-            At least 8 characters. Keep it somewhere safe — there's no way to
-            reset it yet.
-          </p>
-        )}
-      </div>
-
-      {creating && (
         <div>
-          <label htmlFor="confirm" className={label}>
-            Type it again
+          <label htmlFor="username" className={label}>
+            {creating ? "Choose a username" : "Username"}
           </label>
           <input
-            id="confirm"
-            name="confirm"
-            type="password"
-            autoComplete="new-password"
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            className={field}
-          />
-        </div>
-      )}
-
-      {creating && needsCode && (
-        <div>
-          <label htmlFor="code" className={label}>
-            Join code
-          </label>
-          <input
-            id="code"
-            name="code"
+            id="username"
+            name="username"
+            autoComplete={creating ? "off" : "username"}
             autoCapitalize="none"
             autoCorrect="off"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
+            value={username}
+            onChange={(e) => {
+              setSaid(null);
+              setTouchedUsername(true);
+              setUsername(e.target.value);
+            }}
             className={field}
           />
-          <p className="mt-1 text-[11px] text-ink-faint">
-            The code Deepika sent with the link.
-          </p>
+          {creating && (
+            <p className="mt-1 text-[11px] text-ink-faint">
+              This is what you'll type to sign in. Letters, numbers, dots and
+              dashes.
+            </p>
+          )}
         </div>
-      )}
 
-      {error && (
-        <p role="alert" className="rounded-xl bg-danger-tint px-3 py-2.5 text-[13px] text-danger">
-          {error}
-        </p>
-      )}
+        <div>
+          <label htmlFor="password" className={label}>
+            {creating ? "Create a password" : "Password"}
+          </label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete={creating ? "new-password" : "current-password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className={field}
+          />
+          {creating && (
+            <p className="mt-1 text-[11px] text-ink-faint">
+              At least 8 characters. Keep it somewhere safe — there's no way to
+              reset it yet.
+            </p>
+          )}
+        </div>
 
-      <button
-        type="submit"
-        disabled={busy || !ready}
-        className="tap flex w-full items-center justify-center gap-2 rounded-xl bg-effort-stretch text-sm font-medium text-white transition-opacity disabled:opacity-40"
-      >
-        {busy && <Loader2 size={15} className="animate-spin" />}
-        {busy
-          ? creating
-            ? "Creating your account…"
-            : "Signing in…"
-          : creating
-            ? "Create my account"
-            : "Sign in"}
-      </button>
+        {creating && (
+          <div>
+            <label htmlFor="confirm" className={label}>
+              Type it again
+            </label>
+            <input
+              id="confirm"
+              name="confirm"
+              type="password"
+              autoComplete="new-password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              className={field}
+            />
+          </div>
+        )}
 
-      {canSignUp && (
-        <p className="pt-1 text-center text-[13px] text-ink-soft">
-          {creating ? "Already have an account?" : "First time here?"}{" "}
+        {creating && needsCode && (
+          <div>
+            <label htmlFor="code" className={label}>
+              Join code
+            </label>
+            <input
+              id="code"
+              name="code"
+              autoCapitalize="none"
+              autoCorrect="off"
+              value={code}
+              onChange={(e) => {
+                // What was said about the last attempt stops being true the
+                // moment she starts correcting it.
+                setSaid(null);
+                setCode(e.target.value);
+              }}
+              className={field}
+            />
+            <p className="mt-1 text-[11px] text-ink-faint">
+              The code Deepika sent with the link.
+            </p>
+          </div>
+        )}
+
+        {error && (
+          <p role="alert" className="rounded-xl bg-danger-tint px-3 py-2.5 text-[13px] text-danger">
+            {error}
+          </p>
+        )}
+
+        <button
+          type="submit"
+          disabled={busy || !ready}
+          className="tap flex w-full items-center justify-center gap-2 rounded-xl bg-effort-stretch text-sm font-medium text-white transition-opacity disabled:opacity-40"
+        >
+          {busy && <Loader2 size={15} className="animate-spin" />}
+          {busy
+            ? creating
+              ? "Creating your account…"
+              : "Signing in…"
+            : creating
+              ? "Create my account"
+              : "Sign in"}
+        </button>
+
+        {canSignUp && (
+          <p className="pt-1 text-center text-[13px] text-ink-soft">
+            {creating ? "Already have an account?" : "First time here?"}{" "}
+            <button
+              type="button"
+              onClick={switchMode}
+              className="font-medium text-effort-stretch underline underline-offset-2"
+            >
+              {creating ? "Sign in" : "Create your account"}
+            </button>
+          </p>
+        )}
+      </form>
+
+      {google && (
+        <form method="post" action="/api/auth/google" className="mt-5">
+          <div className="flex items-center gap-3 text-[12px] text-ink-faint" aria-hidden="true">
+            <span className="h-px flex-1 bg-ink-line" />
+            or
+            <span className="h-px flex-1 bg-ink-line" />
+          </div>
+          <input type="hidden" name="intent" value={creating ? "create" : "signin"} />
+          {creating && needsCode && <input type="hidden" name="code" value={code} />}
           <button
-            type="button"
-            onClick={switchMode}
-            className="font-medium text-effort-stretch underline underline-offset-2"
+            type="submit"
+            disabled={googleNeedsCode}
+            className="tap mt-4 flex w-full items-center justify-center gap-2.5 rounded-xl border border-ink-line bg-white text-sm font-medium text-ink transition-opacity hover:bg-paper-sunk/40 disabled:opacity-40"
           >
-            {creating ? "Sign in" : "Create your account"}
+            <GoogleMark />
+            Continue with Google
           </button>
-        </p>
+          <p className="mt-2 text-center text-[11px] leading-relaxed text-ink-faint">
+            {creating
+              ? googleNeedsCode
+                ? "Enter the join code above first."
+                : "Makes your account from your Google name. No password to remember."
+              : "For an account you made with Google, or connected to it."}
+          </p>
+        </form>
       )}
-    </form>
+    </div>
   );
 }

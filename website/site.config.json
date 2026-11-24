@@ -4,5 +4,6 @@
   "PUBLIC_URL": "",
   "PLAY_URL": "",
   "SUPPORT_EMAIL": "",
-  "INDEXABLE": ""
+  "INDEXABLE": "",
+  "GOOGLE_SIGN_IN": ""
 }

@@ -4,6 +4,7 @@ import { Download } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { dateKey } from "@/lib/calendar";
 import { BRAND } from "@/lib/brand";
+import type { SignInInfo } from "@/components/GoogleConnection";
 
 /**
  * A copy of her own data, as a file she keeps.
@@ -13,8 +14,11 @@ import { BRAND } from "@/lib/brand";
  * holds for her, so nothing extra is fetched and nothing leaves her phone. It
  * deliberately contains only what she entered or received — not Deepika's
  * private notes, which the server never sends her (see lib/privacy.ts).
+ *
+ * The one thing held about her outside that record is the Google account she
+ * signs in with, if she connected one. It is hers to have a copy of too.
  */
-export default function DownloadData() {
+export default function DownloadData({ signIn = null }: { signIn?: SignInInfo | null }) {
   const s = useStore();
   const id = s.activeMember?.id;
 
@@ -25,6 +29,7 @@ export default function DownloadData() {
       exportedOn: dateKey(),
       from: BRAND,
       profile: s.activeMember,
+      ...(signIn?.stored ? { signIn: { password: signIn.hasPassword, googleAccount: signIn.google.email } } : {}),
       actions: mine(s.actions),
       checkIns: mine(s.pulses),
       workouts: mine(s.workoutLogs),

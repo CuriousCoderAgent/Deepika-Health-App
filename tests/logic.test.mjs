@@ -9,6 +9,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 import { readdirSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { createServer } from "node:http";
 
 const require = createRequire(import.meta.url);
 const cal = require("../.test-build/lib/calendar.js");
@@ -23,6 +25,8 @@ const display = require("../.test-build/lib/display.js");
 const rem = require("../.test-build/lib/reminders.js");
 const dv = require("../.test-build/lib/dayView.js");
 const wl = require("../.test-build/lib/workoutLog.js");
+const google = require("../.test-build/lib/google.js");
+const auth = require("../.test-build/lib/auth.js");
 
 // ---------------------------------------------------------------- fixtures
 /** Every source file under a folder, as [path, text]. */
@@ -1038,4 +1042,215 @@ test("no screen works out today's date for itself", () => {
     .filter(([, text]) => utcDate.test(text) || ownCalendar.test(text))
     .map(([file]) => file.replace(/^.*\/(app|components|lib)\//, "$1/"));
   assert.deepEqual(offenders, []);
+});
+
+// ------------------------------------------------------ signing in with Google
+const GOOGLE_ENV = { GOOGLE_CLIENT_ID: "client-1.apps.example", GOOGLE_CLIENT_SECRET: "shh" };
+const SECRET = "a-test-secret-that-is-long-enough";
+const idToken = (claims) => `${Buffer.from('{"alg":"RS256"}').toString("base64url")}.${Buffer.from(JSON.stringify(claims)).toString("base64url")}.sig`;
+const goodClaims = (over = {}) => ({
+  iss: "https://accounts.google.com", aud: "client-1.apps.example", sub: "1093847",
+  email: "meera.nair@example.com", email_verified: true, name: "Meera Nair",
+  nonce: "the-nonce-for-this-attempt", exp: Math.floor(Date.now() / 1000) + 3600, ...over,
+});
+const expecting = { clientId: "client-1.apps.example", issuers: ["https://accounts.google.com", "accounts.google.com"], nonce: "the-nonce-for-this-attempt" };
+
+test("Google sign-in is off until both keys are set, and only ever talks to Google", () => {
+  assert.equal(google.googleConfig({}), null);
+  assert.equal(google.googleConfig({ GOOGLE_CLIENT_ID: "x" }), null, "an id with no secret is not switched on");
+  assert.equal(google.googleConfig({ GOOGLE_CLIENT_SECRET: "x" }), null);
+  assert.equal(google.googleConfig({ GOOGLE_CLIENT_ID: "  ", GOOGLE_CLIENT_SECRET: "x" }), null, "blank is not set");
+
+  const on = google.googleConfig({ ...GOOGLE_ENV, COACH_GOOGLE_EMAIL: " Deepika@Example.com " });
+  assert.equal(on.authUrl, "https://accounts.google.com/o/oauth2/v2/auth");
+  assert.equal(on.tokenUrl, "https://oauth2.googleapis.com/token");
+  assert.equal(on.coachEmail, "deepika@example.com");
+  assert.equal(google.googleConfig(GOOGLE_ENV).coachEmail, null, "Deepika signs in with Google only if she says which address is hers");
+
+  // The test setting can point at this machine and nowhere else.
+  const standIn = (value) => google.googleConfig({ ...GOOGLE_ENV, GOOGLE_TEST_ISSUER: value }).tokenUrl;
+  assert.equal(standIn("http://127.0.0.1:4010"), "http://127.0.0.1:4010/token");
+  assert.equal(standIn("http://localhost:4010/"), "http://localhost:4010/token");
+  for (const elsewhere of ["https://evil.example", "http://evil.example", "http://10.0.0.5:4010", "https://127.0.0.1:4010", "http://127.0.0.1.evil.example", "not a url"]) {
+    assert.equal(standIn(elsewhere), "https://oauth2.googleapis.com/token", elsewhere);
+  }
+});
+
+test("she is sent to Google with a fresh state, nonce and challenge, and never the secret", () => {
+  const config = google.googleConfig(GOOGLE_ENV);
+  const one = google.newFlow("signin");
+  const two = google.newFlow("signin");
+  assert.notEqual(one.state, two.state);
+  assert.notEqual(one.nonce, two.nonce);
+  assert.notEqual(one.verifier, two.verifier);
+  assert.ok(one.verifier.length >= 43 && one.verifier.length <= 128 && /^[A-Za-z0-9_-]+$/.test(one.verifier), "a code verifier Google accepts");
+
+  const url = new URL(google.authorizationUrl(config, one, "https://app.example/api/auth/google/callback"));
+  const q = Object.fromEntries(url.searchParams);
+  assert.equal(url.origin + url.pathname, "https://accounts.google.com/o/oauth2/v2/auth");
+  assert.deepEqual(
+    { ...q, state: "", nonce: "", code_challenge: "" },
+    { client_id: "client-1.apps.example", redirect_uri: "https://app.example/api/auth/google/callback", response_type: "code",
+      scope: "openid email profile", state: "", nonce: "", code_challenge: "", code_challenge_method: "S256", prompt: "select_account" },
+    "exactly these, and nothing asking for more than who she is"
+  );
+  assert.equal(q.state, one.state);
+  assert.equal(q.nonce, one.nonce);
+  assert.equal(q.code_challenge, createHash("sha256").update(one.verifier).digest("base64url"));
+  assert.ok(!url.href.includes("shh") && !url.href.includes(one.verifier), "neither secret leaves in the address");
+});
+
+test("an attempt's cookie cannot be edited, reused late, or passed off as a session", async () => {
+  const now = Date.parse("2026-11-24T10:00:00Z");
+  const flow = google.newFlow("create", undefined, now);
+  const sealed = google.sealFlow(flow, SECRET);
+  assert.deepEqual(google.openFlow(sealed, SECRET, now + 60_000), flow);
+
+  assert.equal(google.openFlow(sealed, SECRET, now + 11 * 60_000), null, "ten minutes, then it is over");
+  assert.equal(google.openFlow(sealed, "another-secret", now), null);
+  assert.equal(google.openFlow(undefined, SECRET, now), null);
+  assert.equal(google.openFlow("", SECRET, now), null);
+  assert.equal(google.openFlow("nonsense", SECRET, now), null);
+
+  // "signin" rewritten to "create" — which would skip the join code — fails.
+  const [payload, signature] = google.sealFlow(google.newFlow("signin", undefined, now), SECRET).split(".");
+  const edited = Buffer.from(JSON.stringify({ ...JSON.parse(Buffer.from(payload, "base64url").toString()), intent: "create" })).toString("base64url");
+  assert.equal(google.openFlow(`${edited}.${signature}`, SECRET, now), null);
+
+  // Connecting is for one named account.
+  assert.equal(google.openFlow(google.sealFlow({ ...flow, intent: "link" }, SECRET), SECRET, now), null, "a link with nobody named");
+  assert.equal(google.openFlow(google.sealFlow(google.newFlow("link", "meera-nair", now), SECRET), SECRET, now).user, "meera-nair");
+
+  // The session cookie is signed with the same secret. Neither passes for the other.
+  process.env.AUTH_SECRET = SECRET;
+  assert.equal(await auth.readSessionToken(sealed), null, "an attempt is not a session");
+  const session = await auth.createSessionToken({ sub: "meera-nair", role: "member", name: "Meera" });
+  assert.equal(google.openFlow(session, SECRET), null, "and a session is not an attempt");
+  assert.deepEqual(await auth.readSessionToken(session), { sub: "meera-nair", role: "member", name: "Meera" });
+});
+
+test("a session has to name someone", async () => {
+  process.env.AUTH_SECRET = SECRET;
+  // Validly signed, and for nobody. This used to come back as a session whose
+  // sub was undefined — and the middleware only asks whether there is one.
+  assert.equal(await auth.readSessionToken(await auth.createSessionToken({ sub: "", role: "member", name: "" })), null);
+  assert.equal(await auth.readSessionToken(await auth.createSessionToken({ sub: "x", role: "admin", name: "" })), null);
+  assert.equal(await auth.readSessionToken(await auth.createSessionToken({ role: "coach", name: "Deepika" })), null);
+  const good = await auth.createSessionToken({ sub: "deepika", role: "coach", name: "Deepika" });
+  assert.equal((await auth.readSessionToken(good)).role, "coach");
+  assert.equal(await auth.readSessionToken(good.slice(0, -2) + "xx"), null, "a changed signature");
+});
+
+test("who Google says she is — accepted only for this app, this attempt, and a verified address", () => {
+  const read = (over, expect = expecting) => google.personFrom(google.readIdToken(idToken(goodClaims(over))), expect);
+  assert.deepEqual(read({}), { ok: true, person: { sub: "1093847", email: "meera.nair@example.com", name: "Meera Nair" } });
+  assert.equal(read({ iss: "accounts.google.com" }).ok, true, "Google uses both spellings of its own name");
+  assert.equal(read({ email_verified: "true" }).ok, true);
+  assert.equal(read({ aud: ["client-1.apps.example"] }).ok, true);
+
+  const refused = (over, expect) => { const r = read(over, expect); return r.ok ? "accepted" : r.problem; };
+  assert.equal(refused({ iss: "https://accounts.example.com" }), "issuer");
+  assert.equal(refused({ iss: undefined }), "issuer");
+  assert.equal(refused({ aud: "another-app.apps.example" }), "audience", "a token Google issued to some other app");
+  assert.equal(refused({ aud: ["client-1.apps.example", "another-app"], azp: "another-app" }), "audience");
+  assert.equal(refused({ exp: Math.floor(Date.now() / 1000) - 3600 }), "expired");
+  assert.equal(refused({ exp: "soon" }), "expired");
+  assert.equal(refused({ nonce: "the-nonce-of-an-earlier-attempt" }), "nonce", "a token from a different attempt, replayed");
+  assert.equal(refused({ nonce: undefined }), "nonce");
+  assert.equal(refused({ email_verified: false }), "unverified");
+  assert.equal(refused({ email_verified: undefined }), "unverified");
+  assert.equal(refused({ sub: "" }), "malformed");
+  assert.equal(refused({ sub: 12345 }), "malformed");
+  assert.equal(refused({ email: "not-an-address" }), "malformed");
+  assert.equal(refused({ email: undefined }), "malformed");
+
+  assert.equal(google.personFrom(null, expecting).ok, false);
+  for (const junk of [undefined, null, 42, "", "a.b", "a.b.c.d", "a.!!!.c", `a.${Buffer.from("[1,2]").toString("base64url")}.c`]) {
+    assert.equal(google.readIdToken(junk), null, String(junk));
+  }
+
+  // The name she will be known by here, when the account is made this way.
+  assert.equal(read({ name: undefined, given_name: "Meera", family_name: "Nair" }).person.name, "Meera Nair");
+  assert.equal(read({ name: "", given_name: undefined }).person.name, "meera.nair", "no name at all: the first part of the address");
+  assert.equal(read({ name: "  Meera\n\tNair\u0007  " }).person.name, "Meera Nair");
+  assert.equal(read({ name: "x".repeat(300) }).person.name.length, 80);
+});
+
+test("a username is made for someone who did not have to choose one", () => {
+  const allowed = (u) => u.length >= 3 && u.length <= 24 && /^[a-z0-9][a-z0-9._-]*$/.test(u);
+  const cases = [
+    ["Meera Nair", "meera@example.com", "meera-nair"],
+    ["Renée D’Souza", "r@example.com", "renee-d-souza"],
+    ["  Dr. A.P.J.  Iyer  ", "x@example.com", "dr-a-p-j-iyer"],
+    ["मीरा नायर", "meera.nair84@example.com", "meera-nair84"], // not writable in a-z: her address instead
+    ["Li", "li.wei@example.com", "li-wei"],
+    ["", "ab@example.com", "member"],
+    ["A Very Long Name That Goes On And On", "a@example.com", "a-very-long-name-tha"],
+  ];
+  for (const [name, email, expected] of cases) {
+    const made = google.usernameFrom(name, email);
+    assert.equal(made, expected, name);
+    assert.ok(allowed(made), `${made} obeys the rule for typed usernames`);
+  }
+
+  const tries = google.usernameCandidates("a-very-long-name-tha", () => "zz99");
+  assert.equal(tries[0], "a-very-long-name-tha", "her own name first");
+  assert.deepEqual(tries.slice(1, 4), ["a-very-long-name-tha-2", "a-very-long-name-tha-3", "a-very-long-name-tha-4"]);
+  assert.equal(tries.at(-1), "a-very-long-name-th-zz99");
+  assert.ok(tries.every(allowed), tries.filter((t) => !allowed(t)).join());
+  assert.equal(new Set(google.usernameCandidates("meera-nair")).size, 13, "thirteen different names to try");
+});
+
+test("Google is told to send her back to the address she came from", () => {
+  const url = "https://deepika.example/api/auth/google?x=1";
+  assert.equal(google.appOrigin(url, {}), "https://deepika.example");
+  assert.equal(google.appOrigin("http://localhost:3000/api/auth/google", {}), "http://localhost:3000");
+  assert.equal(google.appOrigin(url, { APP_ORIGIN: "https://app.example/some/path" }), "https://app.example", "pinned, for a server behind a proxy");
+  assert.equal(google.appOrigin(url, { APP_ORIGIN: "javascript:alert(1)" }), "https://deepika.example");
+  assert.equal(google.appOrigin(url, { APP_ORIGIN: "nonsense" }), "https://deepika.example");
+});
+
+test("the one call to Google: a token comes back, or nothing does", async () => {
+  let reply = () => ({ status: 200, body: JSON.stringify({ id_token: "h.p.s", access_token: "unused" }) });
+  let asked = null;
+  const server = createServer((req, res) => {
+    let body = "";
+    req.on("data", (d) => (body += d));
+    req.on("end", () => {
+      asked = { method: req.method, type: req.headers["content-type"], form: Object.fromEntries(new URLSearchParams(body)) };
+      const { status, body: out } = reply();
+      res.writeHead(status, { "Content-Type": "application/json" });
+      res.end(out);
+    });
+  });
+  await new Promise((r) => server.listen(0, "127.0.0.1", r));
+  const issuer = `http://127.0.0.1:${server.address().port}`;
+  const config = google.googleConfig({ ...GOOGLE_ENV, GOOGLE_TEST_ISSUER: issuer });
+  const given = { code: "the-code", verifier: "the-verifier", redirectUri: "https://app.example/api/auth/google/callback" };
+  const quiet = console.error;
+  const logged = [];
+  console.error = (...args) => logged.push(args.join(" "));
+  try {
+    assert.equal(await google.exchangeCode(config, given), "h.p.s");
+    assert.deepEqual(asked, {
+      method: "POST", type: "application/x-www-form-urlencoded",
+      form: { grant_type: "authorization_code", code: "the-code", code_verifier: "the-verifier",
+              redirect_uri: "https://app.example/api/auth/google/callback", client_id: "client-1.apps.example", client_secret: "shh" },
+    });
+
+    reply = () => ({ status: 400, body: JSON.stringify({ error: "invalid_grant", error_description: "Bad Request" }) });
+    assert.equal(await google.exchangeCode(config, given), null);
+    assert.match(logged.at(-1), /status 400, invalid_grant/, "Google's reason reaches the log");
+    reply = () => ({ status: 200, body: JSON.stringify({ access_token: "only" }) });
+    assert.equal(await google.exchangeCode(config, given), null, "no id_token, no sign-in");
+    reply = () => ({ status: 200, body: "<html>not json</html>" });
+    assert.equal(await google.exchangeCode(config, given), null);
+    reply = () => ({ status: 200, body: JSON.stringify({ id_token: "x".repeat(200_000) }) });
+    assert.equal(await google.exchangeCode(config, given), null, "a reply far too large to be a token");
+    assert.ok(logged.every((line) => !line.includes("shh") && !line.includes("the-code") && !line.includes("the-verifier")), "nothing secret is logged");
+  } finally {
+    await new Promise((r) => server.close(r));
+    assert.equal(await google.exchangeCode(config, given), null, "nobody there at all");
+    console.error = quiet;
+  }
 });

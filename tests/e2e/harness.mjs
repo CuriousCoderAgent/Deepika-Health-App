@@ -11,6 +11,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import crypto from "node:crypto";
 import fs from "node:fs";
+import http from "node:http";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
@@ -233,7 +234,8 @@ export async function startDatabase() {
     const client = await pgClient(given);
     await client.query("drop schema if exists public cascade; create schema public;");
     await client.end();
-    return { url: given, what: "the database in E2E_DATABASE_URL, emptied", stop: async () => {} };
+    // One database was given, and there is no saying whether another may be made beside it.
+    return { url: given, what: "the database in E2E_DATABASE_URL, emptied", stop: async () => {}, empty: async () => null };
   }
 
   const bin = postgresBin();
@@ -278,10 +280,20 @@ export async function startDatabase() {
     await stop();
     throw error;
   }
+  let extra = 0;
   return {
     url: `postgresql://postgres@127.0.0.1:${port}/app_e2e?sslmode=disable`,
     what: `a temporary Postgres on port ${port}`,
     stop,
+    /** A second database beside the first, with nothing in it — for checking
+     *  what the app does the very first time it meets one. */
+    empty: async () => {
+      const name = `empty${++extra}_e2e`;
+      const admin = await pgClient(`postgresql://postgres@127.0.0.1:${port}/postgres`);
+      await admin.query(`create database ${name}`);
+      await admin.end();
+      return `postgresql://postgres@127.0.0.1:${port}/${name}?sslmode=disable`;
+    },
   };
 }
 
@@ -325,9 +337,20 @@ export async function openDatabase(url) {
   const memberDoc = async (userId) =>
     (await client.query("select doc from member_state where user_id = $1", [userId])).rows[0]?.doc ?? null;
   const coachDoc = async () => (await client.query("select doc from coach_state limit 1")).rows[0]?.doc ?? {};
+  /** How someone signs in. Never the password itself, only whether there is one. */
+  const account = async (userId) =>
+    (
+      await client.query(
+        "select user_id, name, password_hash is not null as has_password, google_sub, email from account where user_id = $1",
+        [userId]
+      )
+    ).rows[0] ?? null;
+  const accounts = async () => (await client.query("select user_id from account order by created_at")).rows.map((r) => r.user_id);
   return {
     memberDoc,
     coachDoc,
+    account,
+    accounts,
     setMemberDoc: (userId, doc) =>
       client.query("update member_state set doc = $2::jsonb where user_id = $1", [userId, JSON.stringify(doc)]),
     /** Waits for her saved record to satisfy `test`, and returns it (or the last one read). */
@@ -375,10 +398,15 @@ export async function aDayPasses(db, userId, today, change = (doc) => doc) {
 /**
  * Builds the app and starts it the way it runs in production, against the
  * test database. Passwords and the signing secret are made up for the run.
+ *
+ * `settings` are extra environment variables for this copy. A second copy —
+ * `build: false`, since the first already built it — is how a suite checks
+ * something that is switched on by the deployment's settings, such as Google
+ * sign-in, while every other suite sees the app as it ships: with it off.
  */
-export async function startApp(databaseUrl) {
+export async function startApp(databaseUrl, { settings = {}, build = true } = {}) {
   const next = require.resolve("next/dist/bin/next");
-  const port = Number(process.env.E2E_PORT) || (await freePort());
+  const port = (build && Number(process.env.E2E_PORT)) || (await freePort());
   const secret = (bytes) => crypto.randomBytes(bytes).toString("base64url");
   const coachPassword = `coach-${secret(9)}`;
   const env = {
@@ -394,9 +422,19 @@ export async function startApp(databaseUrl) {
     MEMBERS: `radhika:${secret(9)}:Radhika`,
     SIGNUP_CODE: "",
     SEED_DEMO_COHORT: "1",
+    // Off unless a suite turns it on for its own copy. A key left in the shell
+    // must not switch Google sign-in on for the whole run.
+    GOOGLE_CLIENT_ID: "",
+    GOOGLE_CLIENT_SECRET: "",
+    GOOGLE_TEST_ISSUER: "",
+    COACH_GOOGLE_EMAIL: "",
+    APP_ORIGIN: "",
+    ...settings,
   };
 
-  if (process.env.E2E_SKIP_BUILD) {
+  if (!build) {
+    // The first copy built it.
+  } else if (process.env.E2E_SKIP_BUILD) {
     if (!fs.existsSync(path.join(ROOT, ".next", "BUILD_ID"))) {
       throw new Error("E2E_SKIP_BUILD is set, but there is no build in .next. Run `npm run build` first.");
     }
@@ -498,15 +536,22 @@ export async function shot(page, name, options = {}) {
 
 // ------------------------------------------------------------------ people
 /** Creates an account through the sign-up form and walks the first-run questions.
- *  `gender` is the button to press on the "about you" step: Woman, Man or Other. */
-export async function signUpAndOnboard(page, base, { name, username, password, gender = "Woman" }) {
+ *  `gender` is the button to press on the "about you" step: Woman, Man or Other.
+ *  `code` is the join code, on a copy of the app that asks for one. */
+export async function signUpAndOnboard(page, base, { name, username, password, gender = "Woman", code }) {
   await page.goto(`${base}/`, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "Create your account" }).click();
   await page.fill('input[name="name"]', name);
   await page.fill('input[name="username"]', username);
   await page.fill('input[name="password"]', password);
   await page.fill('input[name="confirm"]', password);
-  await page.click('button[type="submit"]');
+  if (code) await page.fill('input[name="code"]', code);
+  await page.getByRole("button", { name: "Create my account", exact: true }).click();
+  await onboard(page, { gender });
+}
+
+/** The first-run questions, from wherever she arrived — a new password or Google. */
+export async function onboard(page, { gender = "Woman" } = {}) {
   await page.waitForURL(/\/onboarding/, { timeout: 30_000 });
 
   const proceed = () => page.getByRole("button", { name: "Continue", exact: true }).click();
@@ -530,7 +575,112 @@ export async function signInAsCoach(page, base, password) {
   await page.goto(`${base}/`, { waitUntil: "networkidle" });
   await page.fill('input[name="username"]', "deepika");
   await page.fill('input[name="password"]', password);
-  await page.click('button[type="submit"]');
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await page.waitForURL(/\/coach/, { timeout: 30_000 });
   await seen(page.getByRole("heading", { name: "Radar" }), 15_000);
 }
+
+// ------------------------------------------------------------- a stand-in for Google
+/**
+ * Something for "Continue with Google" to talk to.
+ *
+ * The real Google cannot be used in a test: it wants a person, a password and
+ * often a phone. This plays its part on this machine — the page that asks
+ * which account, and the address the app's server swaps a code at — and does
+ * what the test tells it to: sign in as this person, press Cancel, or
+ * misbehave in one particular way.
+ *
+ * It is strict about the things Google is strict about, so the app is checked
+ * on them: the client secret, the address to come back to, a code used only
+ * once, and that the verifier the server sends matches the challenge the
+ * browser carried (PKCE).
+ */
+export async function startFakeGoogle({ clientId, clientSecret }) {
+  const codes = new Map();
+  const next = { person: null, cancel: false, wrong: null };
+  /** What the app sent her to Google with, and each swap of a code. */
+  const asked = [];
+  const swaps = [];
+  let origin = "";
+
+  const b64 = (value) => Buffer.from(JSON.stringify(value)).toString("base64url");
+
+  const server = http.createServer((req, res) => {
+    const url = new URL(req.url, origin);
+
+    if (req.method === "GET" && url.pathname === "/o/oauth2/v2/auth") {
+      const q = Object.fromEntries(url.searchParams);
+      asked.push(q);
+      const back = new URL(q.redirect_uri);
+      back.searchParams.set("state", next.wrong === "state" ? "the-state-of-someone-elses-attempt" : q.state);
+      if (next.cancel) {
+        back.searchParams.set("error", "access_denied");
+      } else {
+        const code = crypto.randomBytes(12).toString("hex");
+        codes.set(code, { q, person: next.person, wrong: next.wrong });
+        back.searchParams.set("code", code);
+      }
+      res.writeHead(302, { Location: back.toString() });
+      res.end();
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/token") {
+      let body = "";
+      req.on("data", (chunk) => (body += chunk));
+      req.on("end", () => {
+        const form = Object.fromEntries(new URLSearchParams(body));
+        const held = codes.get(form.code);
+        codes.delete(form.code); // a code works once
+        const pkce = Boolean(held) && held.q.code_challenge_method === "S256" &&
+          crypto.createHash("sha256").update(form.code_verifier ?? "").digest("base64url") === held.q.code_challenge;
+        const ok = pkce && form.grant_type === "authorization_code" && form.client_id === clientId &&
+          form.client_secret === clientSecret && form.redirect_uri === held.q.redirect_uri;
+        swaps.push({ ok, pkce, known: Boolean(held) });
+        res.setHeader("Content-Type", "application/json");
+        if (!ok) {
+          res.writeHead(400);
+          res.end(JSON.stringify({ error: "invalid_grant" }));
+          return;
+        }
+        const now = Math.floor(Date.now() / 1000);
+        const { person, wrong, q } = held;
+        const claims = {
+          iss: wrong === "issuer" ? "https://accounts.elsewhere.example" : origin,
+          aud: wrong === "audience" ? "some-other-app.apps.example" : clientId,
+          sub: person.sub,
+          email: person.email,
+          email_verified: person.verified !== false,
+          name: person.name,
+          nonce: wrong === "nonce" ? "the-nonce-of-an-earlier-attempt" : q.nonce,
+          iat: now,
+          exp: wrong === "expired" ? now - 3600 : now + 3600,
+        };
+        res.writeHead(200);
+        res.end(JSON.stringify({ access_token: "not-used", token_type: "Bearer", expires_in: 3600, id_token: `${b64({ alg: "RS256" })}.${b64(claims)}.unsigned` }));
+      });
+      return;
+    }
+
+    res.writeHead(404);
+    res.end();
+  });
+
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  origin = `http://127.0.0.1:${server.address().port}`;
+  const set = (change) => Object.assign(next, { person: next.person, cancel: false, wrong: null }, change);
+
+  return {
+    origin,
+    asked,
+    swaps,
+    /** The next visit signs in as this person: { sub, email, name, verified? }. */
+    signsInAs: (person) => set({ person }),
+    /** The next visit: she presses Cancel on Google's page. */
+    cancels: () => set({ cancel: true }),
+    /** The next visit goes wrong in one way: state, nonce, audience, issuer or expired. */
+    getsWrong: (wrong, person = next.person) => set({ person, wrong }),
+    stop: () => new Promise((resolve) => server.close(resolve)),
+  };
+}
+

@@ -22,9 +22,8 @@ import {
   passwordProblem,
   usernameProblem,
 } from "@/lib/accounts";
-import { createSessionToken, sessionCookieName, sessionMaxAge } from "@/lib/auth";
 import { isConfigured } from "@/lib/db";
-import { encodeUserCookie, USER_COOKIE } from "@/lib/session-client";
+import { startSession } from "@/lib/sessionCookies";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -77,16 +76,6 @@ export async function POST(req: Request) {
   // Signed up means signed in. Making someone type the password they chose
   // four seconds ago proves nothing.
   const res = NextResponse.json({ role: user.role });
-  const cookie = {
-    sameSite: "lax" as const,
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: sessionMaxAge,
-  };
-  res.cookies.set(sessionCookieName, await createSessionToken(user), {
-    ...cookie,
-    httpOnly: true,
-  });
-  res.cookies.set(USER_COOKIE, encodeUserCookie(user), { ...cookie, httpOnly: false });
+  await startSession(res, user);
   return res;
 }

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Loader2, ShieldCheck, Trash2 } from "lucide-react";
+import { ArrowLeft, KeyRound, Loader2, ShieldCheck, Trash2 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import ChangePassword from "@/components/ChangePassword";
+import GoogleConnection, { type SignInInfo } from "@/components/GoogleConnection";
 import ShareApp from "@/components/ShareApp";
 import DownloadData from "@/components/DownloadData";
 import Reminders from "@/components/Reminders";
@@ -24,6 +25,32 @@ export default function Account() {
 
   const username = session?.sub ?? m.id;
   const canDelete = confirm.trim().toLowerCase() === username.toLowerCase();
+
+  /* How she signs in — a password, Google, or both. Asked of the server
+     rather than kept in her record: it is about the account, not her health,
+     and Deepika has no use for it. Nothing is shown until it has answered. */
+  const [signIn, setSignIn] = useState<SignInInfo | null>(null);
+  const [googleNotice, setGoogleNotice] = useState<string | null>(null);
+  const loadSignIn = useCallback(() => {
+    // If it cannot be asked — offline, say — the page falls back to what it
+    // showed before any of this existed: the password form, and no Google.
+    const unknown: SignInInfo = { stored: false, hasPassword: true, google: { available: false, email: null } };
+    fetch("/api/account", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : unknown))
+      .then((info: SignInInfo) => setSignIn(info))
+      .catch(() => setSignIn(unknown));
+  }, []);
+  useEffect(() => {
+    loadSignIn();
+    // Back from Google: say what happened, once, then take it out of the
+    // address so a reload or a shared screenshot does not say it again.
+    const params = new URLSearchParams(window.location.search);
+    const word = params.get("google");
+    if (word) {
+      setGoogleNotice(word);
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, [loadSignIn]);
 
   async function remove() {
     setBusy(true);
@@ -80,11 +107,33 @@ export default function Account() {
 
       <Reminders />
 
-      <DownloadData />
+      <DownloadData signIn={signIn} />
 
       <ShareApp />
 
-      <ChangePassword />
+      {signIn && (
+        <GoogleConnection
+          info={signIn}
+          notice={googleNotice}
+          onChanged={() => {
+            setGoogleNotice(null);
+            loadSignIn();
+          }}
+        />
+      )}
+
+      {!signIn ? null : signIn.stored && !signIn.hasPassword ? (
+        <div className="mt-3 rounded-2xl border border-ink-line bg-paper-card p-4">
+          <p className="flex items-center gap-2 text-[15px] font-medium">
+            <KeyRound size={16} className="text-effort-stretch" /> Password
+          </p>
+          <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">
+            You sign in with Google, so there is no password on this account to change.
+          </p>
+        </div>
+      ) : (
+        <ChangePassword />
+      )}
 
       <div className="mt-8 rounded-2xl border border-danger/25 bg-danger-tint/40 p-4">
         <p className="flex items-center gap-2 text-[15px] font-medium text-danger">

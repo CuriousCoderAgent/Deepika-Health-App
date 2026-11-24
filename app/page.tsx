@@ -9,6 +9,7 @@ import {
   sessionsAreSecure,
 } from "@/lib/auth";
 import { isConfigured } from "@/lib/db";
+import { googleConfig } from "@/lib/google";
 import LoginForm from "./login/LoginForm";
 
 export const dynamic = "force-dynamic";
@@ -21,9 +22,36 @@ export const dynamic = "force-dynamic";
  * someone to classify themselves before signing in is a prototype's habit,
  * not a product's.
  */
-export default async function Home() {
+/**
+ * What to say when "Continue with Google" comes back without signing her in.
+ * The route (app/api/auth/google/callback) only ever sends one of these words;
+ * anything else in the address is ignored, so nothing typed into it can put
+ * its own sentence on this page.
+ */
+const GOOGLE_NOTICES: Record<string, { text: string; problem: boolean }> = {
+  "no-account": {
+    text: "No account here is connected to that Google account yet. New here? Choose “Create your account” below, then Continue with Google. Already have one? Sign in with your username, and connect Google from Your account.",
+    problem: false,
+  },
+  cancelled: { text: "Google sign-in was cancelled. Nothing was changed.", problem: false },
+  failed: {
+    text: "Google sign-in didn’t go through. Please try again, or sign in with your username.",
+    problem: true,
+  },
+  unverified: {
+    text: "Google hasn’t confirmed that email address yet, so it can’t be used to sign in here.",
+    problem: true,
+  },
+  code: { text: "That join code isn’t right.", problem: true },
+  closed: { text: "Signing up isn’t open on this deployment. Deepika can add you.", problem: false },
+};
+
+export default async function Home(props: {
+  searchParams: Promise<{ google?: string | string[]; mode?: string | string[] }>;
+}) {
   const session = await readSessionToken((await cookies()).get(sessionCookieName)?.value);
   if (session) redirect(session.role === "coach" ? "/coach" : "/member");
+  const searchParams = await props.searchParams;
 
   const insecure = !sessionsAreSecure();
   // Self-signup needs somewhere to put the account. An environment variable is
@@ -32,6 +60,9 @@ export default async function Home() {
   // isConfigured() knows every name a provider might have used — see lib/db.ts.
   const canSignUp = isConfigured();
   const needsCode = Boolean(process.env.SIGNUP_CODE?.trim());
+  const google = Boolean(googleConfig());
+  const word = typeof searchParams?.google === "string" ? searchParams.google : "";
+  const notice = google && Object.hasOwn(GOOGLE_NOTICES, word) ? GOOGLE_NOTICES[word] : null;
 
   return (
     <main className="relative min-h-dvh overflow-hidden bg-paper">
@@ -61,7 +92,13 @@ export default async function Home() {
         </header>
 
         <div className="mt-8">
-          <LoginForm canSignUp={canSignUp} needsCode={needsCode} />
+          <LoginForm
+            canSignUp={canSignUp}
+            needsCode={needsCode}
+            google={google}
+            notice={notice}
+            startIn={searchParams?.mode === "create" ? "create" : "signin"}
+          />
         </div>
 
         {insecure && (

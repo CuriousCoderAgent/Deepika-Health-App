@@ -108,9 +108,17 @@ export function ensureReady(): Promise<void> {
   return ready;
 }
 
+/* Postgres runs several statements sent together as one transaction, so a
+   lock taken at the top of such a batch is held to its end. Two servers
+   starting at the same moment then take turns: without it, both can find a
+   table missing and both try to create it, and "if not exists" does not save
+   the second one — it fails, on a fresh database, for whoever asked first. */
+const SCHEMA_LOCK = "select pg_advisory_xact_lock(724310);";
+
 async function init(): Promise<void> {
   const c = db();
   await c.query(`
+    ${SCHEMA_LOCK}
     create table if not exists member_state (
       user_id    text primary key,
       name       text not null default '',
@@ -158,6 +166,8 @@ async function init(): Promise<void> {
     create index if not exists push_subscription_user on push_subscription (user_id);
   `);
 
+  await migrate(c);
+
   // The marker, not a row count, decides whether to seed. Counting would
   // resurrect the demo cohort the day Deepika deletes it, which is exactly
   // what she would be doing on purpose before real members arrive.
@@ -186,6 +196,41 @@ async function init(): Promise<void> {
     `insert into app_meta (key, value) values ($1, $2) on conflict (key) do nothing`,
     [BOOTSTRAP_KEY, BOOTSTRAP_VERSION]
   );
+}
+
+/**
+ * Changes to tables that already exist somewhere.
+ *
+ * `create table if not exists` does nothing to a table a deployment already
+ * has, so a new column needs saying separately. Each change runs once per
+ * database — a row in app_meta records it — and is written so that running it
+ * twice would do no harm anyway. It takes the same lock as the tables above,
+ * for the same reason.
+ */
+const MIGRATIONS: [name: string, sql: string][] = [
+  [
+    // Signing in with Google (lib/google.ts). An account made that way has no
+    // password, so the column may now be empty; google_sub is Google's id for
+    // her account, and no two accounts here may share one.
+    "account_google",
+    `alter table account alter column password_hash drop not null;
+     alter table account add column if not exists google_sub text;
+     alter table account add column if not exists email text;
+     create unique index if not exists account_google_sub on account (google_sub) where google_sub is not null;`,
+  ],
+];
+
+async function migrate(c: Pool): Promise<void> {
+  for (const [name, sql] of MIGRATIONS) {
+    const key = `migration:${name}`;
+    const done = await c.query("select 1 from app_meta where key = $1", [key]);
+    if (done.rowCount) continue;
+    await c.query(
+      `${SCHEMA_LOCK}
+       ${sql}
+       insert into app_meta (key, value) values ('${key}', '1') on conflict (key) do nothing;`
+    );
+  }
 }
 
 export async function readMemberDoc(userId: string): Promise<MemberDoc | null> {
@@ -232,14 +277,72 @@ export async function writeCoachDoc(userId: string, doc: CoachDoc): Promise<void
 /* before they get here and this module never sees a plaintext one.     */
 /* ------------------------------------------------------------------ */
 
+const ACCOUNT_COLUMNS = "user_id, name, password_hash, google_sub, email";
+
+function toAccount(row: any): StoredAccount | null {
+  if (!row) return null;
+  return {
+    userId: row.user_id,
+    name: row.name,
+    hash: row.password_hash ?? null,
+    googleSub: row.google_sub ?? null,
+    email: row.email ?? null,
+  };
+}
+
 export async function readAccount(userId: string): Promise<StoredAccount | null> {
   await ensureReady();
+  const r = await db().query(`select ${ACCOUNT_COLUMNS} from account where user_id = $1`, [userId]);
+  return toAccount(r.rows[0]);
+}
+
+/** The account a Google account is connected to, if any. */
+export async function readAccountByGoogle(googleSub: string): Promise<StoredAccount | null> {
+  await ensureReady();
+  const r = await db().query(`select ${ACCOUNT_COLUMNS} from account where google_sub = $1`, [googleSub]);
+  return toAccount(r.rows[0]);
+}
+
+/**
+ * Connects a Google account to an existing account here.
+ *
+ * "in-use" when that Google account already opens a different one: one Google
+ * account must only ever lead to one place, or signing in with it would be a
+ * coin toss. The unique index is what enforces it; the check is what lets
+ * this say so politely.
+ */
+export async function linkGoogle(
+  userId: string,
+  googleSub: string,
+  email: string
+): Promise<"ok" | "in-use" | "none"> {
+  await ensureReady();
+  try {
+    const r = await db().query(
+      `update account set google_sub = $2, email = $3
+        where user_id = $1
+          and not exists (select 1 from account where google_sub = $2 and user_id <> $1)`,
+      [userId, googleSub, email]
+    );
+    if ((r.rowCount ?? 0) > 0) return "ok";
+    return (await readAccount(userId)) ? "in-use" : "none";
+  } catch (err: any) {
+    if (err?.code === "23505") return "in-use";
+    throw err;
+  }
+}
+
+/**
+ * Disconnects Google — only from an account that has a password. Taking the
+ * only way in off an account is a way of losing it.
+ */
+export async function unlinkGoogle(userId: string): Promise<boolean> {
+  await ensureReady();
   const r = await db().query(
-    "select user_id, name, password_hash from account where user_id = $1",
+    "update account set google_sub = null, email = null where user_id = $1 and password_hash is not null",
     [userId]
   );
-  const row = r.rows[0];
-  return row ? { userId: row.user_id, name: row.name, hash: row.password_hash } : null;
+  return (r.rowCount ?? 0) > 0;
 }
 
 /**
@@ -247,14 +350,15 @@ export async function readAccount(userId: string): Promise<StoredAccount | null>
  * same moment must end with one account and one clear failure, not with the
  * second silently taking over the first one's row.
  *
- * Returns false when the name was already taken.
+ * Returns false when the name was already taken — or, for an account made by
+ * signing in with Google, when that Google account already has one.
  */
 export async function writeAccount(a: StoredAccount): Promise<boolean> {
   await ensureReady();
   const r = await db().query(
-    `insert into account (user_id, name, password_hash) values ($1, $2, $3)
-     on conflict (user_id) do nothing`,
-    [a.userId, a.name, a.hash]
+    `insert into account (user_id, name, password_hash, google_sub, email) values ($1, $2, $3, $4, $5)
+     on conflict do nothing`,
+    [a.userId, a.name, a.hash, a.googleSub ?? null, a.email ?? null]
   );
   return (r.rowCount ?? 0) > 0;
 }

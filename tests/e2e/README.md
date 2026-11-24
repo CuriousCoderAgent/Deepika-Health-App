@@ -3,7 +3,7 @@
 The real app, in a real browser, against a real database.
 
 ```bash
-npm run test:e2e              # everything — about a minute and a half
+npm run test:e2e              # everything — about two minutes
 npm run test:e2e -- sheets    # one suite
 ```
 
@@ -23,6 +23,8 @@ that a sheet does not move the page it opens over.
 | --- | --- |
 | `flow.mjs` | One member's first two days, then what Deepika sees of them: sign-up, marking and un-marking, the check-in, the history, a session logged for yesterday with a pain flag, the Radar, Handled and Undo, quick find, her page, a second pain flag, the same session saved twice — and a second member, a man, to check what the console calls him. |
 | `sheets.mjs` | Every bottom sheet, with animations **on and off**: the frame must not move, exactly the right sheet must be open, and keyboard focus must be inside it. |
+| `google.mjs` | "Continue with Google". First that the app as it ships — no keys set — says nothing about Google. Then, on a second copy of the app with keys set and a stand-in for Google on this machine: creating an account, signing back in, connecting and disconnecting, each way it can be refused, and Deepika's own sign-in. Reads the account table as well as the screen. |
+| `starting.mjs` | Two copies of the app meeting an empty database at the same moment, which is what a new deployment's first two visitors do. Both must come up. (Skipped when the run was given a database of its own to use.) |
 | `refused.mjs` | Requests the app never makes and must turn away: the image-resizing address, and POSTs to a page. No browser — plain requests, the kind a scanner sends. See "The Next.js version" in `docs/DEPLOYMENT.md` for why they matter. |
 | `harness.mjs` | The database, the app, the browser, and the helpers the suites read the page and the tables with. |
 | `run.mjs` | Runs the suites and reports. |
@@ -96,6 +98,20 @@ Each run starts from an empty database with the six sample members seeded, so
 the suites do not depend on each other; they do depend on those samples
 (someone has been quiet, someone has a session tomorrow). If `lib/seed.ts`
 changes, some of what the Radar checks expect may need to follow.
+
+## A second copy of the app
+
+Some things are switched on by the deployment's settings, not by anything a
+member does. A suite that needs one asks for `anotherApp({ SETTING: "value" })`:
+a second copy of the same build, on the same database, with those settings.
+Every other suite keeps seeing the app as it ships.
+
+`startFakeGoogle` in the harness is the other half of that for Google sign-in:
+a small server on this machine that plays Google's part and does what the test
+tells it — sign in as this person, press Cancel, send back an answer meant for
+somebody else. The app only accepts a stand-in at a loopback address
+(`GOOGLE_TEST_ISSUER`, `lib/google.ts`), so the setting cannot point real
+sign-ins anywhere.
 
 ## Adding to it
 
