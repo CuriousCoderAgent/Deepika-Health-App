@@ -1,4 +1,5 @@
 import type { EngagementState, Member } from "./types";
+import { members as sampleMembers } from "./seed";
 
 /**
  * How a member is named in the coach console.
@@ -35,6 +36,53 @@ export function initialsOf(m: Member): string {
     .join("")
     .slice(0, 2)
     .toUpperCase() || memberCode(m).slice(0, 2);
+}
+
+/**
+ * The words the console uses for a member when it is not using a name.
+ *
+ * Every line of the console used to say "her". Most members are women — but
+ * onboarding asks, and offers "Man" and "Other", so the console was calling
+ * some members something they had just told it they were not. Nobody is
+ * assumed: someone who has not said, which includes everyone who joined before
+ * the question was asked, is "they".
+ *
+ * Use it for a sentence about one member: `What ${they.subject} ${they.is}
+ * trying to get to`. Copy about members in general does not need it — write
+ * "a member", "members".
+ */
+export interface Pronouns {
+  /** she · he · they */
+  subject: string;
+  /** her · him · them */
+  object: string;
+  /** her · his · their — in front of a noun */
+  possessive: string;
+  /** herself · himself · themselves */
+  reflexive: string;
+  /** She · He · They, to start a sentence */
+  Subject: string;
+  /** Her · His · Their, to start a sentence */
+  Possessive: string;
+  /** "s" after she and he, nothing after they: `${subject} see${s} this` */
+  s: string;
+  /** is · are */
+  is: string;
+}
+
+const SHE: Pronouns = { subject: "she", object: "her", possessive: "her", reflexive: "herself", Subject: "She", Possessive: "Her", s: "s", is: "is" };
+const HE: Pronouns = { subject: "he", object: "him", possessive: "his", reflexive: "himself", Subject: "He", Possessive: "His", s: "s", is: "is" };
+const THEY: Pronouns = { subject: "they", object: "them", possessive: "their", reflexive: "themselves", Subject: "They", Possessive: "Their", s: "", is: "are" };
+
+/* The six sample members are written as women. A copy of one that was stored
+   before the question existed has no answer on it, and reads as the seed says. */
+const SAMPLE_GENDER = new Map(sampleMembers.map((m) => [m.id, m.gender]));
+
+export function pronouns(member?: Pick<Member, "id" | "gender"> | null): Pronouns {
+  const gender = member?.gender ?? (member ? SAMPLE_GENDER.get(member.id) : undefined);
+  if (gender === "woman") return SHE;
+  if (gender === "man") return HE;
+  return THEY;
 }
 
 /** Search matches a name, a first name, or the username. */

@@ -497,8 +497,9 @@ export async function shot(page, name, options = {}) {
 }
 
 // ------------------------------------------------------------------ people
-/** Creates an account through the sign-up form and walks the first-run questions. */
-export async function signUpAndOnboard(page, base, { name, username, password }) {
+/** Creates an account through the sign-up form and walks the first-run questions.
+ *  `gender` is the button to press on the "about you" step: Woman, Man or Other. */
+export async function signUpAndOnboard(page, base, { name, username, password, gender = "Woman" }) {
   await page.goto(`${base}/`, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "Create your account" }).click();
   await page.fill('input[name="name"]', name);
@@ -512,7 +513,7 @@ export async function signUpAndOnboard(page, base, { name, username, password })
   await proceed(); // welcome
   await page.getByRole("button", { name: /Store what I log/ }).click();
   await proceed(); // consent
-  await page.getByRole("button", { name: "Woman", exact: true }).click();
+  await page.getByRole("button", { name: gender, exact: true }).click();
   await page.fill("#age", "44");
   await page.locator('p:has-text("Where you are right now") + div button').first().click();
   await proceed(); // about you

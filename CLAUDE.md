@@ -193,6 +193,15 @@ Fonts load via `<link>` in `app/layout.tsx`, deliberately not `next/font` —
 build-time font fetching turns a transient network blip into a failed deploy.
 Keep it that way.
 
+**Next 14 no longer gets security fixes**, and two things it leaves switched on
+are shut here because of that: the image-resizing address (`next.config.mjs`)
+and POSTs to a page (`middleware.ts`, `app/api/[...missing]`). So until the
+app moves to Next 16: no Server Actions, no `<form>` that posts to a page, no
+`next/image`, no rewrite or redirect to another host, no `fetch` in server
+code. Every save goes to a route under `/api`. The reasoning, advisory by
+advisory, is in `docs/DEPLOYMENT.md` under "The Next.js version", and
+`tests/e2e/refused.mjs` checks the doors stay shut.
+
 ---
 
 ## Code map
@@ -220,6 +229,8 @@ lib/
   store.tsx                 Context, localStorage, all mutations
   calendar.ts               Dates in India time; the one definition of "today"
   dailyPlan.ts              Roll a member forward a day; build today's actions
+  workoutLog.ts             One record per session and day; saving again corrects
+                            it, and when that counts as a new pain flag
   starterPlan.ts            The 12-week plan a new member starts on
   privacy.ts                What a member may read/write of her own document
   foodParse.ts              "2 rotis and dal" → entries she checks; a word matcher, not AI
@@ -227,7 +238,8 @@ lib/
   push.ts                   Web Push sending and VAPID keys — server-only
   replyDrafts.ts            Drafts for Deepika's messages, suggested by the Radar
   display.ts                Members by name in the console; initials behind the
-                            privacy screen (privacyScreen.ts, per device)
+                            privacy screen (privacyScreen.ts, per device); and
+                            she / he / they for a member — pronouns()
   useWidth.ts               A chart's real pixel width, so it is drawn, not stretched
 components/
   ui.tsx                    EffortRamp, ProvenanceChip, ConsistencyBand, Sparkline
@@ -305,6 +317,12 @@ each colour means semantically. Read those comments before adding a colour.
   message, a pain flag, a symptom report) carries that record's id; a flag
   about a pattern comes back after a week if still true. Never key a flag on
   a count or a day offset — both change overnight. See `lib/radar.ts`.
+- **Not every member is "she".** Onboarding asks, and offers Man and Other. A
+  sentence in the console about one member takes its words from
+  `pronouns(member)` in `lib/display.ts` — "they" for anyone who was never
+  asked. Copy about members in general says "a member". Text a member reads
+  about herself — the module library above all — is written with no "she" in
+  it at all. Deepika is still "she": that is who she is, not an assumption.
 - **A rating of 0 means "not rated".** The one-tap mood saves sleep as 0. Any
   rule or sentence that reads sleep has to skip it (`lowSleepNights` in
   `lib/dayView.ts`), or a mood-only check-in reads as a bad night.

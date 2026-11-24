@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import { ChevronRight, Check, SlidersHorizontal, X } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { pronouns } from "@/lib/display";
 import { bucketMeta } from "@/lib/radar";
 import MemberName from "@/components/MemberName";
 import { draftForRules } from "@/lib/replyDrafts";
@@ -140,7 +141,7 @@ export default function RadarPage() {
           <p className="label">{longDate(dateKey())}</p>
           <h1 className="mt-2 font-display text-4xl leading-tight">Radar</h1>
           <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-ink-soft">
-            {members.length} {members.length === 1 ? "woman" : "women"},{" "}
+            {members.length} {members.length === 1 ? "member" : "members"},{" "}
             {openCount} things worth your attention. Not an alphabetical list
             of everyone.
           </p>
@@ -351,7 +352,7 @@ export default function RadarPage() {
                               </div>
                             )}
                             {spark?.kind === "days" && (
-                              <div className="mt-2" title="Her last 14 days, today on the right">
+                              <div className="mt-2" title={`${pronouns(m).Possessive} last 14 days, today on the right`}>
                                 <ConsistencyBand days={lastDays(m.id, 14, data)} compact />
                               </div>
                             )}
@@ -392,7 +393,7 @@ export default function RadarPage() {
                               href={`/coach/members/${m.id}?draft=${draft.id}`}
                               className="tap inline-flex items-center whitespace-nowrap rounded-lg bg-effort-tint px-2.5 text-[12px] font-medium text-effort-stretch hover:bg-effort-min/40"
                             >
-                              Write to her
+                              Write to {pronouns(m).object}
                             </Link>
                           ) : null;
                         })()}
