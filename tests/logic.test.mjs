@@ -705,6 +705,20 @@ test("no Radar rule is worded for a woman, or for a man", () => {
   for (const b of Object.values(radar.bucketMeta)) assert.ok(!GENDERED.test(`${b.label} ${b.blurb}`), b.label);
 });
 
+test("the module library is worded for whoever is assigned it", () => {
+  // A module's lines show on a member's Journey builder in the console, and on
+  // that member's own Journey screen — so "She can…" was said to, and about, men.
+  for (const m of seed.modules) {
+    const said = [
+      m.name, m.purpose, m.betterLooksLike, m.eligibility, m.tracking, m.progression, m.reviewNote ?? "",
+      ...m.keyIdeas, ...m.notificationTemplates,
+      m.minimum.label, m.target.label, m.stretch.label,
+      ...m.coachPlaybook.ask, ...m.coachPlaybook.barriers, m.coachPlaybook.escalation,
+    ].join(" · ");
+    assert.ok(!GENDERED.test(said), `${m.id} says “${said.match(GENDERED)?.[0]}”`);
+  }
+});
+
 test("what the Radar says about a man who joined and went quiet does not call him she", () => {
   const arjun = onboarded({ id: "arjun-r", name: "Arjun Rao", gender: "man", onboardedAt: "2026-10-01" });
   const quiet = radarWith({ members: [arjun] }).find((e) => e.ruleId === "R01");

@@ -141,8 +141,8 @@ export default function RadarPage() {
           <h1 className="mt-2 font-display text-4xl leading-tight">Radar</h1>
           <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-ink-soft">
             {members.length} {members.length === 1 ? "person" : "people"},{" "}
-            {openCount} things worth your attention. Not an alphabetical list
-            of everyone.
+            {openCount} {openCount === 1 ? "thing" : "things"} worth your attention. Not an
+            alphabetical list of everyone.
           </p>
         </div>
         <button

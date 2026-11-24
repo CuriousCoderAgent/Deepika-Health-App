@@ -295,9 +295,11 @@ each colour means semantically. Read those comments before adding a colour.
   one, take it from `pronouns(member)` in `lib/display.ts`, which says "they"
   for anyone who did not say; and put `subject` only before a verb that does
   not change (will, can, a past tense), because "they" takes a different one.
-  Rule text in `lib/radar.ts` is one sentence for everybody, so it carries
-  none. `npm run test:logic` reads the console's source and fails on a "her"
-  or a "his"; a line that names Deepika is about her and may say "she".
+  Rule text in `lib/radar.ts` and module text in `lib/seed.ts` are one
+  sentence for everybody, so they carry none — and a module's lines are read
+  by the member too, on their own Journey screen. `npm run test:logic` reads
+  the console's source and fails on a "her" or a "his"; a line that names
+  Deepika is about her and may say "she".
 - **A rating of 0 means "not rated".** The one-tap mood saves sleep as 0. Any
   rule or sentence that reads sleep has to skip it (`lowSleepNights` in
   `lib/dayView.ts`), or a mood-only check-in reads as a bad night.
