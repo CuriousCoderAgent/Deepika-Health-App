@@ -108,9 +108,17 @@ export function ensureReady(): Promise<void> {
   return ready;
 }
 
+/* Postgres runs several statements sent together as one transaction, so a
+   lock taken at the top of such a batch is held to its end. Two servers
+   starting at the same moment then take turns: without it, both can find a
+   table missing and both try to create it, and "if not exists" does not save
+   the second one — it fails, on a fresh database, for whoever asked first. */
+const SCHEMA_LOCK = "select pg_advisory_xact_lock(724310);";
+
 async function init(): Promise<void> {
   const c = db();
   await c.query(`
+    ${SCHEMA_LOCK}
     create table if not exists member_state (
       user_id    text primary key,
       name       text not null default '',
@@ -196,9 +204,8 @@ async function init(): Promise<void> {
  * `create table if not exists` does nothing to a table a deployment already
  * has, so a new column needs saying separately. Each change runs once per
  * database — a row in app_meta records it — and is written so that running it
- * twice would do no harm anyway. The lock makes two servers starting at the
- * same moment take turns rather than trip over each other; it lasts for this
- * one statement, which Postgres runs as a single transaction.
+ * twice would do no harm anyway. It takes the same lock as the tables above,
+ * for the same reason.
  */
 const MIGRATIONS: [name: string, sql: string][] = [
   [
@@ -219,7 +226,7 @@ async function migrate(c: Pool): Promise<void> {
     const done = await c.query("select 1 from app_meta where key = $1", [key]);
     if (done.rowCount) continue;
     await c.query(
-      `select pg_advisory_xact_lock(724310);
+      `${SCHEMA_LOCK}
        ${sql}
        insert into app_meta (key, value) values ('${key}', '1') on conflict (key) do nothing;`
     );

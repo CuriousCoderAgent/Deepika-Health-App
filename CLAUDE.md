@@ -195,7 +195,9 @@ own database and delete it — and it should stay that way. It is there to save
 prompts on checks, not to get round one.
 
 Deploys to Vercel (import repo, zero config) or Railway (`npm start` reads
-injected `PORT`).
+injected `PORT`). After a deploy, `/api/health` says whether the app reached
+its database — and opening it is what makes the tables, and applies any change
+to them (`MIGRATIONS` in `lib/db.ts`), instead of the first member doing so.
 
 Fonts load via `<link>` in `app/layout.tsx`, deliberately not `next/font` —
 build-time font fetching turns a transient network blip into a failed deploy.

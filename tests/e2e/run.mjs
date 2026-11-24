@@ -13,10 +13,11 @@ import { check, indiaToday, launchBrowser, log, note, openDatabase, startApp, st
 import flow from "./flow.mjs";
 import sheets from "./sheets.mjs";
 import google from "./google.mjs";
+import starting from "./starting.mjs";
 import refused from "./refused.mjs";
 
 // `refused` goes last: one of its checks reads the server log of the whole run.
-const SUITES = { flow, sheets, google, refused };
+const SUITES = { flow, sheets, google, starting, refused };
 const asked = process.argv.slice(2).filter((arg) => !arg.startsWith("-"));
 const unknown = asked.filter((name) => !SUITES[name]);
 if (unknown.length) {
@@ -98,8 +99,11 @@ try {
           extras.push(started);
           return started;
         },
-        /** A second copy of the app on the same database, with its own settings. */
-        anotherApp: (settings) => startApp(database.url, { settings, build: false }),
+        /** A second copy of the app with its own settings — on the same
+         *  database, unless it is given another. */
+        anotherApp: (settings, databaseUrl = database.url) => startApp(databaseUrl, { settings, build: false }),
+        /** A database with nothing in it, or null where one cannot be made. */
+        emptyDatabase: database.empty,
       });
     } catch (error) {
       // A step that could not be taken at all — a button that never appeared.

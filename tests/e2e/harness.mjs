@@ -234,7 +234,8 @@ export async function startDatabase() {
     const client = await pgClient(given);
     await client.query("drop schema if exists public cascade; create schema public;");
     await client.end();
-    return { url: given, what: "the database in E2E_DATABASE_URL, emptied", stop: async () => {} };
+    // One database was given, and there is no saying whether another may be made beside it.
+    return { url: given, what: "the database in E2E_DATABASE_URL, emptied", stop: async () => {}, empty: async () => null };
   }
 
   const bin = postgresBin();
@@ -279,10 +280,20 @@ export async function startDatabase() {
     await stop();
     throw error;
   }
+  let extra = 0;
   return {
     url: `postgresql://postgres@127.0.0.1:${port}/app_e2e?sslmode=disable`,
     what: `a temporary Postgres on port ${port}`,
     stop,
+    /** A second database beside the first, with nothing in it — for checking
+     *  what the app does the very first time it meets one. */
+    empty: async () => {
+      const name = `empty${++extra}_e2e`;
+      const admin = await pgClient(`postgresql://postgres@127.0.0.1:${port}/postgres`);
+      await admin.query(`create database ${name}`);
+      await admin.end();
+      return `postgresql://postgres@127.0.0.1:${port}/${name}?sslmode=disable`;
+    },
   };
 }
 

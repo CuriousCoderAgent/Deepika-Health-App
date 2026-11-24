@@ -226,6 +226,13 @@ host): serverless functions open many short-lived connections and a free-tier
 database will run out of direct ones. Vercel's own integrations already give
 you the pooled one.
 
+**After a deploy, open `/api/health`.** It answers
+`{"ok":true,"storage":"database"}` once the app has reached its database — and
+because the tables are made, and any change to them applied, the first time
+something needs the database, opening it is also what applies them, rather
+than leaving that to the first member who opens the app. It says nothing about
+anyone.
+
 The schema creates itself on first request. The six fictional sample members
 are **not** seeded unless `SEED_DEMO_COHORT=1`, so a new deployment starts with
 an empty console. A deployment that was already seeded shows them on Deepika's
