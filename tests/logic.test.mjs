@@ -1132,7 +1132,7 @@ test("an attempt's cookie cannot be edited, reused late, or passed off as a sess
 test("a session has to name someone", async () => {
   process.env.AUTH_SECRET = SECRET;
   // Validly signed, and for nobody. This used to come back as a session whose
-  // sub was undefined — and the middleware only asks whether there is one.
+  // sub was undefined — and the proxy only asks whether there is one.
   assert.equal(await auth.readSessionToken(await auth.createSessionToken({ sub: "", role: "member", name: "" })), null);
   assert.equal(await auth.readSessionToken(await auth.createSessionToken({ sub: "x", role: "admin", name: "" })), null);
   assert.equal(await auth.readSessionToken(await auth.createSessionToken({ role: "coach", name: "Deepika" })), null);

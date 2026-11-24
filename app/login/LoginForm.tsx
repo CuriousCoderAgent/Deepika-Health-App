@@ -106,7 +106,7 @@ export default function LoginForm({
         return;
       }
       const { role } = await res.json();
-      // Full navigation so the middleware and the server layout both see the
+      // Full navigation so the proxy and the server layout both see the
       // new cookie — the store is namespaced by account and has to be built
       // from the right session.
       window.location.assign(role === "coach" ? "/coach" : "/member");

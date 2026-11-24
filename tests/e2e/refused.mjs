@@ -1,12 +1,12 @@
 /**
  * Requests the app never makes, and must turn away.
  *
- * Next 14 no longer gets security fixes, and most of the advisories open
- * against it come through two things this app does not use but Next leaves
- * switched on: the image-resizing address, and POSTs to a page (form
- * actions). next.config.mjs, middleware.ts and app/api/[...missing] close
- * them; this is the check that they stay closed — and that the requests the
- * app does make are not caught in the same net.
+ * Two things this app does not use but Next leaves switched on — the
+ * image-resizing address, and POSTs to a page (form actions) — are where
+ * the worst Next.js advisories have come through, in 16 as in 14.
+ * next.config.mjs, proxy.ts and app/api/[...missing] close them; this is the
+ * check that they stay closed — and that the requests the app does make are
+ * not caught in the same net.
  *
  * No browser and no database: these are plain requests, the kind a scanner
  * sends.

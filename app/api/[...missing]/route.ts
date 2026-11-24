@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
  *
  * Without this, a wrong /api address falls through to the app's "page not
  * found" screen — which is a page, and a POST to a page is exactly what
- * middleware.ts exists to turn away. Answering here keeps every /api
+ * proxy.ts exists to turn away. Answering here keeps every /api
  * address, real or mistyped, away from the page renderer, and gives whoever
  * called it JSON rather than a web page.
  *

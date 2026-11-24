@@ -3,7 +3,7 @@
  *
  * Two cookies do two different jobs here, and it matters which is which:
  *
- *   dw_session  httpOnly, signed. The actual credential. Middleware checks it
+ *   dw_session  httpOnly, signed. The actual credential. proxy.ts checks it
  *               on every protected request. JavaScript can never read it.
  *   dw_user     plain, readable. Not a credential — just "who is this", so the
  *               client can namespace local storage and decide whether to load

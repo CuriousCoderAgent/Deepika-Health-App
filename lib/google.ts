@@ -322,9 +322,11 @@ export function usernameCandidates(base: string, tail: () => string = () => rand
  * Swaps the code Google sent back for an ID token. Returns null on any
  * failure; the reason goes to the server log, never to her screen.
  *
- * Node's own https, not fetch: Next 14 wraps fetch in a cache this app has no
- * use for, and several of the advisories open against it are in that wrapper
- * (docs/DEPLOYMENT.md, "The Next.js version").
+ * Node's own https, not fetch. It was written on Next 14, which wrapped fetch
+ * in a cache this app has no use for, with advisories open against that
+ * wrapper. Next 16 has neither problem, so fetch would do as well now; this
+ * stays because it works, and tests/e2e/google.mjs runs it against a stand-in
+ * for Google.
  */
 export function exchangeCode(
   config: GoogleConfig,

@@ -14,8 +14,9 @@
  * hashes with a per-account salt and nothing can read them back — including
  * Deepika, and including anyone who gets a copy of the database.
  *
- * Server only. Node's crypto is not available in the Edge middleware, which is
- * exactly why the middleware imports from lib/auth.ts and never from here.
+ * Server only, and never imported by proxy.ts. The proxy runs ahead of every
+ * signed-in page and needs only lib/auth.ts to check a signature; this file
+ * reaches the database.
  */
 
 import { randomBytes, randomInt, scrypt as scryptCb, timingSafeEqual } from "crypto";
