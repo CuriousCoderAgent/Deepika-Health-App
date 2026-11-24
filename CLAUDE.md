@@ -171,7 +171,9 @@ client component would put the connection string in the browser bundle.
 Accounts come from two places: the environment (`MEMBERS`, `COACH_PASSWORD`,
 `AUTH_SECRET`), all with fallbacks so a deployment with nothing set still
 opens on demo credentials; and the database, for members who signed
-themselves up. `lib/accounts.ts` handles the second kind and is server-only.
+themselves up. Those fallbacks are public, so a deployment must never have
+the database without `AUTH_SECRET` and `COACH_PASSWORD` — nothing in the code
+stops it serving real records on the demo sign-in. `lib/accounts.ts` handles the second kind and is server-only.
 `proxy.ts` (Next 16's name for middleware) imports from `lib/auth.ts` and never
 from there: it runs ahead of every signed-in page and only has to check a
 cookie's signature, while `lib/accounts.ts` reaches the database.

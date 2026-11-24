@@ -271,14 +271,15 @@ Honest, so nobody is surprised later:
   it is large.
 - **Report files are not stored**, only the values typed in. The app says so.
 - **A preview is not a sandbox.** Vercel builds a preview of every branch, and
-  in this project `DATABASE_URL`, `AUTH_SECRET`, `COACH_PASSWORD` and `MEMBERS`
-  are each one setting shared by Production and Preview. So a preview reads
-  and writes the members' real records, and opening `/api/health` on one
-  applies that branch's database changes to the live database before anything
-  is merged. Until Preview has a database and secrets of its own (Vercel →
-  Settings → Environment Variables: one value for Production, another for
-  Preview), treat a preview link as the live app — do not sign up test
-  accounts on it, and do not pass it around.
+  in this project the database is connected to Production, Preview and
+  Development alike, with the same passwords. So a preview reads and writes
+  the members' real records, and opening `/api/health` on one applies that
+  branch's database changes to the live database before anything is merged.
+  Until the database is taken off Preview — one setting, on the database's
+  connection in Vercel → Storage; `docs/DEPLOYMENT.md`, *Before real members*,
+  has the steps and the one order they must not be done in — treat a preview
+  link as the live app: do not sign up test accounts on it, and do not pass it
+  around.
 - **Not tested here:** the Android build on a real phone, the website's web fonts
   (this environment cannot reach Google Fonts), the live deployment's sign-up
   with real email-less devices, and a reminder arriving on a real phone. The

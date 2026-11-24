@@ -18,18 +18,32 @@ For the full list of what is done and what only the owner can do, see
 
 ## Before real members
 
-In Vercel → Settings → Environment Variables. Tick **Production only** for
-each, then **redeploy** — Vercel does not apply new variables to an existing
-build.
+In Vercel → Settings → Environment Variables, then **redeploy** — Vercel does
+not apply new variables to an existing build.
 
-Production only, because Vercel builds a preview of every branch, and a
-preview given these settings is the live app at another address: the same
-database, the same passwords, and its `/api/health` applies that branch's
-database changes to the live database. With none of them a preview opens on
-sample data with the demo sign-in, which is what a preview is for. (This page
-used to say to tick Preview and Development too. As of 24 November 2026 the
-project is still set that way — see *Known limits* in
-`docs/LAUNCH-CHECKLIST.md`.)
+**The database is for Production only.** Vercel builds a preview of every
+branch, and a preview that has the database is the live app at another
+address: it reads and writes the members' real records, and its `/api/health`
+applies that branch's database changes to the live database before anything
+is merged. The database's variables are not ticked by hand — the Neon
+integration sets them, for Production, Preview and Development unless told
+otherwise. Change it on the connection itself: Vercel → Storage → the
+database → Projects → this project → Environments, leaving only Production
+(or `vercel storage update <store> --environment production`). A preview
+without a database keeps what is typed into it in that browser and nowhere
+else.
+
+**Never the other way round.** `AUTH_SECRET`, `COACH_PASSWORD` and `MEMBERS`
+may stay ticked for Preview, and should for as long as Preview has the
+database. A deployment that has the database but is missing `AUTH_SECRET` or
+`COACH_PASSWORD` falls back to the demo sign-in described above, which is
+public — it would open the real records to anyone who has read this
+repository. So if Preview is ever unticked for those three, the database
+comes off Preview first.
+
+(This page used to say to tick Production, Preview and Development for
+everything. As of 24 November 2026 the database is still connected to all
+three — see *Known limits* in `docs/LAUNCH-CHECKLIST.md`.)
 
 | Variable | What it is |
 | --- | --- |
