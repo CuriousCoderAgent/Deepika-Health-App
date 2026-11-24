@@ -124,8 +124,10 @@ recovery is a typo that never happened.
 
 ## Signing in with Google
 
-Off until `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are both set. With
-them, the sign-in page gains **Continue with Google**, in both of its modes:
+Off until `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are both set — and
+**on in production since 24 November 2026**; *Switching it on*, below, says
+what exists and what has been tried. With the keys, the sign-in page gains
+**Continue with Google**, in both of its modes:
 
 - **Sign in** — for an account that was made with Google, or has Google
   connected. A Google account nobody has connected is told so and told what to
@@ -167,13 +169,51 @@ row in the database to hold Google's id for her.
 
 ### Switching it on
 
-Use a Google account that belongs to the practice rather than to one
-person's phone — whoever owns it owns this setting.
+**It is on.** Since 24 November 2026 the live app has both keys, for
+Production only, and its sign-in page offers Continue with Google. What
+exists, so the next person knows where to look:
 
-These steps were written from how Google's console stood in 2026, and could
-not be checked against Google's help pages from where this was built. Google
-renames these screens every year or two. Where the screen and this list
-differ, trust the screen; the search box at the top of the console finds
+- a Google Cloud project called `deepika-app-signin`, in a Google account of
+  Eshan's. It is a project of its own, so Google's page shows nothing of his
+  other apps. That account's address is the support contact Google shows, and
+  whoever holds the account holds this setting;
+- its consent screen, published ("In production"), asking for nothing beyond
+  the basic three permissions;
+- one client in it, *Bharosa web*, with the one redirect address in step 3.
+
+**Tried on the live site that day**, in a desktop browser: signing in with a
+Google account that has no account here goes to Google and comes back with
+"No account here is connected to that Google account yet", and makes nothing.
+
+**Not yet tried there:** making an account with Google; connecting Google
+from *Your account*; either phone (the end of this section); and
+`COACH_GOOGLE_EMAIL`, which is not set. Step 6 — the website — is not done
+either, and should wait for the first two: that page tells people they can
+join with Google.
+
+Two things from that day:
+
+- **The very first attempt came back "didn't go through"; the next, a few
+  minutes later, worked.** Nothing in the server log said why. A failed swap
+  of the code is always logged, and was not, so one of the checks before it
+  said no — most likely a second attempt was started in the same browser
+  while the first was still at Google, which makes the first one's answer
+  stale. That is a guess. Those checks refused in silence then; each now
+  writes a line (`[google] sign-in refused: …`) with nothing of hers in it.
+- **Google's page says "to continue to deepika-health-app.vercel.app"**, not
+  the app's name. Google appears to show a name only once an app's branding
+  has been through its verification, which this has not — that was not
+  checked against Google's own pages. While the name is undecided it is no
+  loss: nothing of Google's says "Bharosa".
+
+**The steps**, for the next time — another address, another Google account.
+Use an account that belongs to the practice rather than to one person's
+phone — whoever owns it owns this setting.
+
+They were written from memory of Google's console and then followed for real
+on 24 November 2026; what the console wanted beyond them has been added.
+Google renames these screens every year or two. Where the screen and this
+list differ, trust the screen; the search box at the top of the console finds
 anything by name.
 
 1. Go to <https://console.cloud.google.com> and create a project. Its name is
@@ -188,7 +228,11 @@ anything by name.
      and `profile`. Add nothing — the app asks for nothing more, and anything
      more brings Google's review with it.
    - **Publish** it, so its status reads "In production". Left on "Testing",
-     only the addresses you add by hand can sign in.
+     only the addresses you add by hand can sign in. Google would not publish
+     until *Branding* had a home page (`https://deepika-health-app.vercel.app`),
+     a privacy policy link (the same address with `/privacy`) and, under
+     authorised domains, `deepika-health-app.vercel.app`. No logo was added,
+     and no terms link.
 3. Create a client: *Clients* → *Create client* (older screens: *Credentials*
    → *Create credentials* → *OAuth client ID*). Type: **Web application**.
    Under **Authorised redirect URIs** add exactly
