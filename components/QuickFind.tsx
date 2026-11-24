@@ -73,12 +73,12 @@ export default function QuickFind() {
     };
   }, []);
 
+  // Closing hands focus back to wherever she was. Opening is `autoFocus` on the
+  // input below, so the box has focus the moment it exists: it used to be
+  // focused on a 20ms timer, and a name typed straight after "/" lost its
+  // first letter to the page behind.
   useEffect(() => {
-    if (open) {
-      const t = window.setTimeout(() => input.current?.focus(), 20);
-      return () => window.clearTimeout(t);
-    }
-    returnTo.current?.focus?.();
+    if (!open) returnTo.current?.focus?.();
   }, [open]);
 
   const rows: Row[] = useMemo(() => {
@@ -119,6 +119,7 @@ export default function QuickFind() {
           <Search size={17} className="shrink-0 text-ink-faint" />
           <input
             ref={input}
+            autoFocus
             value={q}
             onChange={(e) => {
               setQ(e.target.value);

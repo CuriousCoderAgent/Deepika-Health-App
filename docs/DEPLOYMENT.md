@@ -227,3 +227,11 @@ delegates notifications to Chrome, so it works there as on the web.
 `npm run test:logic` runs the date, rollover, daily-plan, Radar, privacy,
 typed-food, reply-draft and reminder tests with no browser or database. Run it, and `npm run build`, before
 committing.
+
+`npm run test:e2e` runs the app itself: it builds it, starts it as in
+production against a Postgres it creates for the run, and walks through it in a
+browser as a member and as Deepika — sign-up, a day's actions, the next day, a
+session with a pain flag, the Radar. About a minute and a half. It never reads
+`DATABASE_URL` and will not touch a database that is not a local scratch one;
+`tests/e2e/README.md` says what it needs and how to point it at a database of
+your own.
