@@ -213,6 +213,9 @@ Keep it that way.
 **Two doors stay shut on Next 16**, because the worst Next.js advisories keep
 coming through them and the app uses neither: the image-resizing address
 (`next.config.mjs`) and POSTs to a page (`proxy.ts`, `app/api/[...missing]`).
+On Vercel the first is answered by Vercel's own image service, ahead of the
+app — only the empty allow-list in `next.config.mjs` stops that, and only
+opening the address on a deployed build shows whether it has.
 So: no Server Actions, no `<form>` that posts to a page, no `next/image` — not
 without opening that door on purpose and changing `tests/e2e/refused.mjs`
 with it. Every save goes to a route under `/api`. The reasoning, with the

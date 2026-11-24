@@ -18,9 +18,18 @@ For the full list of what is done and what only the owner can do, see
 
 ## Before real members
 
-In Vercel → Settings → Environment Variables. Tick Production, Preview and
-Development for each, then **redeploy** — Vercel does not apply new variables
-to an existing build.
+In Vercel → Settings → Environment Variables. Tick **Production only** for
+each, then **redeploy** — Vercel does not apply new variables to an existing
+build.
+
+Production only, because Vercel builds a preview of every branch, and a
+preview given these settings is the live app at another address: the same
+database, the same passwords, and its `/api/health` applies that branch's
+database changes to the live database. With none of them a preview opens on
+sample data with the demo sign-in, which is what a preview is for. (This page
+used to say to tick Preview and Development too. As of 24 November 2026 the
+project is still set that way — see *Known limits* in
+`docs/LAUNCH-CHECKLIST.md`.)
 
 | Variable | What it is |
 | --- | --- |
@@ -375,8 +384,23 @@ app does not use.) The app uses neither door, so the next advisory in either
 place has nothing to reach here:
 
 - **The image-resizing address, `/_next/image`.** No screen uses `next/image`,
-  but `next start` serves the address regardless. `next.config.mjs` switches
-  resizing off and hands the address to `/api`, which answers 404.
+  but the address is answered regardless — and by whom depends on where the
+  app runs, so `next.config.mjs` switches it off twice:
+  - *Under `next start`* (Railway, a laptop) Next answers it, with the resizer
+    those eight advisories are about. `images.unoptimized` stops it resizing,
+    and a rewrite hands the address to `/api`, which answers 404.
+  - *On Vercel* Next never sees the address. Vercel answers it with an image
+    service of its own, ahead of the app: no rewrite and no proxy in this
+    repository runs first. That service is Vercel's code, not the code the
+    advisories are about — but left alone it resizes any file the app serves,
+    for anyone who asks, against the account's image allowance. Vercel's
+    older builder left the service out when `unoptimized` was set, which is
+    why the address answered 404 while the app was on Next 14. From Next 16.2
+    Vercel builds through an adapter that does not read `unoptimized` (read
+    in `@vercel/next` 31.0.2, and seen: the first Next 16 preview handed out
+    a resized icon). What the service may resize is the config's allow-list,
+    so the list is empty (`images.localPatterns: []`, and no remote patterns
+    or domains). It then refuses every request with 400.
 - **POSTs to a page** — form actions, which Next calls Server Actions. The app
   has none: every save, sign-in and sign-out goes to `/api`. But Next starts
   reading such a request before it finds that out, so `proxy.ts` refuses any
@@ -386,10 +410,23 @@ place has nothing to reach here:
 `npm run test:e2e` checks that both stay shut, and that sign-in, sign-out and
 ordinary pages are not caught with them (`tests/e2e/refused.mjs`).
 
+Those checks run against `next start`, so they cannot see what a host puts in
+front of the app — which is how the resized icon got as far as a preview. One
+of them (R12) reads the allow-list the build wrote and checks it matches no
+file the app serves. The check that counts is on the live address, **after
+every deploy that changes `next`, `next.config.mjs` or where the app is
+hosted**: open
+
+    /_next/image?url=%2Ficons%2Ficon-192.png&w=64&q=75
+
+It must answer an error — `INVALID_IMAGE_OPTIMIZE_REQUEST` (400) on Vercel,
+`{"error":"Not found."}` (404) anywhere else — and never a picture.
+
 **So, still: no Server Action, no `<form>` that posts to a page, and no
 `next/image`** — not without opening that door on purpose and changing
 `refused.mjs` with it. A Server Action would be refused with 405, and
-`next/image` would load pictures unresized.
+`next/image` would load pictures unresized — or, for a picture the allow-list
+does not name, not at all.
 
 The other rules from the 14 days are lifted. A rewrite or redirect to another
 host, and server code that calls `fetch`, were off-limits only because their

@@ -164,11 +164,30 @@ code, one tap to WhatsApp), **temporary-password reset** by Deepika, members
   advisories on 16 as well. What changed, and what is still off-limits, is in
   `docs/DEPLOYMENT.md` under *The Next.js version*.
 - **Checked on the production build here:** the build, the logic tests, lint,
-  all 112 end-to-end checks, and a click-through against a local Postgres —
+  all 121 end-to-end checks, and a click-through against a local Postgres —
   signing up with a join code, the food log, every member and coach screen,
   reminders, a password change and a reset by Deepika, her private notes
-  staying private, and deleting an account. **Not checked:** a deploy on
-  Vercel itself — item 13.
+  staying private, and deleting an account.
+- **Checked on a Vercel preview of it**, by opening addresses only: the build,
+  `/api/health`, the sign-in page, and that a signed-out visitor to the
+  console is sent back to sign in. **Not checked there:** signing in and
+  saving. A preview uses the live database (see *Known limits*), so no test
+  account was made on one — item 13.
+- **Vercel's image service was open on the first Next 16 preview**, and is
+  shut. On Next 14 the setting that switches resizing off also kept Vercel's
+  own image service out of the deployment. On Next 16 Vercel builds
+  differently and no longer reads that setting, so the first preview resized
+  an icon for anyone who asked for one. It was never live. The app now tells
+  the service it may resize nothing, and the preview refuses every request.
+  `docs/DEPLOYMENT.md`, *The Next.js version*, has the address to open after a
+  deploy to see that for yourself.
+
+**Fixed with it**
+
+- **"+ Add details" on Deepika's side did nothing.** On a member's page she
+  could tap a mood for the member during a call, but the button for the rest —
+  sleep, symptoms, a note — opened nothing, from the day it was added. It
+  opens now, worded for her, and what she enters is marked as entered by her.
 
 ## Only the owner can do these
 
@@ -182,7 +201,8 @@ In rough order. Items 1–4 are small and should be done before anyone is invite
 2. **Decide whether sign-up is open or invitation-only.** Right now anyone with
    the link can create an account and appear in Deepika's console. For a first
    cohort of twenty this is the one decision with real consequences. **Recommend:**
-   set `SIGNUP_CODE` in Vercel (Production + Preview), redeploy, and the code is
+   set `SIGNUP_CODE` in Vercel (Production — and Preview too, for as long as
+   previews share the live database), redeploy, and the code is
    shown to Deepika on the Members page and written into the invite message
    automatically. The website's FAQ already says to enter an invitation code if
    you have one.
@@ -224,9 +244,11 @@ In rough order. Items 1–4 are small and should be done before anyone is invite
     members: the phone round trips have not been tried by hand.
 13. **Check the first deploy on Next 16.** It is the first build on Vercel
     with Turbopack, and the first with `proxy.ts` where `middleware.ts` was.
-    Everything was tested on a production build, but not on Vercel. Once it is
-    live: open `/api/health`, sign in once as a member and once as Deepika,
-    and save something. If anything is off, Vercel's *Instant Rollback* puts
+    Everything was tested on a production build, and a preview on Vercel was
+    opened but not signed in to. Once it is live: open `/api/health`, sign in
+    once as a member and once as Deepika, and save something. Then open
+    `/_next/image?url=%2Ficons%2Ficon-192.png&w=64&q=75` — it must show an
+    error, not a picture. If anything is off, Vercel's *Instant Rollback* puts
     the previous deployment back while it is looked at.
 
 ---
@@ -248,6 +270,15 @@ Honest, so nobody is surprised later:
   and is rewritten whole on every save. Fine for months; worth splitting before
   it is large.
 - **Report files are not stored**, only the values typed in. The app says so.
+- **A preview is not a sandbox.** Vercel builds a preview of every branch, and
+  in this project `DATABASE_URL`, `AUTH_SECRET`, `COACH_PASSWORD` and `MEMBERS`
+  are each one setting shared by Production and Preview. So a preview reads
+  and writes the members' real records, and opening `/api/health` on one
+  applies that branch's database changes to the live database before anything
+  is merged. Until Preview has a database and secrets of its own (Vercel →
+  Settings → Environment Variables: one value for Production, another for
+  Preview), treat a preview link as the live app — do not sign up test
+  accounts on it, and do not pass it around.
 - **Not tested here:** the Android build on a real phone, the website's web fonts
   (this environment cannot reach Google Fonts), the live deployment's sign-up
   with real email-less devices, and a reminder arriving on a real phone. The
