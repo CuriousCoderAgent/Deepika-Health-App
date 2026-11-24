@@ -178,6 +178,13 @@ npm run dev      # http://localhost:3000
 npm run build    # must pass before any commit
 ```
 
+`.claude/settings.json` lets the routine checks run without a permission prompt
+in a Claude Code session: the build, the logic tests, lint, the type-check, the
+dev server, the website build (`node build.mjs` in `website/`) and read-only
+git. Nothing that commits, pushes, installs, deploys or reaches a database is
+on that list, and it should stay that way — it is there to save prompts on
+checks, not to get round one.
+
 Deploys to Vercel (import repo, zero config) or Railway (`npm start` reads
 injected `PORT`).
 
