@@ -18,20 +18,6 @@ const SIGNED_IN_ONLY = /^\/(?:member|coach)(?:\/|$)|^\/onboarding\/?$/;
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // The image-resizing address. No screen uses it and next.config.mjs
-  // switches it off — but that turned out not to be enough everywhere. On
-  // Vercel the platform has a resizer of its own at /_next/image, and on the
-  // first Next 16 build there it answered ahead of the rewrite that is meant
-  // to turn the address away, `unoptimized` or not: it resized an icon on
-  // request. The proxy runs before either, on Vercel and under `next start`
-  // alike, so the answer is given here. The rewrite stays as the second lock.
-  // The header says who turned the request away, which the rewrite's answer
-  // does not carry: tests/e2e/refused.mjs reads it, so taking this block out
-  // fails a check here rather than passing quietly and reopening on Vercel.
-  if (pathname.startsWith("/_next/image")) {
-    return NextResponse.json({ error: "Not found." }, { status: 404, headers: { "x-refused-by": "proxy" } });
-  }
-
   // Nothing in this app is submitted to a page: every save, sign-in and
   // sign-out goes to an address under /api. Next hands a POST to any page
   // address to its form-action reader all the same, whether or not the app
@@ -69,13 +55,14 @@ export const config = {
     "/member/:path*",
     "/coach/:path*",
     "/onboarding",
-    // The image-resizing address and anything spelt like it, whatever the
-    // method — answered 404 above.
-    "/_next/image:rest(.*)",
     // Everywhere else, only the requests Next would treat as a form action:
     // it decides that from these two headers (see
     // next/dist/server/lib/server-action-request-meta.js), so an ordinary
     // page view or file download never comes through here at all.
+    //
+    // /_next/image is left out: the rewrite in next.config.mjs hands every
+    // request for it, of any method, to app/api/[...missing], which answers
+    // a plain 404.
     { source: "/((?!api/|_next/image).*)", has: [{ type: "header", key: "next-action" }] },
     { source: "/((?!api/|_next/image).*)", has: [{ type: "header", key: "content-type" }] },
   ],
