@@ -253,6 +253,11 @@ export default function CoachLayout({ children }: { children: React.ReactNode })
 
       <QuickFind />
       <Toaster console />
+      {/* Sheets open in here (components/BottomSheet.tsx). The member app has
+          one inside its phone frame; the console had none, so "+ Add details"
+          on a check-in entered during a call opened nothing. It covers the
+          window but never takes a click itself — only an open sheet does. */}
+      <div id="sheet-root" className="pointer-events-none fixed inset-0 z-50 [--sheet-max:32rem]" />
 
       {/* Held back until the store has loaded. Before that it holds the seeded
           sample cohort, so every page load showed Deepika six fictional women

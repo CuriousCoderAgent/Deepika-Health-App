@@ -109,8 +109,8 @@ function secret(): string {
 export const authSecret = secret;
 
 /* ------------------------------------------------------------------ */
-/* Signing — Web Crypto, so this works in both the Edge middleware and  */
-/* Node route handlers without a polyfill.                              */
+/* Signing — Web Crypto, so the same code runs in proxy.ts and in the */
+/* route handlers without a polyfill.                                 */
 /* ------------------------------------------------------------------ */
 
 function b64url(bytes: Uint8Array): string {

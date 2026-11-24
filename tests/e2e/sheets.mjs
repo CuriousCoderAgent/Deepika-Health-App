@@ -13,7 +13,7 @@
  * exactly the right sheet open, and is keyboard focus where a person would
  * expect it.
  */
-import { aDayPasses, check, gone, openPage, seen, signUpAndOnboard } from "./harness.mjs";
+import { aDayPasses, check, gone, openPage, seen, signInAsCoach, signUpAndOnboard } from "./harness.mjs";
 
 const KAVYA = { name: "Kavya Rao", username: "kavya-rao", password: "sheets-pass-123" };
 const HISTORY = "Your last 14 days";
@@ -39,7 +39,7 @@ const look = (page) =>
 
 const say = (s) => `frame scrolled ${s.scrolled}px · open: ${s.open.join(" + ") || "none"} · focus on "${s.focusOn}"`;
 
-export default async function sheets({ base, browser, db, problems, today }) {
+export default async function sheets({ base, browser, db, problems, today, coachPassword }) {
   const m = await openPage(browser, "phone", "sheets", problems, "no-preference");
   await signUpAndOnboard(m, base, KAVYA);
   // The history is only offered once there is something in it, and it only
@@ -153,4 +153,70 @@ export default async function sheets({ base, browser, db, problems, today }) {
     opened.open.length === 1 && opened.focusInOpenSheet && tabbed.focusInOpenSheet && closed.open.length === 0 && /^Mark /.test(closed.focusOn) && closed.steady,
     `opened: ${say(opened)} | after Tab: ${say(tabbed)} | closed: ${say(closed)}`
   );
+
+  // ---- the console ----------------------------------------------------------
+  // Deepika's side had no place for a sheet to open: "+ Add details" on a
+  // check-in she enters during a call did nothing, from the day that button
+  // was added. It has one now, held to the same questions — and to one of its
+  // own, because here the sheet opens over a whole window, not a phone frame:
+  // is it a column she can read, and does the page take clicks once it shuts.
+  const ADD = "+ Add details";
+  const c = await openPage(browser, "desktop", "sheets, in the console", problems, "no-preference");
+  await signInAsCoach(c, base, coachPassword);
+  const lookConsole = () =>
+    c.evaluate((label) => {
+      const active = document.activeElement;
+      const open = [...document.querySelectorAll('[role="dialog"]')].filter((el) => getComputedStyle(el.parentElement).visibility === "visible");
+      const box = open[0]?.getBoundingClientRect();
+      const button = [...document.querySelectorAll("button")].find((b) => b.textContent.trim() === label);
+      const at = button?.getBoundingClientRect();
+      return {
+        scrolled: Math.round(window.scrollY),
+        open: open.map((el) => el.getAttribute("aria-label")),
+        focusInOpenSheet: open.some((el) => el.contains(active)),
+        focusOn: (active?.getAttribute("aria-label") || active?.textContent || active?.tagName || "").replace(/\s+/g, " ").trim().slice(0, 32),
+        // The sheet: how wide, how far off the middle, how far off the bottom edge.
+        width: box ? Math.round(box.width) : 0,
+        widest: 32 * parseFloat(getComputedStyle(document.documentElement).fontSize),
+        offCentre: box ? Math.abs(Math.round(box.left + box.width / 2 - window.innerWidth / 2)) : -1,
+        offBottom: box ? Math.round(window.innerHeight - box.bottom) : -1,
+        // Whatever is on top where the button is drawn — the button, unless something covers it.
+        buttonOnTop: Boolean(at && document.elementFromPoint(at.left + at.width / 2, at.top + at.height / 2) === button),
+      };
+    }, ADD);
+  const sayConsole = (k) =>
+    `page scrolled ${k.scrolled}px · open: ${k.open.join(" + ") || "none"} · focus on "${k.focusOn}" · sheet ${k.width}px wide, ${k.offCentre}px off centre, ${k.offBottom}px off the bottom · button ${k.buttonOnTop ? "on top" : "covered"}`;
+
+  for (const motion of ["no-preference", "reduce"]) {
+    const when = motion === "reduce" ? "animations off" : "animations on ";
+    await c.emulateMedia({ reducedMotion: motion });
+    await c.goto(`${base}/coach/members/${KAVYA.username}`, { waitUntil: "networkidle" });
+    const add = c.getByRole("button", { name: ADD, exact: true });
+    await seen(add);
+    await add.scrollIntoViewIfNeeded();
+    const rest = await lookConsole();
+
+    await add.click();
+    await c.waitForTimeout(700);
+    let k = await lookConsole();
+    check(
+      `S9  ${when} · the console: "${ADD}" opens the check-in sheet, focus inside it, page where it was`,
+      k.open.join() === "Her check-in today" && k.focusInOpenSheet && k.scrolled === rest.scrolled && rest.buttonOnTop,
+      sayConsole(k)
+    );
+    check(
+      `S10 ${when} · the console: the sheet is a column in the middle of the window, on its bottom edge`,
+      k.width >= 320 && k.width <= k.widest && k.offCentre <= 1 && k.offBottom === 0,
+      sayConsole(k)
+    );
+
+    await c.keyboard.press("Escape");
+    await c.waitForTimeout(700);
+    k = await lookConsole();
+    check(
+      `S11 ${when} · the console: Escape closes it — focus back on the button, and nothing left lying over the page`,
+      k.open.length === 0 && k.focusOn === ADD && k.scrolled === rest.scrolled && k.buttonOnTop,
+      sayConsole(k)
+    );
+  }
 }

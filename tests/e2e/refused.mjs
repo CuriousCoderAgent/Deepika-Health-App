@@ -1,17 +1,35 @@
 /**
  * Requests the app never makes, and must turn away.
  *
- * Next 14 no longer gets security fixes, and most of the advisories open
- * against it come through two things this app does not use but Next leaves
- * switched on: the image-resizing address, and POSTs to a page (form
- * actions). next.config.mjs, middleware.ts and app/api/[...missing] close
- * them; this is the check that they stay closed — and that the requests the
- * app does make are not caught in the same net.
+ * Two things this app does not use but Next leaves switched on — the
+ * image-resizing address, and POSTs to a page (form actions) — are where
+ * the worst Next.js advisories have come through, in 16 as in 14.
+ * next.config.mjs, proxy.ts and app/api/[...missing] close them; this is the
+ * check that they stay closed — and that the requests the app does make are
+ * not caught in the same net.
  *
  * No browser and no database: these are plain requests, the kind a scanner
  * sends.
+ *
+ * One thing no request here can show is a host that answers an address
+ * itself, ahead of the app. Vercel does that with the image-resizing address:
+ * on the first Next 16 build there its own image service handed out a resized
+ * icon while R1 and R2 passed, because nothing in this repository runs before
+ * it. What that service will resize is an allow-list the build writes down —
+ * so R12 reads the list, and docs/DEPLOYMENT.md gives the address to open on
+ * the live site after a deploy, which is the check that counts.
  */
-import { check } from "./harness.mjs";
+import fs from "node:fs";
+import path from "node:path";
+import { ROOT, check } from "./harness.mjs";
+
+/** Every file under a folder, as the address it would be served at. */
+function served(folder, at) {
+  if (!fs.existsSync(folder)) return [];
+  return fs.readdirSync(folder, { withFileTypes: true }).flatMap((entry) =>
+    entry.isDirectory() ? served(path.join(folder, entry.name), `${at}/${entry.name}`) : [`${at}/${entry.name}`]
+  );
+}
 
 const ACTION = { "Next-Action": "0".repeat(40), "Content-Type": "text/plain;charset=UTF-8" };
 
@@ -122,5 +140,25 @@ export default async function refused({ base, serverLog }) {
     "R11 the address to open after a deploy says the app can reach its database, and nothing else",
     health.status === 200 && health.body === '{"ok":true,"storage":"database"}',
     `${health.status} ${health.body.slice(0, 80)}`
+  );
+
+  // ---- a host with a resizer of its own -----------------------------------------
+  // The build that was just started wrote down what may be resized. Nothing
+  // may: no address elsewhere, and no file the app serves. Next always allows
+  // the two folders that pictures imported into code are built into, so those
+  // must hold none.
+  const { images } = JSON.parse(fs.readFileSync(path.join(ROOT, ".next", "images-manifest.json"), "utf8"));
+  const allowed = (images.localPatterns ?? [{ pathname: ".*" }]).map((p) => new RegExp(p.pathname ?? ".*"));
+  const files = [
+    ...served(path.join(ROOT, "public"), ""),
+    ...served(path.join(ROOT, ".next", "static", "media"), "/_next/static/media"),
+    ...served(path.join(ROOT, ".next", "static", "immutable", "media"), "/_next/static/immutable/media"),
+  ];
+  const resizable = files.filter((file) => allowed.some((pattern) => pattern.test(file)));
+  const elsewhere = [...(images.domains ?? []), ...(images.remotePatterns ?? []).map((p) => p.hostname)];
+  check(
+    "R12 a host with its own resizer is told it may resize nothing: no file this app serves, and nothing from elsewhere",
+    files.includes("/icons/icon-192.png") && resizable.length === 0 && elsewhere.length === 0,
+    `${files.length} files served; resizable: ${resizable.slice(0, 4).join(", ") || "none"}; from elsewhere: ${elsewhere.slice(0, 4).join(", ") || "none"}`
   );
 }

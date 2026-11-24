@@ -29,7 +29,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 async function session() {
-  return readSessionToken(cookies().get(sessionCookieName)?.value);
+  return readSessionToken((await cookies()).get(sessionCookieName)?.value);
 }
 
 export async function GET() {

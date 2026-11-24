@@ -73,6 +73,8 @@ export default function RadarPage() {
      tap lands on someone else's "Handled" — one Undo has to bring back both. */
   const lately = useRef<{ at: number; items: RadarEvent[] }>({ at: 0, items: [] });
   const handle = (items: RadarEvent[]) => {
+    // Only a tap calls this (the two Handled buttons below), never a render.
+    // eslint-disable-next-line react-hooks/purity
     const now = Date.now();
     const all = now - lately.current.at < 6500 ? [...lately.current.items, ...items] : items;
     lately.current = { at: now, items: all };

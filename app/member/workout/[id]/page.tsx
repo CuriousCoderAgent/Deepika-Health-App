@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, use } from "react";
 import { ChevronLeft, AlertTriangle, Check } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { dateKey } from "@/lib/calendar";
@@ -10,13 +10,12 @@ import ExerciseFigure from "@/components/ExerciseFigure";
 import ExerciseSheet from "@/components/ExerciseSheet";
 import type { EffortLevel, ExerciseSet } from "@/lib/types";
 
-export default function WorkoutDetail({
-  params,
-  searchParams,
-}: {
-  params: { id: string };
-  searchParams?: { day?: string };
+export default function WorkoutDetail(props: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ day?: string }>;
 }) {
+  const params = use(props.params);
+  const searchParams = use(props.searchParams);
   const { workouts, activeMember, logWorkout, workoutLogs, actions, completeAction } = useStore();
   const w = workouts.find((x) => x.id === params.id);
 
@@ -42,7 +41,7 @@ export default function WorkoutDetail({
      the session really was on her plan then; anything else is today. */
   const on = (day: number) =>
     actions.find((a) => a.memberId === activeMember.id && a.dayOffset === day && a.workoutId === w.id);
-  const yesterdays = searchParams?.day === "-1" ? on(-1) : undefined;
+  const yesterdays = searchParams.day === "-1" ? on(-1) : undefined;
   const day = yesterdays ? -1 : 0;
   const linked = yesterdays ?? on(0);
 

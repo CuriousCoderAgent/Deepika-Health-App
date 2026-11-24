@@ -10,17 +10,22 @@ const SIGNED_IN_ONLY = /^\/(?:member|coach)(?:\/|$)|^\/onboarding\/?$/;
  * A client-side redirect is decoration — anyone can skip it. This runs
  * before the page does, so an unauthenticated request never reaches a
  * screen holding someone's health data.
+ *
+ * Next 16 calls this the proxy; it was middleware.ts. It now runs on Node,
+ * but all it needs is the cookie's signature, checked by lib/auth.ts. It
+ * never imports lib/accounts.ts, which reaches the database.
  */
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Nothing in this app is submitted to a page: every save, sign-in and
   // sign-out goes to an address under /api. Next hands a POST to any page
   // address to its form-action reader all the same, whether or not the app
-  // has form actions — and that reader is where most of the serious
-  // advisories against Next 14 are. So a request like that stops here,
-  // before anything reads it. (app/api/[...missing] does the same job for a
-  // mistyped /api address, which would otherwise fall through to a page.)
+  // has form actions — and that reader has been behind some of the worst
+  // Next.js advisories, in 16 as in 14 (docs/DEPLOYMENT.md, "The Next.js
+  // version"). So a request like that stops here, before anything reads it.
+  // (app/api/[...missing] does the same job for a mistyped /api address,
+  // which would otherwise fall through to a page.)
   if (!pathname.startsWith("/api/") && req.method !== "GET" && req.method !== "HEAD") {
     return new NextResponse(null, { status: 405, headers: { Allow: "GET, HEAD" } });
   }
@@ -55,8 +60,9 @@ export const config = {
     // next/dist/server/lib/server-action-request-meta.js), so an ordinary
     // page view or file download never comes through here at all.
     //
-    // /_next/image is left out because Next answers that address itself,
-    // ahead of this file; next.config.mjs deals with it.
+    // /_next/image is left out: the rewrite in next.config.mjs hands every
+    // request for it, of any method, to app/api/[...missing], which answers
+    // a plain 404.
     { source: "/((?!api/|_next/image).*)", has: [{ type: "header", key: "next-action" }] },
     { source: "/((?!api/|_next/image).*)", has: [{ type: "header", key: "content-type" }] },
   ],

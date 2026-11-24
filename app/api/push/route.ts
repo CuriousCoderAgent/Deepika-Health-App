@@ -27,7 +27,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 async function member() {
-  const user = await readSessionToken(cookies().get(sessionCookieName)?.value);
+  const user = await readSessionToken((await cookies()).get(sessionCookieName)?.value);
   return user && user.role === "member" ? user : null;
 }
 

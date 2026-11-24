@@ -77,7 +77,7 @@ export default function NotificationsPage() {
             Bharosa
           </p>
           <p className="mt-1 text-[14px] leading-snug text-ink-soft line-through">
-            🔥 Your 17-day streak is at risk! Don't lose your progress!
+            🔥 Your 17-day streak is at risk! Don’t lose your progress!
           </p>
         </div>
         <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-ink-soft">

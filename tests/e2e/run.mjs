@@ -24,7 +24,10 @@ if (unknown.length) {
   console.error(`No suite called ${unknown.join(", ")}. There are: ${Object.keys(SUITES).join(", ")}.`);
   process.exit(2);
 }
-const names = asked.length ? asked : Object.keys(SUITES);
+// Always in the order above, whatever order they were asked for: `flow` reads
+// the Radar and the members list as one new member would leave them, so it
+// has to meet the database before another suite signs somebody up.
+const names = Object.keys(SUITES).filter((name) => !asked.length || asked.includes(name));
 
 const started = Date.now();
 const today = indiaToday();

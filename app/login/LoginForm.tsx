@@ -106,7 +106,7 @@ export default function LoginForm({
         return;
       }
       const { role } = await res.json();
-      // Full navigation so the middleware and the server layout both see the
+      // Full navigation so the proxy and the server layout both see the
       // new cookie — the store is namespaced by account and has to be built
       // from the right session.
       window.location.assign(role === "coach" ? "/coach" : "/member");
@@ -171,7 +171,7 @@ export default function LoginForm({
           />
           {creating && (
             <p className="mt-1 text-[11px] text-ink-faint">
-              This is what you'll type to sign in. Letters, numbers, dots and
+              This is what you’ll type to sign in. Letters, numbers, dots and
               dashes.
             </p>
           )}
@@ -192,7 +192,7 @@ export default function LoginForm({
           />
           {creating && (
             <p className="mt-1 text-[11px] text-ink-faint">
-              At least 8 characters. Keep it somewhere safe — there's no way to
+              At least 8 characters. Keep it somewhere safe — there’s no way to
               reset it yet.
             </p>
           )}

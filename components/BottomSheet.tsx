@@ -12,6 +12,12 @@ import { X } from "lucide-react";
  * whole browser window, and on a real phone it fills the screen the way a
  * native sheet does.
  *
+ * The console has a `#sheet-root` of its own (app/coach/layout.tsx), which
+ * covers the window and sets `--sheet-max`, so a sheet there is a readable
+ * column rather than a strip the width of a monitor. A screen with no
+ * `#sheet-root` at all gets no sheet and no error: the console had none for
+ * months, and the button that should have opened one simply did nothing.
+ *
  * Behaviour it needs to get right, per the design review: dismissable by
  * backdrop tap, by the grab handle, by Escape; it traps nothing it shouldn't
  * but does return focus; and it honours prefers-reduced-motion, which the
@@ -57,7 +63,10 @@ export default function BottomSheet({
     setHost(document.getElementById("sheet-root"));
   }, []);
 
+  // The newest onClose, read only by the Escape listener below, never during
+  // a render.
   const close = useRef(onClose);
+  // eslint-disable-next-line react-hooks/refs
   close.current = onClose;
 
   useEffect(() => {
@@ -100,7 +109,7 @@ export default function BottomSheet({
         aria-modal="true"
         aria-label={title}
         tabIndex={-1}
-        className={`safe-bottom relative max-h-[88%] overflow-y-auto overscroll-contain rounded-t-[1.5rem] bg-paper-card shadow-lift outline-none transition-transform duration-300 ease-[cubic-bezier(.16,.84,.44,1)] ${
+        className={`safe-bottom relative mx-auto max-h-[88%] w-full max-w-[var(--sheet-max,100%)] overflow-y-auto overscroll-contain rounded-t-[1.5rem] bg-paper-card shadow-lift outline-none transition-transform duration-300 ease-[cubic-bezier(.16,.84,.44,1)] ${
           open ? "translate-y-0" : "translate-y-full"
         }`}
       >

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, Dumbbell, ShieldCheck, User } from "lucide-react";
+import { ChevronRight, Dumbbell } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { dateKey, weekdayOf } from "@/lib/calendar";
 import { EffortRamp } from "@/components/ui";

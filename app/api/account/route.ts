@@ -32,7 +32,7 @@ export const dynamic = "force-dynamic";
  * or a deployment with no database.
  */
 export async function GET() {
-  const user = await readSessionToken(cookies().get(sessionCookieName)?.value);
+  const user = await readSessionToken((await cookies()).get(sessionCookieName)?.value);
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
   const none = { stored: false, hasPassword: true, google: { available: false, email: null } };
@@ -52,7 +52,7 @@ export async function GET() {
 }
 
 export async function DELETE() {
-  const user = await readSessionToken(cookies().get(sessionCookieName)?.value);
+  const user = await readSessionToken((await cookies()).get(sessionCookieName)?.value);
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
   // Deepika's login is the practice, not a personal account, and deleting it

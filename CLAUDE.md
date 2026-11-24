@@ -157,8 +157,12 @@ being deliberate about which one this is before it ships either way.
 
 ## Stack and commands
 
-Next.js 14 (App Router) · TypeScript · Tailwind · React context, persisted to
-Postgres when `DATABASE_URL` is set and to `localStorage` when it is not.
+Next.js 16 (App Router) · React 19 · TypeScript · Tailwind · React context,
+persisted to Postgres when `DATABASE_URL` is set and to `localStorage` when it
+is not. Which Next.js release, and why: `docs/DEPLOYMENT.md` → *The Next.js
+version*. Next 16 is newer than most of what anyone remembers about Next — the
+docs for the installed version ship in `node_modules/next/dist/docs/`; read
+those rather than going from memory of 14 or 15.
 
 Storage is per account either way — one document per member, split and
 rejoined by `lib/persist.ts`. `lib/db.ts` is server-only; importing it from a
@@ -167,9 +171,12 @@ client component would put the connection string in the browser bundle.
 Accounts come from two places: the environment (`MEMBERS`, `COACH_PASSWORD`,
 `AUTH_SECRET`), all with fallbacks so a deployment with nothing set still
 opens on demo credentials; and the database, for members who signed
-themselves up. `lib/accounts.ts` handles the second kind and is server-only —
-Node's crypto is not available in the Edge middleware, which is why the
-middleware imports from `lib/auth.ts` and never from there.
+themselves up. Those fallbacks are public, so a deployment must never have
+the database without `AUTH_SECRET` and `COACH_PASSWORD` — nothing in the code
+stops it serving real records on the demo sign-in. `lib/accounts.ts` handles the second kind and is server-only.
+`proxy.ts` (Next 16's name for middleware) imports from `lib/auth.ts` and never
+from there: it runs ahead of every signed-in page and only has to check a
+cookie's signature, while `lib/accounts.ts` reaches the database.
 See `docs/DEPLOYMENT.md`.
 
 **Signing in with Google** is built and off: it appears only when
@@ -184,6 +191,7 @@ connecting Google to an existing account asks for the password first.
 npm install
 npm run dev      # http://localhost:3000
 npm run build    # must pass before any commit
+npm run lint     # ESLint; next build no longer lints
 ```
 
 `.claude/settings.json` lets the routine checks run without a permission prompt
@@ -195,7 +203,8 @@ own database and delete it — and it should stay that way. It is there to save
 prompts on checks, not to get round one.
 
 Deploys to Vercel (import repo, zero config) or Railway (`npm start` reads
-injected `PORT`). After a deploy, `/api/health` says whether the app reached
+injected `PORT`). Either needs Node 20.9 or later; Vercel builds on 24. After a
+deploy, `/api/health` says whether the app reached
 its database — and opening it is what makes the tables, and applies any change
 to them (`MIGRATIONS` in `lib/db.ts`), instead of the first member doing so.
 
@@ -203,15 +212,19 @@ Fonts load via `<link>` in `app/layout.tsx`, deliberately not `next/font` —
 build-time font fetching turns a transient network blip into a failed deploy.
 Keep it that way.
 
-**Next 14 no longer gets security fixes**, and two things it leaves switched on
-are shut here because of that: the image-resizing address (`next.config.mjs`)
-and POSTs to a page (`middleware.ts`, `app/api/[...missing]`). So until the
-app moves to Next 16: no Server Actions, no `<form>` that posts to a page, no
-`next/image`, no `rewrites()` or `redirects()` rule pointing at another host,
-no `fetch` in server code (a call out uses Node's `https`, as `lib/google.ts`
-does). Every save goes to a route under `/api`. The reasoning, advisory by
-advisory, is in `docs/DEPLOYMENT.md` under "The Next.js version", and
-`tests/e2e/refused.mjs` checks the doors stay shut.
+**Two doors stay shut on Next 16**, because the worst Next.js advisories keep
+coming through them and the app uses neither: the image-resizing address
+(`next.config.mjs`) and POSTs to a page (`proxy.ts`, `app/api/[...missing]`).
+On Vercel the first is answered by Vercel's own image service, ahead of the
+app — only the empty allow-list in `next.config.mjs` stops that, and only
+opening the address on a deployed build shows whether it has.
+So: no Server Actions, no `<form>` that posts to a page, no `next/image` — not
+without opening that door on purpose and changing `tests/e2e/refused.mjs`
+with it. Every save goes to a route under `/api`. The reasoning, with the
+advisories behind it, is in `docs/DEPLOYMENT.md` under "The Next.js version",
+and `tests/e2e/refused.mjs` checks the doors stay shut. (The other rules from
+the Next 14 days — no rewrite to another host, no `fetch` in server code — are
+lifted; the advisories behind them are fixed in 16.)
 
 ---
 

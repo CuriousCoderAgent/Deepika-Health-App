@@ -46,13 +46,12 @@ const GOOGLE_NOTICES: Record<string, { text: string; problem: boolean }> = {
   closed: { text: "Signing up isn’t open on this deployment. Deepika can add you.", problem: false },
 };
 
-export default async function Home({
-  searchParams,
-}: {
-  searchParams?: { google?: string | string[]; mode?: string | string[] };
+export default async function Home(props: {
+  searchParams: Promise<{ google?: string | string[]; mode?: string | string[] }>;
 }) {
-  const session = await readSessionToken(cookies().get(sessionCookieName)?.value);
+  const session = await readSessionToken((await cookies()).get(sessionCookieName)?.value);
   if (session) redirect(session.role === "coach" ? "/coach" : "/member");
+  const searchParams = await props.searchParams;
 
   const insecure = !sessionsAreSecure();
   // Self-signup needs somewhere to put the account. An environment variable is
@@ -124,7 +123,7 @@ export default async function Home({
 
         {!canSignUp && !insecure && (
           <p className="mt-6 text-center text-[12px] leading-relaxed text-ink-faint">
-            Signing up isn't open on this deployment. Deepika can add you.
+            Signing up isn’t open on this deployment. Deepika can add you.
           </p>
         )}
 
