@@ -19,8 +19,8 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // The coach can open a member's app — that's the "See her app" flow, and
-  // she needs it. A member can never reach the console.
+  // The coach can open a member's app — that's the "Open the app as this
+  // member" flow, and she needs it. A member can never reach the console.
   if (pathname.startsWith("/coach") && session.role !== "coach") {
     return NextResponse.redirect(new URL("/member", req.url));
   }

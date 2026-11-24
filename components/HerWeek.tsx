@@ -3,6 +3,7 @@
 import { useStore } from "@/lib/store";
 import { dateKey } from "@/lib/calendar";
 import { dayName, lastDays, moodOf, type DayView } from "@/lib/dayView";
+import { pronouns } from "@/lib/display";
 import { ConsistencyBand, ProvenanceChip } from "./ui";
 import { LEVEL_FILL } from "./DayHistory";
 
@@ -126,7 +127,8 @@ function DayRow({ d, today }: { d: DayView; today: string }) {
  * says so.
  */
 export default function HerWeek({ memberId }: { memberId: string }) {
-  const { actions, pulses, foodEntries, messages, workoutLogs } = useStore();
+  const { members, actions, pulses, foodEntries, messages, workoutLogs } = useStore();
+  const { possessive: their } = pronouns(members.find((m) => m.id === memberId));
   const today = dateKey();
   const data = { actions, pulses, foodEntries, messages, workoutLogs };
   const fortnight = lastDays(memberId, 14, data);
@@ -136,7 +138,7 @@ export default function HerWeek({ memberId }: { memberId: string }) {
   return (
     <div className="card p-5 md:col-span-2">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <p className="label">Her last 7 days</p>
+        <p className="label">Last 7 days</p>
         <p className="text-[13px] text-ink-soft">
           Active on <span className="font-medium text-ink">{active} of the last 14</span>
         </p>
@@ -152,7 +154,7 @@ export default function HerWeek({ memberId }: { memberId: string }) {
       </ul>
 
       <p className="mt-1 text-[11px] leading-relaxed text-ink-faint">
-        E, S and C are her own ratings out of 5 for energy, sleep and calm. A 2 or below is
+        E, S and C are {their} own ratings out of 5 for energy, sleep and calm. A 2 or below is
         marked — the same line the Radar uses. Nothing here is interpreted.
       </p>
     </div>

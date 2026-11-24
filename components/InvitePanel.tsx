@@ -64,8 +64,8 @@ export default function InvitePanel({ startOpen }: { startOpen: boolean }) {
           ) : (
             <>
               <p className="text-[13px] leading-relaxed text-ink-soft">
-                Send this to a member. She creates her own account, so nobody has to type a password
-                into WhatsApp.
+                Send this to a member. They create their own account, so nobody has to type a
+                password into WhatsApp.
               </p>
               <p className="mt-3 select-all rounded-xl bg-paper-sunk p-3 text-[14px] leading-relaxed">
                 {message}

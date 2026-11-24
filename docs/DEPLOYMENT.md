@@ -88,7 +88,7 @@ for a new account to go.
 
 **Forgotten passwords.** There is no email service, so recovery goes through
 the person who knows the member: Deepika opens the member's page and chooses
-*Reset her password*, which sets a temporary one (shown once, stored only as a
+*Reset password*, which sets a temporary one (shown once, stored only as a
 hash) for her to pass on. The member then changes it from *Your account*, which
 asks for the current password so an unlocked phone is not enough to take the
 account over. This works for accounts held in the database; one whose login is
@@ -151,7 +151,7 @@ above and `docs/ANDROID.md`.)
 **What a member can read of her own record.** Her document also holds things
 that are Deepika's: her private coach notes, her private notes on each session,
 and unpublished plan drafts. The server strips these from what a member is sent
-and ignores them when she saves (`lib/privacy.ts`), so "she never sees this" is
+and ignores them when she saves (`lib/privacy.ts`), so "only you see this" is
 true of the network response and not just of the screen.
 
 ## Conflict handling

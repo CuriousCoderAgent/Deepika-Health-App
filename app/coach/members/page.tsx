@@ -198,7 +198,7 @@ export default function MembersPage() {
                 </div>
 
                 {/* Her fortnight at a glance: one square a day, today on the right. */}
-                <div className="hidden w-40 shrink-0 md:block" title="Her last 14 days, today on the right">
+                <div className="hidden w-40 shrink-0 md:block" title="Last 14 days, today on the right">
                   <ConsistencyBand days={lastDays(m.id, 14, data)} compact />
                   <p className="mt-1 text-right font-mono text-[9px] uppercase tracking-wider text-ink-faint">14 days</p>
                 </div>

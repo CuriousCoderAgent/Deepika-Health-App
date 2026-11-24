@@ -20,6 +20,7 @@ import ResetPassword from "@/components/ResetPassword";
 import { isSampleMember } from "@/lib/dailyPlan";
 import { draftWeekPlansFor, PHASE_WEEKS } from "@/lib/plan";
 import MemberName from "@/components/MemberName";
+import { pronouns } from "@/lib/display";
 import HerWeek from "@/components/HerWeek";
 import { draftsFor, REPLY_DRAFTS } from "@/lib/replyDrafts";
 import type { EffortLevel, WeekPlan } from "@/lib/types";
@@ -74,8 +75,8 @@ export default function Member360({ params }: { params: { id: string } }) {
   const [shrunk, setShrunk] = useState<Record<string, { target: any; why: string }>>({});
   const [newNote, setNewNote] = useState("");
 
-  /* Arriving from a Radar card's "Write to her" opens with that draft in the
-     box, ready to edit — never sent. Read once, on arrival. */
+  /* Arriving from a Radar card's "Write a message" opens with that draft in
+     the box, ready to edit — never sent. Read once, on arrival. */
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("draft");
     const draft = REPLY_DRAFTS.find((d) => d.id === id);
@@ -97,6 +98,11 @@ export default function Member360({ params }: { params: { id: string } }) {
       </div>
     );
   }
+
+  /* What this member told the app at onboarding; "they" when it was not said.
+     Most of this page needs no pronoun at all and is written without one —
+     see pronouns() in lib/display.ts for which sentences keep one. */
+  const { subject: they, object: them, possessive: their } = pronouns(m);
 
   const mine = actions.filter((a) => a.memberId === m.id);
   const myPulses = pulses
@@ -151,7 +157,7 @@ export default function Member360({ params }: { params: { id: string } }) {
           onClick={() => store.setActiveMember(m.id)}
           className="tap inline-flex items-center gap-1.5 rounded-xl bg-paper-sunk px-3 text-sm text-ink-soft hover:bg-ink-line hover:text-ink"
         >
-          See her app <ArrowUpRight size={14} />
+          Open the app as this member <ArrowUpRight size={14} />
         </Link>
       </div>
 
@@ -207,7 +213,7 @@ export default function Member360({ params }: { params: { id: string } }) {
         <div className="mt-7 grid gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:items-start">
         <div className="grid gap-5 md:grid-cols-2">
           <div className="card p-5 md:col-span-2">
-            <p className="label">What she is trying to get to</p>
+            <p className="label">Trying to get to</p>
             <ul className="mt-2.5 space-y-1.5">
               {m.goals.map((g, i) => (
                 <li key={i} className="text-[15px] leading-snug">
@@ -216,7 +222,7 @@ export default function Member360({ params }: { params: { id: string } }) {
               ))}
             </ul>
             <div className="mt-4 border-t border-ink-line pt-3">
-              <p className="label">And what she will not do</p>
+              <p className="label">And will not do</p>
               <p className="mt-1.5 text-[14px] italic text-ink-soft">&ldquo;{m.wontDo}&rdquo;</p>
             </div>
           </div>
@@ -260,7 +266,7 @@ export default function Member360({ params }: { params: { id: string } }) {
         <div className="grid gap-5 md:grid-cols-2 lg:sticky lg:top-6 lg:grid-cols-1">
           {/* Coach-on-behalf entry — the dual-entry requirement, live */}
           <div className="md:col-span-2 lg:col-span-1">
-            <p className="label mb-2">Enter her check-in during the call</p>
+            <p className="label mb-2">Enter {their} check-in during the call</p>
             <PulseCard memberId={m.id} asCoach />
           </div>
 
@@ -268,8 +274,8 @@ export default function Member360({ params }: { params: { id: string } }) {
             <p className="label">Daily protein target</p>
             <p className="mt-1 text-[13px] leading-relaxed text-ink-soft">
               Your number, not a calculated one — the app never sets this
-              itself. She sees it on Today and on her food log. Leave it blank
-              and the app just counts without a target.
+              itself. It shows on {their} Today screen and food log. Leave it
+              blank and the app just counts without a target.
             </p>
             <div className="mt-2.5 flex items-center gap-2">
               <input
@@ -289,7 +295,7 @@ export default function Member360({ params }: { params: { id: string } }) {
           </div>
 
           <div className="card p-5 md:col-span-2 lg:col-span-1">
-            <p className="label">Send her something</p>
+            <p className="label">Send a message</p>
             {!note.trim() && (
               <div className="mt-2.5">
                 <p className="text-[12px] text-ink-faint">
@@ -300,7 +306,7 @@ export default function Member360({ params }: { params: { id: string } }) {
                     <button
                       key={draft.id}
                       onClick={() => setNote(draft.text(m.name.split(" ")[0]))}
-                      title={suggested ? "Suggested by her Radar" : undefined}
+                      title={suggested ? "Suggested by the Radar" : undefined}
                       className={`min-h-[36px] rounded-full px-3 text-[12px] transition-colors ${
                         suggested
                           ? "bg-effort-tint font-medium text-effort-stretch hover:bg-effort-min/40"
@@ -417,7 +423,7 @@ export default function Member360({ params }: { params: { id: string } }) {
             </div>
 
             <div className="card p-5">
-              <p className="label">Constraints she actually lives with</p>
+              <p className="label">Real-life constraints</p>
               <ul className="mt-2.5 space-y-1.5">
                 {m.constraints.map((x, i) => (
                   <li key={i} className="text-[15px] leading-snug">
@@ -457,8 +463,8 @@ export default function Member360({ params }: { params: { id: string } }) {
             </div>
             {myReports.length === 0 ? (
               <p className="mt-2.5 text-[14px] text-ink-faint">
-                Nothing uploaded. She can add these herself from Progress → Your
-                reports, or you can enter them during a session.
+                Nothing uploaded. The member can add these from Insights → Health
+                Data, or you can enter them during a session.
               </p>
             ) : (
               <div className="mt-3 space-y-4">
@@ -496,7 +502,7 @@ export default function Member360({ params }: { params: { id: string } }) {
             Reports are stored and trended here, never interpreted. No value on this
             screen is flagged high, low or concerning, because doing so would be a
             clinical judgement and this is not a clinical product. If a value needs
-            explaining, that conversation belongs with her doctor — use the
+            explaining, that conversation belongs with {their} doctor — use the
             &ldquo;Preparing Questions for Your Doctor&rdquo; module to make it a
             better appointment.
           </ScopeNotice>
@@ -507,7 +513,7 @@ export default function Member360({ params }: { params: { id: string } }) {
       {tab === "Journey builder" && (
         <div className="mt-7 space-y-5">
           <div className="card p-5">
-            <p className="label">Her constraints, while you build</p>
+            <p className="label">Constraints to build around</p>
             <p className="mt-2 text-[14px] leading-relaxed text-ink-soft">
               {m.constraints.join(" · ")}
             </p>
@@ -575,7 +581,7 @@ export default function Member360({ params }: { params: { id: string } }) {
           </div>
 
           <p className="text-[13px] text-ink-faint">
-            Editing week {week} of 12{week === m.week ? " — her current week" : ""}
+            Editing week {week} of 12{week === m.week ? " — the current week" : ""}
           </p>
 
           <div className="card p-5">
@@ -663,12 +669,12 @@ export default function Member360({ params }: { params: { id: string } }) {
 
           {/* Draft vs published — nothing reaches her until you assign it */}
           <div className="card p-5">
-            <p className="label">Why it changed — she will see this</p>
+            <p className="label">Why it changed — {they} will see this</p>
             <textarea
               value={rationale}
               onChange={(e) => setRationale(e.target.value)}
               rows={3}
-              placeholder="Say it the way you would say it to her. Plainly, without making her feel behind."
+              placeholder={`Say it the way you would say it to ${them}. Plainly, without making ${them} feel behind.`}
               className="mt-2 w-full resize-none rounded-xl border border-ink-line bg-paper px-3 py-2.5 text-[14px] placeholder:text-ink-faint focus:border-effort-target focus:outline-none"
             />
 
@@ -698,15 +704,15 @@ export default function Member360({ params }: { params: { id: string } }) {
 
             {draftSaved && (
               <p className="mt-3 text-[14px] text-ink-soft">
-                Saved as a draft. She won&rsquo;t see week {week} until you assign it.
+                Saved as a draft. Until you assign it, {they} won&rsquo;t see week {week}.
               </p>
             )}
             {published && (
               <p className="mt-3 text-[14px] text-effort-stretch">
                 Assigned.{" "}
                 {week === m.week
-                  ? "Open her app from the top of this page — the change and your reason are on her Today screen."
-                  : `Week ${week} is on her Journey now.`}
+                  ? `Open the app as this member, from the top of this page — the change and your reason are on ${their} Today screen.`
+                  : `Week ${week} is on ${their} Journey now.`}
               </p>
             )}
           </div>
@@ -824,7 +830,7 @@ export default function Member360({ params }: { params: { id: string } }) {
           <div className="card p-5">
             <div className="flex items-center gap-2">
               <p className="label">Add a note</p>
-              <span className="chip bg-paper-sunk text-ink-faint">she never sees this</span>
+              <span className="chip bg-paper-sunk text-ink-faint">only you see this</span>
             </div>
             <textarea
               value={newNote}
@@ -905,7 +911,7 @@ export default function Member360({ params }: { params: { id: string } }) {
 
                 {weekActions.filter((a) => a.skipReason).length > 0 && (
                   <div className="mt-5 border-t border-ink-line pt-4">
-                    <p className="label">Reasons she gave</p>
+                    <p className="label">Reasons given</p>
                     <ul className="mt-2 space-y-1">
                       {weekActions
                         .filter((a) => a.skipReason)
@@ -920,7 +926,7 @@ export default function Member360({ params }: { params: { id: string } }) {
 
                 {nextSession.memberQuestions.length > 0 && (
                   <div className="mt-5 border-t border-ink-line pt-4">
-                    <p className="label">Her questions</p>
+                    <p className="label">Questions for you</p>
                     <ul className="mt-2 space-y-1.5">
                       {nextSession.memberQuestions.map((q, i) => (
                         <li key={i} className="text-[15px] leading-snug">
@@ -948,7 +954,7 @@ export default function Member360({ params }: { params: { id: string } }) {
 
               {lastSession?.commitments.length ? (
                 <div className="card p-5">
-                  <p className="label">What she committed to last time</p>
+                  <p className="label">Commitments from last time</p>
                   <div className="mt-2.5 space-y-2">
                     {lastSession.commitments.map((c, i) => (
                       <div key={i} className="flex items-start gap-2.5 text-[15px]">
@@ -979,7 +985,7 @@ export default function Member360({ params }: { params: { id: string } }) {
               <div className="card p-5">
                 <div className="flex items-center gap-2">
                   <p className="label">Private notes</p>
-                  <span className="chip bg-paper-sunk text-ink-faint">she never sees this</span>
+                  <span className="chip bg-paper-sunk text-ink-faint">only you see this</span>
                 </div>
                 <textarea
                   value={privateNotes}
@@ -993,8 +999,8 @@ export default function Member360({ params }: { params: { id: string } }) {
                 />
 
                 <div className="mt-5 flex items-center gap-2">
-                  <p className="label">Recap for her</p>
-                  <span className="chip bg-effort-tint text-effort-stretch">she reads this</span>
+                  <p className="label">Recap for {them}</p>
+                  <span className="chip bg-effort-tint text-effort-stretch">{they} will read this</span>
                 </div>
                 <textarea
                   value={recap}
@@ -1003,7 +1009,7 @@ export default function Member360({ params }: { params: { id: string } }) {
                     setNotesSaved(false);
                   }}
                   rows={4}
-                  placeholder="What you agreed, in her language. This lands in her Coach tab."
+                  placeholder={`What you agreed, in ${their} language. This lands in ${their} Coach tab.`}
                   className="mt-2.5 w-full resize-none rounded-xl border border-ink-line bg-paper px-3 py-2.5 text-[14px] placeholder:text-ink-faint focus:border-effort-target focus:outline-none"
                 />
 
@@ -1053,7 +1059,7 @@ export default function Member360({ params }: { params: { id: string } }) {
             </>
           ) : (
             <div className="card p-8 text-center">
-              <p className="text-[15px] text-ink-soft">Nothing scheduled with her yet.</p>
+              <p className="text-[15px] text-ink-soft">Nothing scheduled yet.</p>
             </div>
           )}
         </div>

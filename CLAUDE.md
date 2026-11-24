@@ -219,7 +219,8 @@ lib/
   push.ts                   Web Push sending and VAPID keys — server-only
   replyDrafts.ts            Drafts for Deepika's messages, suggested by the Radar
   display.ts                Members by name in the console; initials behind the
-                            privacy screen (privacyScreen.ts, per device)
+                            privacy screen (privacyScreen.ts, per device);
+                            pronouns() for the few sentences that need one
   useWidth.ts               A chart's real pixel width, so it is drawn, not stretched
 components/
   ui.tsx                    EffortRamp, ProvenanceChip, ConsistencyBand, Sparkline
@@ -231,7 +232,7 @@ components/
   DayHistory.tsx            Her last 14 days; yesterday can still be marked
   Toast.tsx                 "Recorded" / "Handled", with Undo — both sides
   QuickFind.tsx             Deepika's jump-to-a-member (/ or Ctrl+K)
-  HerWeek.tsx               Her last 7 days, a row each, on the member page
+  HerWeek.tsx               A member's last 7 days, a row each, on the member page
   PulseCard.tsx             Daily Pulse (member + coach-on-behalf modes)
   MealText.tsx              Type what you ate → check → add
   Reminders.tsx             Reminder setting; ReminderPrompt / InstallPrompt are
@@ -287,6 +288,16 @@ each colour means semantically. Read those comments before adding a colour.
   message, a pain flag, a symptom report) carries that record's id; a flag
   about a pattern comes back after a week if still true. Never key a flag on
   a count or a day offset — both change overnight. See `lib/radar.ts`.
+- **The console does not assume a member is a woman.** Onboarding asks, and a
+  member can answer man, or prefer not to say. Write console copy without a
+  pronoun wherever the sentence allows it ("Last 7 days", "Reset password") —
+  it is shorter and cannot be wrong. Where a sentence about one member needs
+  one, take it from `pronouns(member)` in `lib/display.ts`, which says "they"
+  for anyone who did not say; and put `subject` only before a verb that does
+  not change (will, can, a past tense), because "they" takes a different one.
+  Rule text in `lib/radar.ts` is one sentence for everybody, so it carries
+  none. `npm run test:logic` reads the console's source and fails on a "her"
+  or a "his"; a line that names Deepika is about her and may say "she".
 - **A rating of 0 means "not rated".** The one-tap mood saves sleep as 0. Any
   rule or sentence that reads sleep has to skip it (`lowSleepNights` in
   `lib/dayView.ts`), or a mood-only check-in reads as a bad night.

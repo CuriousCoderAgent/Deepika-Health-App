@@ -5,13 +5,13 @@ import { notificationTemplates } from "@/lib/seed";
 import { Mic, Bell } from "lucide-react";
 
 const RULES = [
-  ["Value before demand", "A notification should carry a useful thought or a concrete action even if she never opens the app."],
+  ["Value before demand", "A notification should carry a useful thought or a concrete action even if the app is never opened."],
   ["No guilt copy", "Never “you missed”, never “streak at risk”, never “don't give up”. Continuity language only."],
   ["Specific over motivational", "“Your 12-minute version is ready” beats “You've got this!” every time."],
   ["Human when human", "A message from you is visibly from you. A system nudge never pretends to be."],
-  ["Frequency cap", "One non-critical system nudge a day, plus genuine coach messages. Quiet hours are hers to set."],
-  ["Escalation by silence", "If she ignores a prompt repeatedly, send fewer — not more."],
-  ["Explain adaptation", "If the plan changed because of her sleep or her week, say so plainly."],
+  ["Frequency cap", "One non-critical system nudge a day, plus genuine coach messages. Quiet hours are the member's to set."],
+  ["Escalation by silence", "If a prompt is ignored repeatedly, send fewer — not more."],
+  ["Explain adaptation", "If the plan changed because of a member's sleep or week, say so plainly."],
 ];
 
 export default function NotificationsPage() {
@@ -22,7 +22,7 @@ export default function NotificationsPage() {
       <h1 className="font-display text-4xl leading-tight">Notifications</h1>
       <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-ink-soft">
         Zomato wants an impulse. You want agency. The measure of a good
-        notification here is not whether she opened the app — it is whether the
+        notification here is not whether the app was opened — it is whether the
         smallest useful thing happened.
       </p>
 
@@ -82,7 +82,7 @@ export default function NotificationsPage() {
         </div>
         <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-ink-soft">
           This one works. It reliably produces app opens. It also produces the exact
-          all-or-nothing collapse that made {members.length ? "these women" : "women"} quit
+          all-or-nothing collapse that made {members.length ? "your members" : "people"} quit
           everything they tried before — so it does not ship.
         </p>
       </div>

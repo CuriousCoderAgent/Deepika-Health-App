@@ -54,7 +54,7 @@ code, one tap to WhatsApp), **temporary-password reset** by Deepika, members
 - **Names in Deepika's console**, with a per-device **privacy screen** (initials
   only) for when someone can see her screen.
 - **Drafts for Deepika's messages** — hello, gentle check-in, welcome back and
-  others — suggested by each member's Radar flags, and a **Write to her** button
+  others — suggested by each member's Radar flags, and a **Write a message** button
   on Radar cards that opens the draft ready to edit. Nothing is sent for her.
 - **Check-in reminders**, opt-in, at most one a day, fewer when someone goes
   quiet (`docs/DEPLOYMENT.md` → *Reminders*).
@@ -85,7 +85,7 @@ code, one tap to WhatsApp), **temporary-password reset** by Deepika, members
 - **The day in four numbers** on the Radar — here today, waiting for a reply,
   sessions by tomorrow, gone quiet — and a Members list that says when each
   woman was last here.
-- **Her last 7 days** on a member's page: what she did each day, how she rated
+- **Last 7 days** on a member's page: what she did each day, how she rated
   it, what she wrote, and any pain flag.
 
 **Fixed — found by running the app as a member and as Deepika, end to end**

@@ -63,12 +63,14 @@ export interface Member {
   bodyComp?: { label: string; value: string; at: string; provenance: Provenance }[];
   assessmentComplete: number; // 0–100
   /**
-   * Asked at the start of onboarding, and used for one thing only: which
-   * "where you are right now" question makes sense to ask. The practice is
-   * built around women in midlife, but nothing here is restricted to them,
-   * and a required screen full of menstrual-cycle options is not answerable
-   * by everyone who can usefully be coached. Absent on the seeded cohort and
-   * on anyone who onboarded before it existed.
+   * Asked at the start of onboarding, and used for two things only: which
+   * "where you are right now" question makes sense to ask, and which pronoun
+   * Deepika's console uses where it needs one (`pronouns` in lib/display.ts).
+   * The practice is built around women in midlife, but nothing here is
+   * restricted to them, and a required screen full of menstrual-cycle options
+   * is not answerable by everyone who can usefully be coached. Absent on the
+   * seeded cohort and on anyone who onboarded before it existed — the console
+   * says "they" for them, as it does for "other".
    */
   gender?: "woman" | "man" | "other";
   /**

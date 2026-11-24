@@ -8,8 +8,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
+const ts = require("typescript");
 const cal = require("../.test-build/lib/calendar.js");
 const dp = require("../.test-build/lib/dailyPlan.js");
 const radar = require("../.test-build/lib/radar.js");
@@ -655,6 +659,140 @@ test("names in the console: short, searchable, and initials behind the privacy s
   assert.ok(display.matchesMember(meera, "nair"));
   assert.ok(display.matchesMember(meera, "MN84"), "the username still finds her");
   assert.ok(!display.matchesMember(meera, "anita"));
+});
+
+// ------------------------------------- how the console refers to a member
+// Not everyone Deepika coaches is a woman. Onboarding has asked since men could
+// join, and the console said "her" about all of them anyway.
+const THEY = { subject: "they", object: "them", possessive: "their" };
+
+test("pronouns come from what the member said at onboarding, and from nothing else", () => {
+  assert.deepEqual(display.pronouns(member({ gender: "woman" })), { subject: "she", object: "her", possessive: "her" });
+  assert.deepEqual(display.pronouns(member({ gender: "man" })), { subject: "he", object: "him", possessive: "his" });
+  assert.deepEqual(display.pronouns(member({ gender: "other" })), THEY, "preferred to self-describe, or not to say");
+  assert.deepEqual(display.pronouns(member()), THEY, "never asked: the sample cohort, and anyone from before the question");
+  assert.deepEqual(display.pronouns(member({ name: "Meera Nair" })), THEY, "a name is not an answer");
+  assert.deepEqual(display.pronouns(member({ name: "Arjun Rao", lifeStage: "My periods have stopped" })), THEY, "nor is anything else on the record");
+});
+
+test("pronouns never fail on a member that is missing or holds something unexpected", () => {
+  assert.deepEqual(display.pronouns(undefined), THEY, "a caller with only an id that matched no one");
+  assert.deepEqual(display.pronouns(null), THEY);
+  for (const stored of ["female", "Man", "", "toString", null, 3]) {
+    assert.deepEqual(display.pronouns({ gender: stored }), THEY, `a stored ${JSON.stringify(stored)} is not read as anything`);
+  }
+});
+
+test("every form can be dropped into a sentence as it is", () => {
+  for (const gender of ["woman", "man", "other", undefined]) {
+    const p = display.pronouns(member({ gender }));
+    assert.deepEqual(Object.keys(p).sort(), ["object", "possessive", "subject"]);
+    for (const word of Object.values(p)) assert.match(word, /^[a-z]+$/, "one lower-case word, so the sentence decides the capital");
+  }
+  // The same object each time, so a component can read it on every render.
+  assert.equal(display.pronouns(member({ gender: "man" })), display.pronouns({ gender: "man" }));
+});
+
+/** A pronoun or a plural that settles what a member is. "They" is not one. */
+const GENDERED = /\b(she|her|hers|herself|he|him|his|himself|women|men)\b/i;
+
+test("no Radar rule is worded for a woman, or for a man", () => {
+  // Rule text is one sentence for every member, so it cannot take a pronoun.
+  for (const r of radar.radarRules) {
+    const said = [r.name, r.trigger, r.suggestedAction].join(" · ");
+    assert.ok(!GENDERED.test(said), `${r.id} says “${said.match(GENDERED)?.[0]}”: ${said}`);
+  }
+  for (const b of Object.values(radar.bucketMeta)) assert.ok(!GENDERED.test(`${b.label} ${b.blurb}`), b.label);
+});
+
+test("what the Radar says about a man who joined and went quiet does not call him she", () => {
+  const arjun = onboarded({ id: "arjun-r", name: "Arjun Rao", gender: "man", onboardedAt: "2026-10-01" });
+  const quiet = radarWith({ members: [arjun] }).find((e) => e.ruleId === "R01");
+  assert.equal(quiet.detail, "Nothing recorded since joining 5 days ago.");
+  const today = onboarded({ id: "arjun-r", name: "Arjun Rao", gender: "man", onboardedAt: TODAY });
+  const hello = radarWith({ members: [today] }).find((e) => e.ruleId === "R11");
+  assert.equal(hello.trigger, "Joined in the last 3 days and has not heard from you yet");
+  for (const e of [quiet, hello]) assert.ok(!GENDERED.test([e.detail, e.trigger, e.suggestedAction].join(" ")), e.ruleId);
+});
+
+/**
+ * Everything a source file can put on a screen: string literals, the fixed
+ * parts of template strings, and text between JSX tags. Comments are not part
+ * of the syntax tree, so they are not read.
+ */
+const REPO = fileURLToPath(new URL("..", import.meta.url));
+const screenText = (file) => screenTextOf(file, readFileSync(join(REPO, file), "utf8"));
+function screenTextOf(file, code) {
+  const source = ts.createSourceFile(file, code, ts.ScriptTarget.Latest, true);
+  const found = [];
+  const add = (node, text) =>
+    found.push({ line: source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1, text });
+  const visit = (node) => {
+    if (ts.isImportDeclaration(node)) return; // "@/components/HerWeek" is a path, not copy
+    if (ts.isStringLiteralLike(node) || ts.isJsxText(node)) add(node, node.text);
+    else if (ts.isTemplateExpression(node)) {
+      add(node, [node.head, ...node.templateSpans.map((s) => s.literal)].map((part) => part.text).join(" … "));
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return found;
+}
+const sourceFilesUnder = (dir) =>
+  readdirSync(join(REPO, dir), { withFileTypes: true }).flatMap((entry) =>
+    entry.isDirectory()
+      ? sourceFilesUnder(join(dir, entry.name))
+      : /\.tsx?$/.test(entry.name) ? [join(dir, entry.name)] : []
+  );
+
+test("screen text is read from source, and comments are not", () => {
+  // The check below is only as good as this reader, so it is tested first.
+  const code = [
+    'import Her from "@/components/HerWeek";',
+    "// a comment may say her",
+    'const label = busy ? "Resetting…" : "Reset her password";',
+    "const line = `Week ${week} is on his Journey now.`;",
+    'const row = <p title="Her last 14 days">{/* she */} See her app <b>{name}</b></p>;',
+  ].join("\n");
+  const found = screenTextOf("sample.tsx", code).map((x) => `${x.line}: ${x.text.trim()}`);
+  assert.deepEqual(found, [
+    "3: Resetting…",
+    "3: Reset her password",
+    "4: Week  …  is on his Journey now.",
+    "5: Her last 14 days",
+    "5: See her app",
+  ]);
+  const words = screenText("lib/display.ts").map((x) => x.text);
+  assert.ok(words.includes("she") && words.includes("their"), "the one place the pronouns are written down");
+});
+
+test("the console's own words never say she or he about a member", () => {
+  // The console is these two folders, and the components only it uses. A
+  // component the member app shares (PulseCard, Toast) is left out: most of
+  // its text is read by members, and may say "she" of Deepika.
+  const files = [
+    ...sourceFilesUnder("app/coach"),
+    ...sourceFilesUnder("app/api/coach"),
+    ...["HerWeek", "QuickFind", "MemberName", "InvitePanel", "ResetPassword"].map((c) => join("components", `${c}.tsx`)),
+    "lib/radar.ts",
+    "lib/replyDrafts.ts",
+  ];
+  assert.ok(files.length >= 15, "the console's files were found");
+  const assumed = [];
+  for (const file of files) {
+    for (const { line, text } of screenText(file)) {
+      // A line that names Deepika is about her, and "she" is right for her.
+      if (/\bDeepika\b/.test(text)) continue;
+      const word = text.match(GENDERED)?.[0];
+      if (word) assumed.push(`${file}:${line}  “${word}” in: ${text.replace(/\s+/g, " ").trim().slice(0, 90)}`);
+    }
+  }
+  assert.equal(
+    assumed.length,
+    0,
+    `console copy that assumes who a member is:\n  ${assumed.join("\n  ")}\n` +
+      "Write the sentence without a pronoun, or take one from pronouns() in lib/display.ts."
+  );
 });
 
 // ---------------------------------------------------------------- reminders

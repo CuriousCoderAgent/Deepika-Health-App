@@ -25,6 +25,50 @@ export function shortName(m: Member): string {
   return `${parts[0]} ${parts[parts.length - 1].charAt(0).toUpperCase()}.`;
 }
 
+/**
+ * How the console refers to one member inside a sentence.
+ *
+ * It used to say "her" about everyone. That is true of the six sample members
+ * and of most of the people Deepika coaches — but onboarding asks, a member
+ * can answer "man" or prefer not to say, and "Save on her behalf" is then
+ * wrong about a real person, on the one screen that is about him.
+ *
+ * Taken from that answer and from nothing else; never guessed from a name.
+ * Anyone who preferred not to say, and anyone who was never asked (the sample
+ * cohort, and members from before the question existed), is "they".
+ *
+ * Two things to hold to when writing console copy with it:
+ *
+ *  - The sentence that needs no pronoun is usually the better one. "Last 7
+ *    days" is shorter than "Her last 7 days" and cannot be wrong about anyone.
+ *  - "They" takes a different verb: she sees, they see. So `subject` only goes
+ *    in front of a verb that does not change — will, can, a past tense. `object`
+ *    and `possessive` are safe anywhere.
+ */
+export interface Pronouns {
+  subject: "she" | "he" | "they";
+  object: "her" | "him" | "them";
+  possessive: "her" | "his" | "their";
+}
+
+const SHE: Pronouns = { subject: "she", object: "her", possessive: "her" };
+const HE: Pronouns = { subject: "he", object: "him", possessive: "his" };
+const THEY: Pronouns = { subject: "they", object: "them", possessive: "their" };
+
+/** Accepts a missing member, so a caller holding only an id need not check. */
+export function pronouns(m?: Pick<Member, "gender"> | null): Pronouns {
+  // `default` is doing real work: this is read from a stored document, which
+  // can hold something other than the three values the type allows.
+  switch (m?.gender) {
+    case "woman":
+      return SHE;
+    case "man":
+      return HE;
+    default:
+      return THEY;
+  }
+}
+
 /** What the privacy screen shows instead of her name. */
 export function initialsOf(m: Member): string {
   if (m.initials?.trim()) return m.initials.trim().toUpperCase();
