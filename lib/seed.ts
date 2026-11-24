@@ -31,6 +31,7 @@ export const members: Member[] = [
   {
     id: "radhika",
     name: "Radhika Menon",
+    gender: "woman",
     age: 44,
     city: "Bengaluru",
     initials: "RM",
@@ -101,6 +102,7 @@ export const members: Member[] = [
   {
     id: "megha",
     name: "Megha Sharma",
+    gender: "woman",
     age: 41,
     city: "Gurugram",
     initials: "MS",
@@ -123,6 +125,7 @@ export const members: Member[] = [
   {
     id: "anita",
     name: "Anita Deshpande",
+    gender: "woman",
     age: 47,
     city: "Pune",
     initials: "AD",
@@ -145,6 +148,7 @@ export const members: Member[] = [
   {
     id: "shreya",
     name: "Shreya Iyer",
+    gender: "woman",
     age: 39,
     city: "Mumbai",
     initials: "SI",
@@ -165,6 +169,7 @@ export const members: Member[] = [
   {
     id: "nidhi",
     name: "Nidhi Kapoor",
+    gender: "woman",
     age: 49,
     city: "Delhi",
     initials: "NK",
@@ -188,6 +193,7 @@ export const members: Member[] = [
   {
     id: "priya",
     name: "Priya Raghavan",
+    gender: "woman",
     age: 43,
     city: "Chennai",
     initials: "PR",
@@ -221,7 +227,7 @@ export const modules: CoachModule[] = [
     purpose:
       "Build the first genuine strength base — hinge, squat, push, carry — in someone who has never trained.",
     betterLooksLike:
-      "She can do a bodyweight sit-to-stand for 10 reps without using her hands, and knows what a hinge feels like.",
+      "Ten bodyweight sit-to-stands without using hands, and knowing what a hinge feels like.",
     eligibility:
       "Cleared movement screen. No acute back or knee pain. Has had at least two supervised sessions.",
     keyIdeas: [
@@ -263,7 +269,7 @@ export const modules: CoachModule[] = [
     version: "1.1",
     status: "active",
     purpose: "Second strength template — adds unilateral work and loaded carries.",
-    betterLooksLike: "She can carry shopping in one hand for 40m without setting it down.",
+    betterLooksLike: "Carrying shopping in one hand for 40m without setting it down.",
     eligibility: "Completed at least four weeks of Foundations with stable technique.",
     keyIdeas: [
       "Single-leg work protects balance, which protects against falls later.",
@@ -289,7 +295,7 @@ export const modules: CoachModule[] = [
     version: "1.0",
     status: "active",
     purpose: "A movement floor that is always achievable, including on the worst days.",
-    betterLooksLike: "On a bad day she still does something, and the week does not collapse.",
+    betterLooksLike: "On a bad day something still gets done, and the week does not collapse.",
     eligibility: "Anyone, any week, any phase.",
     keyIdeas: [
       "The purpose of this module is continuity, not adaptation.",
@@ -316,7 +322,7 @@ export const modules: CoachModule[] = [
     version: "1.0",
     status: "active",
     purpose: "Establish daily movement volume before adding structured training.",
-    betterLooksLike: "Walking is no longer a decision, it is just something she does after dinner.",
+    betterLooksLike: "Walking is no longer a decision, it is just what happens after dinner.",
     eligibility: "Weeks 1–4, or as a rebuild after a lapse.",
     keyIdeas: [
       "Attaching a walk to an existing habit works better than scheduling it.",
@@ -328,7 +334,7 @@ export const modules: CoachModule[] = [
     tracking: "Completion level; steps if a device is connected.",
     coachPlaybook: {
       ask: ["What time of day actually worked?"],
-      barriers: ["Weather", "Not safe to walk after dark in her area"],
+      barriers: ["Weather", "Not safe to walk after dark nearby"],
       escalation: "None.",
     },
     notificationTemplates: ["A 10-minute walk after dinner counts as the whole thing."],
@@ -341,9 +347,9 @@ export const modules: CoachModule[] = [
     version: "1.3",
     status: "active",
     purpose:
-      "Raise protein at the two meals she already eats, without introducing tracking or restriction.",
+      "Raise protein at two of the day's existing meals, without introducing tracking or restriction.",
     betterLooksLike:
-      "She can look at a plate and say whether there is protein on it. No weighing, no logging.",
+      "Looking at a plate and knowing whether there is protein on it. No weighing, no logging.",
     eligibility:
       "Anyone. Adapt for vegetarian and Jain diets. Not for members with a history of disordered eating without prior discussion.",
     keyIdeas: [
@@ -374,7 +380,7 @@ export const modules: CoachModule[] = [
     version: "1.0",
     status: "active",
     purpose: "A visual rule for building a meal without measuring anything.",
-    betterLooksLike: "She builds the plate without thinking about it.",
+    betterLooksLike: "Building the plate without thinking about it.",
     eligibility: "After Protein Basics is stable.",
     keyIdeas: ["Half the plate vegetables, a quarter protein, a quarter grain.", "Order of eating matters less than composition."],
     minimum: { label: "One meal built this way", minutes: 0 },
@@ -441,7 +447,7 @@ export const modules: CoachModule[] = [
     tracking: "Self-report.",
     coachPlaybook: {
       ask: ["What is realistically the last thing you do at night?"],
-      barriers: ["Only quiet time she gets is late at night"],
+      barriers: ["The only quiet time in the day is late at night"],
       escalation: "Refer if insomnia persists beyond four weeks.",
     },
     notificationTemplates: ["Five minutes with the lights down still counts."],
@@ -456,7 +462,7 @@ export const modules: CoachModule[] = [
     purpose:
       "Replace Instagram-level understanding with an accurate picture of what is happening and why.",
     betterLooksLike:
-      "She can describe the transition in her own words and no longer thinks something is wrong with her.",
+      "Being able to explain the transition in everyday words — and no longer thinking something is wrong.",
     eligibility: "Any member in or approaching the transition.",
     keyIdeas: [
       "Perimenopause can run for several years before periods stop.",
@@ -487,7 +493,7 @@ export const modules: CoachModule[] = [
     version: "1.0",
     status: "active",
     purpose: "Explain why strength and loading matter more now than they did at thirty.",
-    betterLooksLike: "She understands why she is lifting, so she keeps lifting.",
+    betterLooksLike: "Understanding why the lifting matters, so the lifting continues.",
     eligibility: "Peri and postmenopausal members.",
     keyIdeas: [
       "Bone responds to load. Walking alone is not enough loading.",
@@ -514,7 +520,7 @@ export const modules: CoachModule[] = [
     version: "1.0",
     status: "active",
     purpose: "Turn a symptom log into a productive ten-minute consultation.",
-    betterLooksLike: "She walks into the appointment with a written pattern, not a vague complaint.",
+    betterLooksLike: "Walking into the appointment with a written pattern, not a vague complaint.",
     eligibility: "Any member with symptoms needing medical input.",
     keyIdeas: [
       "Take a pattern, not a feeling — how often, how long, how disruptive.",
@@ -591,7 +597,7 @@ export const modules: CoachModule[] = [
     version: "1.2",
     status: "active",
     purpose: "Make returning after a gap structurally easy and emotionally uncharged.",
-    betterLooksLike: "She comes back in two days instead of not at all.",
+    betterLooksLike: "Coming back in two days instead of not at all.",
     eligibility: "Assign after three or more inactive days.",
     keyIdeas: [
       "Nothing resets. Progress is cumulative, not consecutive.",
@@ -606,7 +612,7 @@ export const modules: CoachModule[] = [
         "What made it possible to come back today?",
         "What would have made it possible two days earlier?",
       ],
-      barriers: ["Shame about the gap", "Believing she has to start over"],
+      barriers: ["Shame about the gap", "Believing it means starting over"],
       escalation: "None. Never escalate a lapse.",
     },
     notificationTemplates: ["Good to see you. Nothing reset — we are continuing from here."],
@@ -967,10 +973,8 @@ export const dailyActions: DailyAction[] = [
   { id: "a-nid-2", memberId: "nidhi", dayOffset: 0, moduleId: "hr-bone-muscle", title: "Bone & Muscle Health", why: "Given your mother's fracture history, this one matters. Four minutes.", minimum: { label: "Read the summary", minutes: 4 }, target: { label: "Connect it to your plan", minutes: 10 }, stretch: { label: "Prepare doctor questions", minutes: 20 }, completed: null },
   { id: "a-nid-p1", memberId: "nidhi", dayOffset: -2, moduleId: "mv-strength-b", title: "Balance & Carry", why: "Planned.", minimum: { label: "Carries and squats", minutes: 15 }, target: { label: "Full session", minutes: 30 }, stretch: { label: "Progress load", minutes: 45 }, completed: "stretch", provenance: p("member_manual", "Nidhi", "2026-08-07") },
 
-  // Priya — just came back. Her last walk was six days ago, which leaves five
-  // days in between: the "five days" of her story, and the number her comeback
-  // card on the Radar (R08) counts.
-  { id: "a-pri-p1", memberId: "priya", dayOffset: -6, moduleId: "mv-walk-base", title: "Walk after dinner", why: "Building the cue.", minimum: { label: "10 minutes", minutes: 10 }, target: { label: "20 minutes", minutes: 20 }, stretch: { label: "35 minutes", minutes: 35 }, completed: "target", provenance: p("member_manual", "Priya", "2026-08-03") },
+  // Priya — just came back
+  { id: "a-pri-p1", memberId: "priya", dayOffset: -5, moduleId: "mv-walk-base", title: "Walk after dinner", why: "Building the cue.", minimum: { label: "10 minutes", minutes: 10 }, target: { label: "20 minutes", minutes: 20 }, stretch: { label: "35 minutes", minutes: 35 }, completed: "target", provenance: p("member_manual", "Priya", "2026-08-04") },
   { id: "a-pri-1", memberId: "priya", dayOffset: 0, moduleId: "mv-walk-base", title: "Walk, any length", why: "You are back. That is the whole task today.", minimum: { label: "10 minutes", minutes: 10 }, target: { label: "20 minutes", minutes: 20 }, stretch: { label: "35 minutes", minutes: 35 }, completed: "minimum", provenance: p("member_manual", "Priya", "2026-08-09") },
   { id: "a-pri-2", memberId: "priya", dayOffset: 0, moduleId: "bh-minimum-day", title: "Name your Minimum Day action", why: "So the next hard week has a plan already written.", minimum: { label: "Name it", minutes: 2 }, target: { label: "Use it once", minutes: 10 }, stretch: { label: "Note what triggered it", minutes: 15 }, completed: null },
 ];

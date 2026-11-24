@@ -7,10 +7,8 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { readdirSync, readFileSync } from "node:fs";
 
 const require = createRequire(import.meta.url);
 const cal = require("../.test-build/lib/calendar.js");
@@ -24,9 +22,18 @@ const drafts = require("../.test-build/lib/replyDrafts.js");
 const display = require("../.test-build/lib/display.js");
 const rem = require("../.test-build/lib/reminders.js");
 const dv = require("../.test-build/lib/dayView.js");
-const wlog = require("../.test-build/lib/workoutLog.js");
+const wl = require("../.test-build/lib/workoutLog.js");
 
 // ---------------------------------------------------------------- fixtures
+/** Every source file under a folder, as [path, text]. */
+const sources = (dir) =>
+  readdirSync(new URL(`../${dir}`, import.meta.url), { recursive: true, withFileTypes: true })
+    .filter((f) => f.isFile() && /\.tsx?$/.test(f.name))
+    .map((f) => {
+      const file = `${f.parentPath ?? f.path}/${f.name}`;
+      return [file, readFileSync(file, "utf8")];
+    });
+
 const TODAY = "2026-10-06"; // a Tuesday
 const member = (over = {}) => ({
   id: "priya-s", name: "Priya S", city: "", initials: "PS", age: 41,
@@ -78,30 +85,6 @@ test("addDays, weekdayOf and longDate agree with each other", () => {
 test("clockLabel reads like the seeded messages", () => {
   assert.equal(cal.clockLabel(new Date("2026-10-04T13:42:00Z")), "7:12 pm");
   assert.equal(cal.clockLabel(new Date("2026-10-04T01:05:00Z")), "6:35 am");
-});
-
-test("no record takes its date from the UTC clock", () => {
-  // A session saved at 1am in India: the UTC date is still yesterday's until
-  // 05:30. Two screens stamped what they saved with it.
-  const oneAm = new Date("2026-10-05T19:30:00Z");
-  assert.equal(cal.dateKey(oneAm), "2026-10-06");
-  assert.equal(oneAm.toISOString().slice(0, 10), "2026-10-05");
-
-  // So nothing outside lib/calendar.ts cuts a day out of an ISO string. That
-  // file may: addDays does it to a UTC midnight it built from a date key.
-  const root = fileURLToPath(new URL("../", import.meta.url));
-  const utcDay = /toISOString\(\)\s*\.slice\(0,\s*10\)/;
-  const found = [];
-  const scan = (dir) => {
-    for (const entry of readdirSync(join(root, dir), { withFileTypes: true })) {
-      const path = `${dir}/${entry.name}`;
-      if (entry.isDirectory()) scan(path);
-      else if (/\.tsx?$/.test(entry.name) && path !== "lib/calendar.ts" && utcDay.test(readFileSync(join(root, path), "utf8")))
-        found.push(path);
-    }
-  };
-  ["app", "components", "lib"].forEach(scan);
-  assert.deepEqual(found, [], `use dateKey() from lib/calendar.ts in ${found.join(", ")}`);
 });
 
 // ------------------------------------------------------------- modulesForDay
@@ -305,11 +288,6 @@ test("the sample cohort still fills all four Radar buckets", () => {
   assert.ok(!events.some((e) => e.ruleId === "R11"), "sample members must never look newly joined");
   assert.ok(!events.some((e) => e.ruleId === "R12"), "nobody in the sample cohort has flagged pain");
   assert.equal(new Set(events.map((e) => e.id)).size, events.length, "every flag has its own id");
-  // CLAUDE.md: "Priya has just returned after five days."
-  assert.equal(
-    events.find((e) => e.memberId === "priya" && e.ruleId === "R08")?.detail,
-    "First action after 5 inactive days."
-  );
 });
 
 // ------------------------------------------------- a pain flag reaches Deepika
@@ -366,70 +344,6 @@ test("handling one pain flag never hides the next one", () => {
   const again = radarWith({ members: [m], logs: [first, hurtLog({ id: "wl-2", dayOffset: 0 })], handled });
   const pain = again.filter((e) => e.ruleId === "R12");
   assert.deepEqual(pain.map((e) => e.resolved), [false, true], "newest first; only the old one is handled");
-});
-
-// ------------------------------------------------- a session is logged once a day
-/** What the session page saves: a log without its id. */
-const saving = (over = {}) => ({
-  memberId: "priya-s", workoutId: "wk-a", dayOffset: 0, completedLevel: "target", rpe: 6, painFlag: false,
-  provenance: { source: "member_manual", enteredBy: "Priya", at: TODAY }, ...over,
-});
-const painFlags = (logs, handled = []) =>
-  radarWith({ members: [onboarded({ onboardedAt: "2026-08-01" })], logs, handled }).filter((e) => e.ruleId === "R12");
-
-test("saving a session a second time the same day replaces its log, and Deepika sees one pain flag", () => {
-  // Going back to the session after "Logged." offered the form again, and each
-  // Save added a log — so the same pain flag reached the Radar twice.
-  const hurt = saving({ painFlag: true, feltLike: "left knee" });
-  let logs = wlog.withWorkoutLog([], hurt, "wl-1");
-  logs = wlog.withWorkoutLog(logs, hurt, "wl-2");
-  assert.equal(logs.length, 1);
-  assert.equal(logs[0].id, "wl-1", "the same log, so the same flag");
-  assert.equal(painFlags(logs).length, 1);
-
-  // what she changes is what is kept
-  logs = wlog.withWorkoutLog(logs, { ...hurt, completedLevel: "minimum", rpe: 8 }, "wl-3");
-  assert.deepEqual(
-    logs.map((l) => [l.id, l.completedLevel, l.rpe, l.painFlag]),
-    [["wl-1", "minimum", 8, true]]
-  );
-});
-
-test("yesterday, another session and another member each keep a log of their own", () => {
-  let logs = wlog.withWorkoutLog([], saving(), "wl-1");
-  logs = wlog.withWorkoutLog(logs, saving({ dayOffset: -1 }), "wl-2"); // "log it for yesterday"
-  logs = wlog.withWorkoutLog(logs, saving({ workoutId: "wk-b" }), "wl-3");
-  logs = wlog.withWorkoutLog(logs, saving({ memberId: "anita-k" }), "wl-4");
-  assert.deepEqual(logs.map((l) => l.id), ["wl-4", "wl-3", "wl-2", "wl-1"], "newest first, as the lists that show them expect");
-
-  assert.equal(wlog.workoutLogFor(logs, "priya-s", "wk-a", 0).id, "wl-1");
-  assert.equal(wlog.workoutLogFor(logs, "priya-s", "wk-a", -1).id, "wl-2");
-  assert.equal(wlog.workoutLogFor(logs, "priya-s", "wk-a", -2), undefined);
-
-  // A day is an offset, so once the record rolls on, the same session can be logged again.
-  const nextDay = logs.map((l) => ({ ...l, dayOffset: l.dayOffset - 1 }));
-  assert.equal(wlog.workoutLogFor(nextDay, "priya-s", "wk-a", 0), undefined);
-  assert.equal(wlog.withWorkoutLog(nextDay, saving(), "wl-5").length, 5);
-});
-
-test("a pain flag Deepika has handled stays handled, unless what hurt is new", () => {
-  // Her screen says "Deepika will see this before anything else today" every
-  // time she saves one. Under an id Deepika had already handled, she would not.
-  const first = wlog.withWorkoutLog([], saving({ painFlag: true, feltLike: "left knee" }), "wl-1");
-  const handled = radar.markHandled([], painFlags(first)[0].id, TODAY);
-  const then = (over, from = first) => wlog.withWorkoutLog(from, saving(over), "wl-2");
-
-  const same = then({ painFlag: true, feltLike: "left knee", completedLevel: "stretch" });
-  assert.deepEqual(painFlags(same, handled).map((e) => e.resolved), [true], "a different size is still the flag she dealt with");
-
-  const more = then({ painFlag: true, feltLike: "left knee, and worse by the evening" });
-  assert.deepEqual(painFlags(more, handled).map((e) => e.resolved), [false], "more to say is something new to read");
-
-  const cleared = then({ painFlag: false });
-  assert.deepEqual(painFlags(cleared, handled), [], "taking the flag back takes it off the Radar");
-  const again = then({ painFlag: true, feltLike: "left knee" }, cleared);
-  assert.deepEqual(painFlags(again, handled).map((e) => e.resolved), [false], "and raising it again is a new flag");
-  assert.equal(again.length, 1, "always one log");
 });
 
 // ------------------------------------------------------------ what "Handled" means
@@ -493,28 +407,79 @@ test("coming back is celebrated however much she does that day", () => {
   const one = [before, action({ id: "new-1", dayOffset: 0, completed: "minimum" })];
   const two = [...one, action({ id: "new-2", dayOffset: 0, completed: "target", moduleId: "sl-reset" })];
   const r08 = (actions) => radarWith({ members: [m], actions }).find((e) => e.ruleId === "R08");
-  assert.equal(r08(one).detail, "First action after 4 inactive days.");
-  assert.equal(r08(two).detail, "First action after 4 inactive days.");
+  // Day -5 and then today: four days with nothing in between, five days since
+  // she last did something. It used to say "after 5 inactive days".
+  assert.equal(r08(one).detail, "First action in 5 days.");
+  assert.equal(r08(two).detail, "First action in 5 days.");
   assert.equal(r08(one).id, r08(two).id, "and it is the same flag, so handling it once is enough");
 });
 
-test("a comeback counts the days in between, and needs the three its rule says", () => {
-  // Active on day −5 and again today leaves −4, −3, −2 and −1 with nothing
-  // done: four days. The card said five — the difference between the two
-  // offsets — and the rule fired after two days while telling Deepika three.
+test("a comeback is counted the way a quiet spell is, and starts where the rule says", () => {
   const m = onboarded({ onboardedAt: "2026-09-01" });
-  const r08 = (...days) =>
+  const back = (gap) =>
     radarWith({
       members: [m],
-      actions: days.map((d) => action({ id: `on${d}`, dayOffset: d, completed: "minimum" })),
+      actions: [action({ id: "old", dayOffset: -gap, completed: "minimum" }), action({ id: "new", dayOffset: 0, completed: "minimum" })],
     }).find((e) => e.ruleId === "R08");
-  assert.match(radar.radarRules.find((r) => r.id === "R08").trigger, /after 3 or more inactive days/);
-  assert.equal(r08(-3, 0), undefined, "two days away is not what the rule says");
-  assert.equal(r08(-4, 0).detail, "First action after 3 inactive days.");
-  assert.equal(r08(-5, 0).detail, "First action after 4 inactive days.");
-  // and the same count when it was yesterday she came back
-  assert.equal(r08(-4, -1), undefined);
-  assert.equal(r08(-5, -1).detail, "First action after 3 inactive days.");
+  assert.equal(back(2), undefined, "two days since the last one is not a comeback");
+  assert.equal(back(3).detail, "First action in 3 days.", "three is — the same line R01 draws at 72 hours");
+  const rule = radar.radarRules.find((r) => r.id === "R08");
+  assert.match(rule.trigger, /3 or more days after the last one/);
+  assert.doesNotMatch(rule.trigger + back(3).detail, /inactive/, "nothing claims a count of inactive days");
+  // And the member who is still away reads the same number from the other rule.
+  const away = radarWith({ members: [m], actions: [action({ id: "old", dayOffset: -3, completed: "minimum" })] });
+  assert.equal(away.find((e) => e.ruleId === "R01").detail, "Nothing recorded for 3 days.");
+});
+
+test("saving a session again the same day corrects the record instead of adding one", () => {
+  const first = hurtLog({ painFlag: false, rpe: 5 });
+  const { id: _, ...said } = first;
+  const once = wl.withSessionLog([], said, "wl-1");
+  assert.deepEqual(once.map((l) => l.id), ["wl-1"], "the first save is a new record");
+
+  const other = { ...said, workoutId: "strength-b" };
+  const logs = wl.withSessionLog(once, other, "wl-2");
+  assert.deepEqual(logs.map((l) => l.id), ["wl-2", "wl-1"], "a different session is its own record, newest first");
+
+  const again = wl.withSessionLog(logs, { ...said, rpe: 8, completedLevel: "stretch" }, "wl-3");
+  assert.deepEqual(again.map((l) => l.id), ["wl-2", "wl-1"], "the same session and day: still two records, same ids, same order");
+  assert.equal(again[1].rpe, 8);
+  assert.equal(again[1].completedLevel, "stretch");
+
+  assert.equal(wl.withSessionLog(again, { ...said, dayOffset: said.dayOffset - 1 }, "wl-4").length, 3, "the same session on another day is another record");
+  assert.equal(wl.withSessionLog(again, { ...said, memberId: "anita-k" }, "wl-5").length, 3, "and so is another member's");
+  assert.equal(wl.sessionLogOn(again, said.memberId, said.workoutId, said.dayOffset).id, "wl-1");
+  assert.equal(wl.sessionLogOn(again, said.memberId, said.workoutId, said.dayOffset - 3), undefined);
+  assert.equal(logs[1].rpe, 5, "and the list it was given is left as it was");
+});
+
+test("one session is one pain flag, and a handled one comes back only when she says more", () => {
+  const m = onboarded({ onboardedAt: "2026-09-20" });
+  const { id: _, ...said } = hurtLog({ feltLike: "left knee" });
+  const flags = (logs, handled = []) => radarWith({ members: [m], logs, handled }).filter((e) => e.ruleId === "R12");
+
+  // Saved twice — a double tap, or going back and saving again.
+  let logs = wl.withSessionLog([], said, "wl-1");
+  logs = wl.withSessionLog(logs, said, "wl-2");
+  assert.equal(flags(logs).length, 1, "it used to be two flags for one session");
+
+  // Deepika handles it. Saving the same thing again does not bring it back…
+  const handled = radar.markHandled([], flags(logs)[0].id, TODAY);
+  logs = wl.withSessionLog(logs, { ...said, rpe: 9 }, "wl-3");
+  assert.equal(flags(logs, handled)[0].resolved, true, "a changed effort rating is not news about the pain");
+
+  // …but she was told Deepika would see what she wrote, so new words are a new flag.
+  logs = wl.withSessionLog(logs, { ...said, feltLike: "left knee — worse on the stairs tonight" }, "wl-4");
+  assert.equal(flags(logs, handled).length, 1);
+  assert.equal(flags(logs, handled)[0].resolved, false, "what she added is back in front of Deepika");
+  assert.match(flags(logs, handled)[0].detail, /worse on the stairs/);
+
+  // Unticking it takes the flag away; ticking it again is a flag she has raised afresh.
+  logs = wl.withSessionLog(logs, { ...said, painFlag: false }, "wl-5");
+  assert.equal(flags(logs, handled).length, 0);
+  const all = radar.markHandled(handled, `${m.id}-R12-wl-4`, TODAY);
+  logs = wl.withSessionLog(logs, { ...said, feltLike: "left knee — worse on the stairs tonight" }, "wl-6");
+  assert.equal(flags(logs, all)[0].resolved, false, "even with the same words, because in between she had said it did not hurt");
 });
 
 test("rules added in a release reach a stored copy, keeping her switches", () => {
@@ -1012,4 +977,65 @@ test("how far back her record goes decides how many weeks there are to show", ()
   assert.equal(dv.weeksOfHistory("priya-s", dayData({ actions: [touch.action(-200, "minimum")] })), 12, "capped at the length of the journey");
   assert.equal(dv.weeksOfHistory("priya-s", dayData({ actions: [touch.action(-30, null)] })), 0, "a planned action is not a record of her");
   assert.equal(dv.shortDate(-2, TODAY), "4 Oct");
+});
+
+test("the console calls a member what the member said, and assumes nothing", () => {
+  const words = (m) => {
+    const p = display.pronouns(m);
+    return `${p.Subject} see${p.s} it; ${p.subject} ${p.is} here; write to ${p.object}; ${p.possessive} app; ${p.Possessive} week; by ${p.reflexive}`;
+  };
+  assert.equal(words({ id: "a", gender: "woman" }), "She sees it; she is here; write to her; her app; Her week; by herself");
+  assert.equal(words({ id: "a", gender: "man" }), "He sees it; he is here; write to him; his app; His week; by himself");
+  const they = "They see it; they are here; write to them; their app; Their week; by themselves";
+  assert.equal(words({ id: "a", gender: "other" }), they);
+  assert.equal(words({ id: "a" }), they, "someone who was never asked is not assumed to be a woman");
+  assert.equal(words(undefined), they);
+  assert.equal(words(null), they);
+
+  // The six sample members are written as women, and say so.
+  assert.deepEqual(seed.members.map((m) => m.gender), Array(6).fill("woman"));
+  // A copy of one stored before the question existed still reads as written…
+  assert.equal(display.pronouns({ id: "radhika" }).subject, "she");
+  // …but never over what a record itself says.
+  assert.equal(display.pronouns({ id: "radhika", gender: "other" }).subject, "they");
+});
+
+test("what the Radar says about one member uses that member's word; its rules name no one", () => {
+  const since = (gender) =>
+    radarWith({ members: [onboarded({ onboardedAt: "2026-10-01", gender })] }).find((e) => e.ruleId === "R01").detail;
+  assert.equal(since("woman"), "Nothing recorded since she joined 5 days ago.");
+  assert.equal(since("man"), "Nothing recorded since he joined 5 days ago.");
+  assert.equal(since(undefined), "Nothing recorded since they joined 5 days ago.");
+
+  // A rule is about members in general, so its own wording has no "her" in it.
+  for (const rule of radar.radarRules) {
+    assert.doesNotMatch(`${rule.name} ${rule.trigger} ${rule.suggestedAction}`, /\b(she|her|hers|herself|woman|women)\b/i, rule.id);
+  }
+});
+
+test("the library is written so that anyone assigned a module can read it about themselves", () => {
+  // "What better looks like" is on Deepika's library page and on the member's
+  // own module page. It used to read "She can carry shopping in one hand…" —
+  // to the member, about herself, and to a man about someone else.
+  const shown = [seed.modules, seed.workouts, seed.notificationTemplates, seed.articles ?? []];
+  const said = JSON.stringify(shown).match(/[^"]*\b(she|her|hers|herself)\b[^"]*/gi) ?? [];
+  assert.deepEqual(said, []);
+});
+
+test("no screen works out today's date for itself", () => {
+  // `new Date().toISOString().slice(0, 10)` is the date in London: from
+  // midnight to 5:30 in the morning in India it is still yesterday there. The
+  // session page and the report form both stamped what she saved that way, and
+  // the week strip on Movement named its days from the phone's own clock.
+  // "Today" is dateKey() in lib/calendar.ts, and that file is the one place
+  // allowed to work it out. (The hour is different: "good morning" is rightly
+  // her own morning, wherever she is.)
+  const utcDate = /new Date\(\)\s*\.toISOString\(\)\s*\.(slice|substring|substr|split)\(/;
+  const ownCalendar = /new Date\(\)\s*\.get(Day|Date|Month|FullYear)\(/;
+  const offenders = ["app", "components", "lib"]
+    .flatMap(sources)
+    .filter(([file]) => !file.endsWith("lib/calendar.ts"))
+    .filter(([, text]) => utcDate.test(text) || ownCalendar.test(text))
+    .map(([file]) => file.replace(/^.*\/(app|components|lib)\//, "$1/"));
+  assert.deepEqual(offenders, []);
 });

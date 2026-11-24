@@ -222,8 +222,73 @@ Screen (iOS 16.4 or later); the account page says so, and Today offers the
 Home Screen instead of reminders there. The Android app (`docs/ANDROID.md`)
 delegates notifications to Chrome, so it works there as on the web.
 
+## The Next.js version
+
+The app is on Next 14.2.35, the last release of the 14 line — and that line no
+longer gets security fixes. On 24 November 2026 `npm audit` listed 26
+advisories against it, three of them rated critical, whose fix exists only in
+Next 15.5 or 16; plus four against the copy of PostCSS that Next carries for
+its own build step.
+
+Each was read against what this app actually uses. Most have no way in, and
+the two widest ways in are shut on purpose rather than by luck:
+
+- **The image-resizing address, `/_next/image`.** Five of the advisories,
+  two of the critical ones among them, are in it. No screen uses `next/image`,
+  but `next start` serves the address regardless. `next.config.mjs` switches
+  it off and hands the address to `/api`, which answers 404.
+- **POSTs to a page** — form actions, which Next calls Server Actions. Eight
+  of the advisories are about them. The app has none: every save, sign-in and
+  sign-out goes to `/api`. But Next starts reading such a request before it
+  finds that out, so `middleware.ts` refuses any POST to a page with 405, and
+  `app/api/[...missing]` stops a mistyped `/api` address falling through to a
+  page.
+
+`npm run test:e2e` checks that both stay shut, and that sign-in, sign-out and
+ordinary pages are not caught with them (`tests/e2e/refused.mjs`).
+
+Of the other thirteen:
+
+- the third critical one needs a Windows server;
+- eight need something this app does not have — a rewrite or redirect to
+  another host (the one rewrite here points inside the app), the Pages Router,
+  CSP nonces, `beforeInteractive` scripts, or server code that calls `fetch`;
+- one, forged WebSocket upgrade requests, affects an app served by Next's own
+  server and, in the advisory's words, not one hosted on Vercel. **So it
+  matters the day this runs anywhere with `npm start`** — Railway included.
+  Put a proxy in front that refuses WebSocket upgrades; the app uses none;
+- three, one rated moderate and two low, are about a shared cache in front of
+  the app mixing up two kinds of response. In production that cache is
+  Vercel's. These are open.
+
+The PostCSS ones need CSS written by a stranger; the build here only
+processes its own.
+
+**None of this is a reason to stay on 14.** New advisories against it will
+keep arriving and will not be fixed, and each one has to be read against the
+app by hand, as these were. The fix is the move to Next 16. That brings React
+19 with it and changes how every page and route reads its address and its
+cookies, so it is a piece of work of its own — with `npm run test:e2e` as the
+safety net it would not have had before.
+
+**Until then, do not add any of these without doing that upgrade first:**
+
+- a Server Action, or a `<form>` that posts to a page — it would be refused
+  with 405;
+- `next/image` — pictures would load unresized, and switching resizing back
+  on reopens the first door;
+- a rewrite or redirect to another host, or server code that calls `fetch`.
+
 ## Tests
 
 `npm run test:logic` runs the date, rollover, daily-plan, Radar, privacy,
 typed-food, reply-draft and reminder tests with no browser or database. Run it, and `npm run build`, before
 committing.
+
+`npm run test:e2e` runs the app itself: it builds it, starts it as in
+production against a Postgres it creates for the run, and walks through it in a
+browser as a member and as Deepika — sign-up, a day's actions, the next day, a
+session with a pain flag, the Radar. About a minute and a half. It never reads
+`DATABASE_URL` and will not touch a database that is not a local scratch one;
+`tests/e2e/README.md` says what it needs and how to point it at a database of
+your own.

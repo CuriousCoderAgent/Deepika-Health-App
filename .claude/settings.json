@@ -3,6 +3,7 @@
     "allow": [
       "Bash(npm run build *)",
       "Bash(npm run test:logic *)",
+      "Bash(npm run test:e2e *)",
       "Bash(npm run lint *)",
       "Bash(npm run dev *)",
       "Bash(npx tsc --noEmit *)",

@@ -1,4 +1,5 @@
 import { dateKey, daysBetween } from "./calendar";
+import { pronouns } from "./display";
 import type {
   DailyAction,
   Member,
@@ -102,7 +103,7 @@ export const radarRules: RadarRule[] = [
     id: "R08",
     name: "Comeback detected",
     bucket: "celebrate",
-    trigger: "First meaningful action after 3 or more inactive days",
+    trigger: "First completed action 3 or more days after the last one",
     suggestedAction: "Recognise the return. Do not mention the gap.",
     enabled: true,
   },
@@ -126,7 +127,7 @@ export const radarRules: RadarRule[] = [
     id: "R11",
     name: "New member",
     bucket: "celebrate",
-    trigger: "Joined in the last 3 days and you have not written to her yet",
+    trigger: "Joined in the last 3 days and has not had a message from you yet",
     suggestedAction: "Send a short hello. It sets the tone for everything after.",
     enabled: true,
   },
@@ -303,7 +304,7 @@ export function evaluateRadar(
         // "needs attention" card on Deepika's Radar for a woman who had joined
         // that morning. Wait until she has had a few days to start.
         if (joinedDays === null) push(m.id, "R01", "Nothing recorded yet.");
-        else if (joinedDays >= 3) push(m.id, "R01", `Nothing recorded since she joined ${joinedDays} days ago.`);
+        else if (joinedDays >= 3) push(m.id, "R01", `Nothing recorded since ${pronouns(m).subject} joined ${joinedDays} days ago.`);
       } else if (lastTouch <= -3) {
         push(m.id, "R01", `Nothing recorded for ${Math.abs(lastTouch)} days.`);
       }
@@ -367,19 +368,16 @@ export function evaluateRadar(
     // occurrence is what she last did *before* the gap, which stays the same
     // however much she does on the day she returns.
     //
-    // The gap is the days in between, which is one fewer than the difference
-    // between the two offsets: active on day −5 and again today leaves −4 to
-    // −1, four days. The difference itself used to be reported as the gap and
-    // held against the rule's "3 or more", so the card said five and the rule
-    // fired after two.
+    // The number is days since she last did something — the same count R01
+    // uses for "nothing recorded for N days" — so it is "in N days". It used to
+    // be worded "after N inactive days", which is one more than were inactive.
     const doneActions = mine.filter((a) => a.completed && a.completed !== "rest");
     const done = Array.from(new Set(doneActions.map((a) => a.dayOffset))).sort((a, b) => b - a);
-    const inactiveDays = done.length >= 2 ? done[0] - done[1] - 1 : 0;
-    if (on("R08") && inactiveDays >= 3 && done[0] >= -1) {
+    if (on("R08") && done.length >= 2 && done[0] - done[1] >= 3 && done[0] >= -1) {
       push(
         m.id,
         "R08",
-        `First action after ${inactiveDays} inactive days.`,
+        `First action in ${done[0] - done[1]} days.`,
         newestId(doneActions.filter((a) => a.dayOffset === done[1]))
       );
     }
