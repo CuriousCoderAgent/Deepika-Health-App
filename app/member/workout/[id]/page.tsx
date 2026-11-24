@@ -4,9 +4,20 @@ import Link from "next/link";
 import { useState } from "react";
 import { ChevronLeft, AlertTriangle, Check } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { dateKey } from "@/lib/calendar";
+import { workoutLogFor } from "@/lib/workoutLog";
 import ExerciseFigure from "@/components/ExerciseFigure";
 import ExerciseSheet from "@/components/ExerciseSheet";
 import type { EffortLevel, ExerciseSet } from "@/lib/types";
+
+const SIZE_NAME = { minimum: "Minimum", target: "Target", stretch: "Stretch" } as const;
+
+/** What she is told once a session is saved. The first is a promise, kept by
+ *  Radar rule R12 — so it reads the same wherever her log is shown. */
+const SAVED = {
+  hurt: "You flagged discomfort, so Deepika will see this before anything else today. Do not do the next session until she has replied.",
+  fine: "Deepika will see your effort rating when she plans next week.",
+};
 
 export default function WorkoutDetail({
   params,
@@ -15,11 +26,13 @@ export default function WorkoutDetail({
   params: { id: string };
   searchParams?: { day?: string };
 }) {
-  const { workouts, activeMember, logWorkout, actions, completeAction } = useStore();
+  const { workouts, workoutLogs, activeMember, logWorkout, actions, completeAction } = useStore();
   const w = workouts.find((x) => x.id === params.id);
 
   const [openExercise, setOpenExercise] = useState<ExerciseSet | null>(null);
   const [stage, setStage] = useState<"view" | "finish" | "done">("view");
+  // What the form was last opened on: a log she has saved, or "new" for none.
+  const [formFor, setFormFor] = useState("new");
   const [level, setLevel] = useState<EffortLevel>("target");
   const [rpe, setRpe] = useState(6);
   const [pain, setPain] = useState(false);
@@ -43,6 +56,27 @@ export default function WorkoutDetail({
   const day = yesterdays ? -1 : 0;
   const linked = yesterdays ?? on(0);
 
+  /* A session is logged once a day (lib/workoutLog.ts). When it has been, this
+     page says so where "I have finished" was, and Change opens the form on what
+     she logged — never blank, and never on something she tapped and backed out
+     of, where one more "Save it" would quietly write "nothing hurt" over a pain
+     flag Deepika had not read yet.
+
+     A form for a session not yet logged is left as she had it, so going Back to
+     look at a move does not lose what she had tapped. */
+  const logged = workoutLogFor(workoutLogs, activeMember.id, w.id, day);
+  const formNow = logged?.id ?? "new";
+  const openForm = () => {
+    if (logged || formFor !== formNow) {
+      setLevel(logged?.completedLevel ?? "target");
+      setRpe(logged?.rpe ?? 6);
+      setPain(logged?.painFlag ?? false);
+      setFelt(logged?.feltLike ?? "");
+      setFormFor(formNow);
+    }
+    setStage("finish");
+  };
+
   if (stage === "done") {
     return (
       <div className="animate-rise px-5 pt-16 text-center">
@@ -51,9 +85,7 @@ export default function WorkoutDetail({
         </div>
         <h1 className="mt-6 font-display text-2xl">{day === -1 ? "Logged for yesterday." : "Logged."}</h1>
         <p className="mx-auto mt-2 max-w-[17rem] text-[15px] leading-relaxed text-ink-soft">
-          {pain
-            ? "You flagged discomfort, so Deepika will see this before anything else today. Do not do the next session until she has replied."
-            : "Deepika will see your effort rating when she plans next week."}
+          {pain ? SAVED.hurt : SAVED.fine}
         </p>
         <Link
           href="/member"
@@ -65,7 +97,10 @@ export default function WorkoutDetail({
     );
   }
 
-  if (stage === "finish") {
+  /* Only while the form still belongs to what is logged. If that changes under
+     it — her record arriving after the page did, or the day turning over —
+     she is shown the session again, and the button there opens the right form. */
+  if (stage === "finish" && formFor === formNow) {
     return (
       <div className="animate-rise px-5 pt-6">
         <button
@@ -172,7 +207,7 @@ export default function WorkoutDetail({
               provenance: {
                 source: "member_manual",
                 enteredBy: activeMember.name.split(" ")[0],
-                at: new Date().toISOString().slice(0, 10),
+                at: dateKey(),
               },
             });
             if (linked) completeAction(linked.id, level);
@@ -200,7 +235,7 @@ export default function WorkoutDetail({
       <h1 className="mt-3 font-display text-[1.55rem] leading-tight">{w.name}</h1>
       <p className="mt-1 text-[14px] leading-relaxed text-ink-soft">{w.intent}</p>
 
-      {day === -1 && (
+      {day === -1 && !logged && (
         <p className="mt-3 rounded-xl bg-paper-sunk/70 px-3.5 py-2.5 text-[13px] leading-relaxed text-ink-soft">
           You&rsquo;re logging this for <span className="font-medium text-ink">yesterday</span>.
         </p>
@@ -275,12 +310,40 @@ export default function WorkoutDetail({
         <p className="text-[13px] leading-relaxed text-ink-soft">{w.stopGuidance}</p>
       </div>
 
-      <button
-        onClick={() => setStage("finish")}
-        className="tap mt-6 w-full rounded-xl bg-ink text-sm font-medium text-white"
-      >
-        {day === -1 ? "I did this yesterday" : "I have finished"}
-      </button>
+      {logged ? (
+        /* The same folded line the check-in becomes once it is answered. */
+        <>
+          <div className="card mt-6 flex items-center gap-3 py-2.5 pl-4 pr-2">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-effort-tint text-effort-stretch">
+              <Check size={17} strokeWidth={2.1} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[14px] font-medium leading-snug">
+                {day === -1 ? "Logged for yesterday" : "Logged today"}
+              </p>
+              <p className="text-[12px] leading-snug text-ink-soft">
+                {SIZE_NAME[logged.completedLevel]} · Effort {logged.rpe}/10
+              </p>
+            </div>
+            <button
+              onClick={openForm}
+              className="tap shrink-0 rounded-xl px-3 text-[13px] text-ink-soft underline underline-offset-2 hover:text-ink"
+            >
+              Change
+            </button>
+          </div>
+          {logged.painFlag && (
+            <p className="mt-2.5 text-[13px] leading-relaxed text-ink-soft">{SAVED.hurt}</p>
+          )}
+        </>
+      ) : (
+        <button
+          onClick={openForm}
+          className="tap mt-6 w-full rounded-xl bg-ink text-sm font-medium text-white"
+        >
+          {day === -1 ? "I did this yesterday" : "I have finished"}
+        </button>
+      )}
 
       <div className="h-8" />
     </div>

@@ -209,6 +209,8 @@ lib/
   radar.ts                  12 rules + evaluator, and what "Handled" means
   dayView.ts                One day of one member, read the same way everywhere
                             (Today's history, Insights, Deepika's week view)
+  workoutLog.ts             One log per session per day: saving again replaces it,
+                            and the session page shows it in place of the form
   store.tsx                 Context, localStorage, all mutations
   calendar.ts               Dates in India time; the one definition of "today"
   dailyPlan.ts              Roll a member forward a day; build today's actions
@@ -287,6 +289,16 @@ each colour means semantically. Read those comments before adding a colour.
   message, a pain flag, a symptom report) carries that record's id; a flag
   about a pattern comes back after a week if still true. Never key a flag on
   a count or a day offset — both change overnight. See `lib/radar.ts`.
+- **A gap is the days in between.** Active on day −5 and again today is four
+  inactive days, not five: the difference between two `dayOffset`s is one more
+  than the days between them. The comeback rule (R08) reported the difference
+  as the gap, and so fired a day earlier than its own sentence says.
+- **One record a day is replaced, not added to.** A day has one check-in and
+  one log per session. Saving again replaces what is there and keeps its id,
+  because a Radar flag and Deepika's "Handled" are keyed on it — except a pain
+  flag that is new or reworded, which Deepika has not read yet (see
+  `lib/workoutLog.ts`). A form reopened on a saved record starts from that
+  record, never blank.
 - **A rating of 0 means "not rated".** The one-tap mood saves sleep as 0. Any
   rule or sentence that reads sleep has to skip it (`lowSleepNights` in
   `lib/dayView.ts`), or a mood-only check-in reads as a bad night.

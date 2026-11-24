@@ -366,13 +366,20 @@ export function evaluateRadar(
     // the day she came back used to read as "no gap" and cancel the flag. The
     // occurrence is what she last did *before* the gap, which stays the same
     // however much she does on the day she returns.
+    //
+    // The gap is the days in between, which is one fewer than the difference
+    // between the two offsets: active on day −5 and again today leaves −4 to
+    // −1, four days. The difference itself used to be reported as the gap and
+    // held against the rule's "3 or more", so the card said five and the rule
+    // fired after two.
     const doneActions = mine.filter((a) => a.completed && a.completed !== "rest");
     const done = Array.from(new Set(doneActions.map((a) => a.dayOffset))).sort((a, b) => b - a);
-    if (on("R08") && done.length >= 2 && done[0] - done[1] >= 3 && done[0] >= -1) {
+    const inactiveDays = done.length >= 2 ? done[0] - done[1] - 1 : 0;
+    if (on("R08") && inactiveDays >= 3 && done[0] >= -1) {
       push(
         m.id,
         "R08",
-        `First action after ${done[0] - done[1]} inactive days.`,
+        `First action after ${inactiveDays} inactive days.`,
         newestId(doneActions.filter((a) => a.dayOffset === done[1]))
       );
     }

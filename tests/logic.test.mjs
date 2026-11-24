@@ -7,7 +7,10 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
 const cal = require("../.test-build/lib/calendar.js");
@@ -21,6 +24,7 @@ const drafts = require("../.test-build/lib/replyDrafts.js");
 const display = require("../.test-build/lib/display.js");
 const rem = require("../.test-build/lib/reminders.js");
 const dv = require("../.test-build/lib/dayView.js");
+const wlog = require("../.test-build/lib/workoutLog.js");
 
 // ---------------------------------------------------------------- fixtures
 const TODAY = "2026-10-06"; // a Tuesday
@@ -74,6 +78,30 @@ test("addDays, weekdayOf and longDate agree with each other", () => {
 test("clockLabel reads like the seeded messages", () => {
   assert.equal(cal.clockLabel(new Date("2026-10-04T13:42:00Z")), "7:12 pm");
   assert.equal(cal.clockLabel(new Date("2026-10-04T01:05:00Z")), "6:35 am");
+});
+
+test("no record takes its date from the UTC clock", () => {
+  // A session saved at 1am in India: the UTC date is still yesterday's until
+  // 05:30. Two screens stamped what they saved with it.
+  const oneAm = new Date("2026-10-05T19:30:00Z");
+  assert.equal(cal.dateKey(oneAm), "2026-10-06");
+  assert.equal(oneAm.toISOString().slice(0, 10), "2026-10-05");
+
+  // So nothing outside lib/calendar.ts cuts a day out of an ISO string. That
+  // file may: addDays does it to a UTC midnight it built from a date key.
+  const root = fileURLToPath(new URL("../", import.meta.url));
+  const utcDay = /toISOString\(\)\s*\.slice\(0,\s*10\)/;
+  const found = [];
+  const scan = (dir) => {
+    for (const entry of readdirSync(join(root, dir), { withFileTypes: true })) {
+      const path = `${dir}/${entry.name}`;
+      if (entry.isDirectory()) scan(path);
+      else if (/\.tsx?$/.test(entry.name) && path !== "lib/calendar.ts" && utcDay.test(readFileSync(join(root, path), "utf8")))
+        found.push(path);
+    }
+  };
+  ["app", "components", "lib"].forEach(scan);
+  assert.deepEqual(found, [], `use dateKey() from lib/calendar.ts in ${found.join(", ")}`);
 });
 
 // ------------------------------------------------------------- modulesForDay
@@ -277,6 +305,11 @@ test("the sample cohort still fills all four Radar buckets", () => {
   assert.ok(!events.some((e) => e.ruleId === "R11"), "sample members must never look newly joined");
   assert.ok(!events.some((e) => e.ruleId === "R12"), "nobody in the sample cohort has flagged pain");
   assert.equal(new Set(events.map((e) => e.id)).size, events.length, "every flag has its own id");
+  // CLAUDE.md: "Priya has just returned after five days."
+  assert.equal(
+    events.find((e) => e.memberId === "priya" && e.ruleId === "R08")?.detail,
+    "First action after 5 inactive days."
+  );
 });
 
 // ------------------------------------------------- a pain flag reaches Deepika
@@ -333,6 +366,70 @@ test("handling one pain flag never hides the next one", () => {
   const again = radarWith({ members: [m], logs: [first, hurtLog({ id: "wl-2", dayOffset: 0 })], handled });
   const pain = again.filter((e) => e.ruleId === "R12");
   assert.deepEqual(pain.map((e) => e.resolved), [false, true], "newest first; only the old one is handled");
+});
+
+// ------------------------------------------------- a session is logged once a day
+/** What the session page saves: a log without its id. */
+const saving = (over = {}) => ({
+  memberId: "priya-s", workoutId: "wk-a", dayOffset: 0, completedLevel: "target", rpe: 6, painFlag: false,
+  provenance: { source: "member_manual", enteredBy: "Priya", at: TODAY }, ...over,
+});
+const painFlags = (logs, handled = []) =>
+  radarWith({ members: [onboarded({ onboardedAt: "2026-08-01" })], logs, handled }).filter((e) => e.ruleId === "R12");
+
+test("saving a session a second time the same day replaces its log, and Deepika sees one pain flag", () => {
+  // Going back to the session after "Logged." offered the form again, and each
+  // Save added a log — so the same pain flag reached the Radar twice.
+  const hurt = saving({ painFlag: true, feltLike: "left knee" });
+  let logs = wlog.withWorkoutLog([], hurt, "wl-1");
+  logs = wlog.withWorkoutLog(logs, hurt, "wl-2");
+  assert.equal(logs.length, 1);
+  assert.equal(logs[0].id, "wl-1", "the same log, so the same flag");
+  assert.equal(painFlags(logs).length, 1);
+
+  // what she changes is what is kept
+  logs = wlog.withWorkoutLog(logs, { ...hurt, completedLevel: "minimum", rpe: 8 }, "wl-3");
+  assert.deepEqual(
+    logs.map((l) => [l.id, l.completedLevel, l.rpe, l.painFlag]),
+    [["wl-1", "minimum", 8, true]]
+  );
+});
+
+test("yesterday, another session and another member each keep a log of their own", () => {
+  let logs = wlog.withWorkoutLog([], saving(), "wl-1");
+  logs = wlog.withWorkoutLog(logs, saving({ dayOffset: -1 }), "wl-2"); // "log it for yesterday"
+  logs = wlog.withWorkoutLog(logs, saving({ workoutId: "wk-b" }), "wl-3");
+  logs = wlog.withWorkoutLog(logs, saving({ memberId: "anita-k" }), "wl-4");
+  assert.deepEqual(logs.map((l) => l.id), ["wl-4", "wl-3", "wl-2", "wl-1"], "newest first, as the lists that show them expect");
+
+  assert.equal(wlog.workoutLogFor(logs, "priya-s", "wk-a", 0).id, "wl-1");
+  assert.equal(wlog.workoutLogFor(logs, "priya-s", "wk-a", -1).id, "wl-2");
+  assert.equal(wlog.workoutLogFor(logs, "priya-s", "wk-a", -2), undefined);
+
+  // A day is an offset, so once the record rolls on, the same session can be logged again.
+  const nextDay = logs.map((l) => ({ ...l, dayOffset: l.dayOffset - 1 }));
+  assert.equal(wlog.workoutLogFor(nextDay, "priya-s", "wk-a", 0), undefined);
+  assert.equal(wlog.withWorkoutLog(nextDay, saving(), "wl-5").length, 5);
+});
+
+test("a pain flag Deepika has handled stays handled, unless what hurt is new", () => {
+  // Her screen says "Deepika will see this before anything else today" every
+  // time she saves one. Under an id Deepika had already handled, she would not.
+  const first = wlog.withWorkoutLog([], saving({ painFlag: true, feltLike: "left knee" }), "wl-1");
+  const handled = radar.markHandled([], painFlags(first)[0].id, TODAY);
+  const then = (over, from = first) => wlog.withWorkoutLog(from, saving(over), "wl-2");
+
+  const same = then({ painFlag: true, feltLike: "left knee", completedLevel: "stretch" });
+  assert.deepEqual(painFlags(same, handled).map((e) => e.resolved), [true], "a different size is still the flag she dealt with");
+
+  const more = then({ painFlag: true, feltLike: "left knee, and worse by the evening" });
+  assert.deepEqual(painFlags(more, handled).map((e) => e.resolved), [false], "more to say is something new to read");
+
+  const cleared = then({ painFlag: false });
+  assert.deepEqual(painFlags(cleared, handled), [], "taking the flag back takes it off the Radar");
+  const again = then({ painFlag: true, feltLike: "left knee" }, cleared);
+  assert.deepEqual(painFlags(again, handled).map((e) => e.resolved), [false], "and raising it again is a new flag");
+  assert.equal(again.length, 1, "always one log");
 });
 
 // ------------------------------------------------------------ what "Handled" means
@@ -396,9 +493,28 @@ test("coming back is celebrated however much she does that day", () => {
   const one = [before, action({ id: "new-1", dayOffset: 0, completed: "minimum" })];
   const two = [...one, action({ id: "new-2", dayOffset: 0, completed: "target", moduleId: "sl-reset" })];
   const r08 = (actions) => radarWith({ members: [m], actions }).find((e) => e.ruleId === "R08");
-  assert.equal(r08(one).detail, "First action after 5 inactive days.");
-  assert.equal(r08(two).detail, "First action after 5 inactive days.");
+  assert.equal(r08(one).detail, "First action after 4 inactive days.");
+  assert.equal(r08(two).detail, "First action after 4 inactive days.");
   assert.equal(r08(one).id, r08(two).id, "and it is the same flag, so handling it once is enough");
+});
+
+test("a comeback counts the days in between, and needs the three its rule says", () => {
+  // Active on day −5 and again today leaves −4, −3, −2 and −1 with nothing
+  // done: four days. The card said five — the difference between the two
+  // offsets — and the rule fired after two days while telling Deepika three.
+  const m = onboarded({ onboardedAt: "2026-09-01" });
+  const r08 = (...days) =>
+    radarWith({
+      members: [m],
+      actions: days.map((d) => action({ id: `on${d}`, dayOffset: d, completed: "minimum" })),
+    }).find((e) => e.ruleId === "R08");
+  assert.match(radar.radarRules.find((r) => r.id === "R08").trigger, /after 3 or more inactive days/);
+  assert.equal(r08(-3, 0), undefined, "two days away is not what the rule says");
+  assert.equal(r08(-4, 0).detail, "First action after 3 inactive days.");
+  assert.equal(r08(-5, 0).detail, "First action after 4 inactive days.");
+  // and the same count when it was yesterday she came back
+  assert.equal(r08(-4, -1), undefined);
+  assert.equal(r08(-5, -1).detail, "First action after 3 inactive days.");
 });
 
 test("rules added in a release reach a stored copy, keeping her switches", () => {

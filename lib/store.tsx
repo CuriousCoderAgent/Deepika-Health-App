@@ -13,6 +13,7 @@ import {
 } from "./dailyPlan";
 import { draftWeekPlansFor, weekPlansFor } from "./plan";
 import { emptyStateFor } from "./emptyState";
+import { withWorkoutLog } from "./workoutLog";
 import {
   extractCoachDoc,
   extractMemberDoc,
@@ -547,8 +548,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           };
         }),
 
+      // One log per session per day: saving again replaces it, so a second
+      // "Save it" is never a second pain flag for Deepika. See lib/workoutLog.ts.
       logWorkout: (log) =>
-        patch((s) => ({ ...s, workoutLogs: [{ ...log, id: `wl-${Date.now()}` }, ...s.workoutLogs] })),
+        patch((s) => ({ ...s, workoutLogs: withWorkoutLog(s.workoutLogs, log, `wl-${Date.now()}`) })),
 
       updateAction: (id, p) =>
         patch((s) => ({ ...s, actions: s.actions.map((a) => (a.id === id ? { ...a, ...p } : a)) })),

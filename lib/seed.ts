@@ -967,8 +967,10 @@ export const dailyActions: DailyAction[] = [
   { id: "a-nid-2", memberId: "nidhi", dayOffset: 0, moduleId: "hr-bone-muscle", title: "Bone & Muscle Health", why: "Given your mother's fracture history, this one matters. Four minutes.", minimum: { label: "Read the summary", minutes: 4 }, target: { label: "Connect it to your plan", minutes: 10 }, stretch: { label: "Prepare doctor questions", minutes: 20 }, completed: null },
   { id: "a-nid-p1", memberId: "nidhi", dayOffset: -2, moduleId: "mv-strength-b", title: "Balance & Carry", why: "Planned.", minimum: { label: "Carries and squats", minutes: 15 }, target: { label: "Full session", minutes: 30 }, stretch: { label: "Progress load", minutes: 45 }, completed: "stretch", provenance: p("member_manual", "Nidhi", "2026-08-07") },
 
-  // Priya — just came back
-  { id: "a-pri-p1", memberId: "priya", dayOffset: -5, moduleId: "mv-walk-base", title: "Walk after dinner", why: "Building the cue.", minimum: { label: "10 minutes", minutes: 10 }, target: { label: "20 minutes", minutes: 20 }, stretch: { label: "35 minutes", minutes: 35 }, completed: "target", provenance: p("member_manual", "Priya", "2026-08-04") },
+  // Priya — just came back. Her last walk was six days ago, which leaves five
+  // days in between: the "five days" of her story, and the number her comeback
+  // card on the Radar (R08) counts.
+  { id: "a-pri-p1", memberId: "priya", dayOffset: -6, moduleId: "mv-walk-base", title: "Walk after dinner", why: "Building the cue.", minimum: { label: "10 minutes", minutes: 10 }, target: { label: "20 minutes", minutes: 20 }, stretch: { label: "35 minutes", minutes: 35 }, completed: "target", provenance: p("member_manual", "Priya", "2026-08-03") },
   { id: "a-pri-1", memberId: "priya", dayOffset: 0, moduleId: "mv-walk-base", title: "Walk, any length", why: "You are back. That is the whole task today.", minimum: { label: "10 minutes", minutes: 10 }, target: { label: "20 minutes", minutes: 20 }, stretch: { label: "35 minutes", minutes: 35 }, completed: "minimum", provenance: p("member_manual", "Priya", "2026-08-09") },
   { id: "a-pri-2", memberId: "priya", dayOffset: 0, moduleId: "bh-minimum-day", title: "Name your Minimum Day action", why: "So the next hard week has a plan already written.", minimum: { label: "Name it", minutes: 2 }, target: { label: "Use it once", minutes: 10 }, stretch: { label: "Note what triggered it", minutes: 15 }, completed: null },
 ];

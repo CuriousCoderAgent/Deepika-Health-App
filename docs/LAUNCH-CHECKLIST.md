@@ -108,6 +108,21 @@ code, one tap to WhatsApp), **temporary-password reset** by Deepika, members
   and nothing made her day lighter. It now appears only when she really rated
   sleep low, and says only that.
 
+**Three small corrections, the same day**
+
+- **A comeback counted its gap a day long, and fired a day early.** Active on
+  day −5 and again today is four inactive days; the card said five, and the
+  rule fired after two while its own sentence says "3 or more". It now counts
+  the days in between and waits for three. The member's side was left alone:
+  Today still says "Good to see you back" after two quiet days.
+- **A session could be logged twice** by going back to it after "Logged." —
+  and with a pain flag, each log reached the Radar as its own flag. There is
+  now one log per session per day. The session page shows it, with **Change**,
+  where "I have finished" was. If she adds to what hurt after Deepika has
+  handled the flag, it comes back as a new one.
+- **Saved between midnight and 05:30, a session or a report was dated the day
+  before** — the date in UTC rather than in India.
+
 ## Only the owner can do these
 
 In rough order. Items 1–4 are small and should be done before anyone is invited.
