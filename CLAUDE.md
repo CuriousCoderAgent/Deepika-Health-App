@@ -229,6 +229,8 @@ lib/
   store.tsx                 Context, localStorage, all mutations
   calendar.ts               Dates in India time; the one definition of "today"
   dailyPlan.ts              Roll a member forward a day; build today's actions
+  workoutLog.ts             One record per session and day; saving again corrects
+                            it, and when that counts as a new pain flag
   starterPlan.ts            The 12-week plan a new member starts on
   privacy.ts                What a member may read/write of her own document
   foodParse.ts              "2 rotis and dal" → entries she checks; a word matcher, not AI

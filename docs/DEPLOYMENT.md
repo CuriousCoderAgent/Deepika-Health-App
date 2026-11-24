@@ -247,14 +247,22 @@ the two widest ways in are shut on purpose rather than by luck:
 `npm run test:e2e` checks that both stay shut, and that sign-in, sign-out and
 ordinary pages are not caught with them (`tests/e2e/refused.mjs`).
 
-Of the other thirteen: the third critical one needs a Windows server, and nine
-more need something this app does not have — a rewrite or redirect to another
-host (the one rewrite here points inside the app), the Pages Router, CSP
-nonces, `beforeInteractive` scripts, WebSocket upgrades, or server code that
-calls `fetch`. That leaves three, one rated moderate and two low, about a
-shared cache in front of the app confusing two kinds of response; in
-production that cache is Vercel's. The PostCSS ones need CSS written by a
-stranger; the build here only processes its own.
+Of the other thirteen:
+
+- the third critical one needs a Windows server;
+- eight need something this app does not have — a rewrite or redirect to
+  another host (the one rewrite here points inside the app), the Pages Router,
+  CSP nonces, `beforeInteractive` scripts, or server code that calls `fetch`;
+- one, forged WebSocket upgrade requests, affects an app served by Next's own
+  server and, in the advisory's words, not one hosted on Vercel. **So it
+  matters the day this runs anywhere with `npm start`** — Railway included.
+  Put a proxy in front that refuses WebSocket upgrades; the app uses none;
+- three, one rated moderate and two low, are about a shared cache in front of
+  the app mixing up two kinds of response. In production that cache is
+  Vercel's. These are open.
+
+The PostCSS ones need CSS written by a stranger; the build here only
+processes its own.
 
 **None of this is a reason to stay on 14.** New advisories against it will
 keep arriving and will not be fixed, and each one has to be read against the

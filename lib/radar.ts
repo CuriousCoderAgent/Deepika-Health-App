@@ -102,7 +102,7 @@ export const radarRules: RadarRule[] = [
     id: "R08",
     name: "Comeback detected",
     bucket: "celebrate",
-    trigger: "First meaningful action after 3 or more inactive days",
+    trigger: "First completed action 3 or more days after the last one",
     suggestedAction: "Recognise the return. Do not mention the gap.",
     enabled: true,
   },
@@ -366,13 +366,17 @@ export function evaluateRadar(
     // the day she came back used to read as "no gap" and cancel the flag. The
     // occurrence is what she last did *before* the gap, which stays the same
     // however much she does on the day she returns.
+    //
+    // The number is days since she last did something — the same count R01
+    // uses for "nothing recorded for N days" — so it is "in N days". It used to
+    // be worded "after N inactive days", which is one more than were inactive.
     const doneActions = mine.filter((a) => a.completed && a.completed !== "rest");
     const done = Array.from(new Set(doneActions.map((a) => a.dayOffset))).sort((a, b) => b - a);
     if (on("R08") && done.length >= 2 && done[0] - done[1] >= 3 && done[0] >= -1) {
       push(
         m.id,
         "R08",
-        `First action after ${done[0] - done[1]} inactive days.`,
+        `First action in ${done[0] - done[1]} days.`,
         newestId(doneActions.filter((a) => a.dayOffset === done[1]))
       );
     }

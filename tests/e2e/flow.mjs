@@ -369,4 +369,38 @@ export default async function flow({ base, browser, db, problems, coachPassword,
   await shot(p, "flow-radar-phone-undo");
   await phoneUndo.click();
   await settle();
+
+  // ------------------------------------------- D. the same session, saved twice
+  // She opens today's session again and saves it again. That used to add a
+  // second record — and a second pain flag on the Radar for one session.
+  await m.goto(`${base}/member/workout/wk-strength-b`, { waitUntil: "networkidle" });
+  await finished.click();
+  const hurt = m.getByRole("button", { name: /Something hurt/ });
+  check(
+    "D1  opened again, the form starts from what she said — the pain flag still on — and says saving updates it",
+    (await seen(m.getByText("You logged this earlier today. Saving again updates it."))) && (await hurt.getAttribute("aria-pressed")) === "true",
+    `pain flag pressed: ${await hurt.getAttribute("aria-pressed")}`
+  );
+  await m.fill("textarea", "right shoulder, sharp");
+  await m.getByRole("button", { name: "Save it" }).click();
+  await seen(m.getByRole("heading", { name: "Logged.", exact: true }));
+  doc = await saved((d) => d.workoutLogs.some((l) => l.feltLike === "right shoulder, sharp"));
+  await settle();
+  doc = await db.memberDoc(MEERA.username);
+  const ofToday = doc.workoutLogs.filter((l) => l.dayOffset === 0 && l.workoutId === "wk-strength-b");
+  check(
+    "D2  it is still one record of that session today, now with what she added, dated in India (read from the database)",
+    doc.workoutLogs.length === 2 && ofToday.length === 1 && ofToday[0].painFlag === true && ofToday[0].provenance?.at === today,
+    `${doc.workoutLogs.length} records, ${ofToday.length} of this session today, stamped ${ofToday[0]?.provenance?.at}`
+  );
+
+  await c.goto(`${base}/coach`, { waitUntil: "networkidle" });
+  await seen(firstCard());
+  const hers = (await attention.locator("div.card", { hasText: "Meera" }).allInnerTexts()).join(" ").replace(/\s+/g, " ");
+  const painFlags = hers.match(/Flagged that something hurt/g) ?? [];
+  check(
+    "D3  and Deepika has one pain flag for it, not two, carrying what she wrote",
+    painFlags.length === 1 && hers.includes(`Flagged that something hurt in ${secondSession}, today: “right shoulder, sharp”`),
+    hers.slice(0, 260)
+  );
 }
