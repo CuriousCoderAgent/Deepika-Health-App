@@ -83,7 +83,7 @@ in the member app. A member can always tell a human from the system at a glance.
 can never look member-entered. This is enforced at the type level in
 `lib/types.ts` (`Provenance`) and in the store's `submitPulse(…, byCoach)`.
 
-**Radar rules are auditable by construction.** `lib/radar.ts` holds ten rules,
+**Radar rules are auditable by construction.** `lib/radar.ts` holds twelve rules,
 each with a plain-language `trigger`. `evaluateRadar()` computes flags from live
 data on every render, so switching a rule off changes the Radar immediately. All
 ten fire against the seeded cohort.
@@ -131,7 +131,7 @@ app/
 lib/
   types.ts                    Domain model (§13), provenance envelope
   seed.ts                     Six personas, 14 modules, 3 workouts, plans
-  radar.ts                    Ten transparent rules + evaluator (§10)
+  radar.ts                    Twelve transparent rules + evaluator (§10)
   store.tsx                   React context + localStorage persistence
 components/
   ui.tsx                      EffortRamp, ProvenanceChip, ConsistencyBand…
@@ -181,7 +181,7 @@ days. Deepika will react far more usefully to those situations than to
 placeholder names — keep that property when you extend it.
 
 `lib/radar.ts` is the piece most worth carrying forward unchanged in spirit. The
-temptation in V1 will be to replace the ten rules with a learned risk score. Do
+temptation in V1 will be to replace the twelve rules with a learned risk score. Do
 not, until there is enough recorded coach judgement to evaluate one against.
 A rule Deepika can read, disagree with, and switch off is worth more right now
 than a more accurate number she cannot interrogate.

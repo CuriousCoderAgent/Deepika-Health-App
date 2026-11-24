@@ -301,7 +301,9 @@ test("a pain flag is on the Radar the moment she saves it, above everything else
   assert.equal(events[0].ruleId, "R12", "the pain flag is first, ahead of a member listed before her");
   assert.equal(events[0].memberId, "priya-s");
   assert.equal(events[0].bucket, "attention");
-  assert.equal(events[0].detail, "Flagged that something hurt in Strength A, today. She wrote: “left knee on the way down”");
+  assert.equal(events[0].detail, "Flagged that something hurt in Strength A, today: “left knee on the way down”");
+  // Not everyone Deepika coaches is a woman; the rule's own wording names no one.
+  assert.ok(!/\b(she|her)\b/i.test(events[0].trigger + events[0].suggestedAction + events[0].detail));
   assert.ok(events.some((e) => e.ruleId === "R01" && e.memberId === "anita-k"), "and the rest still follow");
 });
 

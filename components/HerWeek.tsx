@@ -37,7 +37,9 @@ function DayRow({ d, today }: { d: DayView; today: string }) {
           <span className={`h-3.5 w-3.5 shrink-0 rounded-[3px] ${LEVEL_FILL[d.level ?? "none"]}`} aria-hidden="true" />
           <p className="text-[14px] font-medium leading-snug">{dayName(d.dayOffset, today)}</p>
         </div>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[13px]">
+        {/* ml-auto keeps it on the right when a long line (a check-in Deepika
+            entered, with its chip) wraps under the day instead of beside it. */}
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-x-3 gap-y-0.5 text-[13px]">
           {d.pulse ? (
             <>
               {mood && <span className="text-ink-soft">{mood.label}</span>}

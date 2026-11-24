@@ -38,8 +38,8 @@ export const radarRules: RadarRule[] = [
     id: "R12",
     name: "Something hurt",
     bucket: "attention",
-    trigger: "She flagged that something hurt during a session in the last 4 weeks",
-    suggestedAction: "Reply before her next session — she has been told to wait for you. Coach within scope, or refer.",
+    trigger: "Member flagged that something hurt during a session in the last 4 weeks",
+    suggestedAction: "Reply before the next session — the member has been told to wait for you. Coach within scope, or refer.",
     enabled: true,
   },
   {
@@ -276,7 +276,7 @@ export function evaluateRadar(
         push(
           m.id,
           "R12",
-          `Flagged that something hurt in ${name}, ${whenWas(w.dayOffset)}.${w.feltLike ? ` She wrote: “${w.feltLike}”` : ""}`,
+          `Flagged that something hurt in ${name}, ${whenWas(w.dayOffset)}${w.feltLike ? `: “${w.feltLike}”` : "."}`,
           w.id
         );
       }
