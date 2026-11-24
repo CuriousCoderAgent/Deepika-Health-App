@@ -180,6 +180,40 @@ function databaseUser() {
   };
 }
 
+const quote = (text) => `'${String(text).replace(/'/g, `'\\''`)}'`;
+const alive = (pid) => {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return error.code === "EPERM";
+  }
+};
+
+/**
+ * What must still happen if this process is killed outright — a timeout, a
+ * closed terminal — and never reaches its own tidying up. A small detached
+ * shell waits for this process to go and then runs `script`. Without it, a
+ * killed run leaves a Postgres and an app server running for good.
+ *
+ * Returns a function that calls the watcher off, for when the tidying up has
+ * been done the ordinary way.
+ */
+function whenThisProcessIsGone(script) {
+  const watcher = spawn("sh", ["-c", `while kill -0 ${process.pid} 2>/dev/null; do sleep 1; done; ${script}`], {
+    detached: true,
+    stdio: "ignore",
+  });
+  watcher.unref();
+  return () => {
+    try {
+      process.kill(watcher.pid, "SIGKILL");
+    } catch {
+      /* it has already gone */
+    }
+  };
+}
+
 function run(command, args, what) {
   const r = spawnSync(command, args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 120_000 });
   if (r.status !== 0) throw new Error(`${what} failed.\n${lastLines(r.stderr || r.stdout || r.error?.message)}`);
@@ -210,20 +244,33 @@ export async function startDatabase() {
     );
   }
   const as = databaseUser();
-  const dir = fs.mkdtempSync(path.join(as.base, "app-e2e-pg-"));
-  as.own(dir);
+  const pgCtl = path.join(bin, "pg_ctl");
+  sweepLeftBehind(as, pgCtl);
+
+  // One directory for the run: the data, the server's log and socket, and a
+  // note of whose it is — so a later run can tell an abandoned one from one
+  // that is still going.
+  const home = fs.mkdtempSync(path.join(as.base, HOME_PREFIX));
+  as.own(home);
+  fs.writeFileSync(path.join(home, "runner.pid"), String(process.pid));
+  const data = path.join(home, "data");
+  const stopCommand = as.wrap(pgCtl, ["-D", data, "-m", "immediate", "stop"]);
+  const callOff = whenThisProcessIsGone(
+    `${[stopCommand[0], ...stopCommand[1]].map(quote).join(" ")} >/dev/null 2>&1; rm -rf ${quote(home)}`
+  );
   const port = await freePort();
   const tool = (name, args, what) => run(...as.wrap(path.join(bin, name), args), what);
   const stop = async () => {
-    spawnSync(...as.wrap(path.join(bin, "pg_ctl"), ["-D", dir, "-m", "immediate", "-w", "stop"]), { stdio: "ignore", timeout: 30_000 });
-    fs.rmSync(dir, { recursive: true, force: true });
+    spawnSync(stopCommand[0], [...stopCommand[1], "-w"], { stdio: "ignore", timeout: 30_000 });
+    fs.rmSync(home, { recursive: true, force: true });
+    callOff();
   };
 
   try {
-    tool("initdb", ["-D", dir, "-U", "postgres", "-A", "trust", "-E", "UTF8", "--locale=C", "-N"], "Creating the test database");
+    tool("initdb", ["-D", data, "-U", "postgres", "-A", "trust", "-E", "UTF8", "--locale=C", "-N"], "Creating the test database");
     // Durability is switched off: this database lives for a few minutes.
-    const options = `-p ${port} -k ${dir} -c listen_addresses=127.0.0.1 -c fsync=off -c synchronous_commit=off -c full_page_writes=off`;
-    tool("pg_ctl", ["-D", dir, "-l", path.join(dir, "server.log"), "-w", "-t", "60", "-o", options, "start"], "Starting the test database");
+    const options = `-p ${port} -k ${home} -c listen_addresses=127.0.0.1 -c fsync=off -c synchronous_commit=off -c full_page_writes=off`;
+    tool("pg_ctl", ["-D", data, "-l", path.join(home, "server.log"), "-w", "-t", "60", "-o", options, "start"], "Starting the test database");
     const admin = await pgClient(`postgresql://postgres@127.0.0.1:${port}/postgres`);
     await admin.query("create database app_e2e");
     await admin.end();
@@ -236,6 +283,40 @@ export async function startDatabase() {
     what: `a temporary Postgres on port ${port}`,
     stop,
   };
+}
+
+const HOME_PREFIX = "app-e2e-pg-";
+
+/**
+ * Removes test databases whose run is no longer alive. The watcher above
+ * normally sees to that within a second; this is for when it was killed too.
+ * A directory with no owner recorded is left alone unless it is old — it may
+ * be another run, a moment into starting.
+ */
+function sweepLeftBehind(as, pgCtl) {
+  let entries = [];
+  try {
+    entries = fs.readdirSync(as.base);
+  } catch {
+    return;
+  }
+  for (const entry of entries) {
+    if (!entry.startsWith(HOME_PREFIX)) continue;
+    const home = path.join(as.base, entry);
+    let owner = NaN;
+    let age = 0;
+    try {
+      age = Date.now() - fs.statSync(home).mtimeMs;
+      owner = Number(fs.readFileSync(path.join(home, "runner.pid"), "utf8"));
+    } catch {
+      /* no owner recorded */
+    }
+    const known = Number.isInteger(owner) && owner > 0;
+    if (known ? alive(owner) : age < 10 * 60_000) continue;
+    spawnSync(...as.wrap(pgCtl, ["-D", path.join(home, "data"), "-m", "immediate", "-w", "stop"]), { stdio: "ignore", timeout: 30_000 });
+    fs.rmSync(home, { recursive: true, force: true });
+    log(`Removed a test database an earlier run left behind (${entry}).`);
+  }
 }
 
 /** Reading and rewriting what the app saved, straight from its tables. */
@@ -336,10 +417,13 @@ export async function startApp(databaseUrl) {
   let output = "";
   child.stdout.on("data", (d) => (output += d));
   child.stderr.on("data", (d) => (output += d));
+  const callOff = whenThisProcessIsGone(`kill ${child.pid} 2>/dev/null`);
   const stop = async () => {
-    if (child.exitCode !== null) return;
-    child.kill("SIGTERM");
-    if (!(await until(() => child.exitCode !== null, 5000))) child.kill("SIGKILL");
+    if (child.exitCode === null) {
+      child.kill("SIGTERM");
+      if (!(await until(() => child.exitCode !== null, 5000))) child.kill("SIGKILL");
+    }
+    callOff();
   };
 
   const up = await until(async () => {

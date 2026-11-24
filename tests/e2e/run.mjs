@@ -35,11 +35,33 @@ async function takeDown() {
   await app?.stop().catch(() => {});
   await database?.stop().catch(() => {});
 }
-for (const signal of ["SIGINT", "SIGTERM"]) {
+for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {
   process.on(signal, async () => {
     await takeDown();
     process.exit(130);
   });
+}
+
+/** Prints the verdict once, and returns the exit code. */
+let verdict = null;
+function report(broke) {
+  if (verdict !== null) return verdict;
+  const { total, failed } = tally();
+  const took = Math.round((Date.now() - started) / 1000);
+  console.log("");
+  if (broke) {
+    console.error(`Could not run: ${broke.message}`);
+  } else if (failed.length) {
+    console.log(`${failed.length} of ${total} checks failed (${took}s):`);
+    for (const name of failed) console.log(`  ${name}`);
+  } else {
+    console.log(`All ${total} checks passed (${took}s).`);
+  }
+  if (indiaToday() !== today) {
+    note("The date in India changed while this was running. If something failed, run it again before believing it.");
+  }
+  verdict = broke || failed.length ? 1 : 0;
+  return verdict;
 }
 
 let broke = null;
@@ -64,6 +86,7 @@ try {
   }
 
   if (process.env.E2E_KEEP) {
+    report(null);
     console.log(`\nLeft running at ${app.url} — coach sign-in: deepika / ${app.coachPassword}. Ctrl+C to stop.`);
     await new Promise(() => {});
   }
@@ -73,18 +96,4 @@ try {
   await takeDown();
 }
 
-const { total, failed } = tally();
-const took = Math.round((Date.now() - started) / 1000);
-console.log("");
-if (broke) {
-  console.error(`Could not run: ${broke.message}`);
-} else if (failed.length) {
-  console.log(`${failed.length} of ${total} checks failed (${took}s):`);
-  for (const name of failed) console.log(`  ${name}`);
-} else {
-  console.log(`All ${total} checks passed (${took}s).`);
-}
-if (indiaToday() !== today) {
-  note("The date in India changed while this was running. If something failed, run it again before believing it.");
-}
-process.exit(broke || failed.length ? 1 : 0);
+process.exit(report(broke));

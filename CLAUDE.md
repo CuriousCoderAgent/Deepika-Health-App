@@ -179,11 +179,12 @@ npm run build    # must pass before any commit
 ```
 
 `.claude/settings.json` lets the routine checks run without a permission prompt
-in a Claude Code session: the build, the logic tests, lint, the type-check, the
-dev server, the website build (`node build.mjs` in `website/`) and read-only
-git. Nothing that commits, pushes, installs, deploys or reaches a database is
-on that list, and it should stay that way — it is there to save prompts on
-checks, not to get round one.
+in a Claude Code session: the build, the logic tests, the end-to-end checks,
+lint, the type-check, the dev server, the website build (`node build.mjs` in
+`website/`) and read-only git. Nothing that commits, pushes, installs, deploys
+or reaches a real database is on that list — the end-to-end checks make their
+own database and delete it — and it should stay that way. It is there to save
+prompts on checks, not to get round one.
 
 Deploys to Vercel (import repo, zero config) or Railway (`npm start` reads
 injected `PORT`).
@@ -244,6 +245,11 @@ components/
   Reminders.tsx             Reminder setting; ReminderPrompt / InstallPrompt are
                             the one-time offers on Today after a check-in
   MemberName.tsx            A member's name in the console, or her initials
+tests/
+  logic.test.mjs            The rules with no browser: dates, the daily plan,
+                            the Radar, privacy (npm run test:logic)
+  e2e/                      The app in a browser against a throwaway Postgres
+                            (npm run test:e2e) — read its README first
 ```
 
 **Time.** Every record is a `dayOffset` from the date in `member.anchorDate`, and
@@ -286,6 +292,11 @@ each colour means semantically. Read those comments before adding a colour.
   for real members, never the sample cohort, and nobody in the sample cohort
   has flagged pain (R12).
 - Run `npm run test:logic` as well as `npm run build` before committing.
+- Run `npm run test:e2e` as well when the change touches a screen a member or
+  Deepika uses, or what gets saved: Today, a sheet, the session page, the
+  Radar, the store. It takes about a minute and a half, makes its own database,
+  and cannot reach a real one (`tests/e2e/README.md`). When a bug gets through
+  it, add the check that would have caught it.
 - **A promise on her screen needs a rule on Deepika's.** The session page told a
   member who flagged pain that Deepika would see it first and to wait for a
   reply — for months nothing told Deepika. If member copy says Deepika will
@@ -301,6 +312,7 @@ each colour means semantically. Read those comments before adding a colour.
   sheet that pushed the whole phone frame up for everyone else. Reduced motion
   is for stable screenshots; `reducedMotion: "no-preference"` is what members
   have, and a flow is not checked until it has been run that way.
+  `npm run test:e2e` runs the flow with animations on and every sheet both ways.
 
 ---
 
