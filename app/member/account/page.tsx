@@ -70,6 +70,9 @@ export default function Account() {
       } catch {
         /* storage blocked; the server copy is already gone */
       }
+      // A full page load, not router.push: it is what throws away the store
+      // still holding her data in this tab.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.assign("/account-deleted");
     } catch {
       setError("Could not reach the server. Nothing was removed.");

@@ -22,12 +22,10 @@
 import type { MemberDoc } from "./persist";
 
 export function forMember(doc: MemberDoc): MemberDoc {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { notes, draftWeekPlans, ...member } = doc.member;
   return {
     ...doc,
     member,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     sessions: (doc.sessions ?? []).map(({ privateNotes, ...session }) => session),
   };
 }
@@ -42,7 +40,6 @@ export function acceptFromMember(incoming: MemberDoc, existing: MemberDoc | null
 
   const stored = new Map((existing?.sessions ?? []).map((s) => [s.id, s]));
   const sessions = (incoming.sessions ?? []).map((s) => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { privateNotes, ...rest } = s;
     const kept = stored.get(s.id)?.privateNotes;
     return kept ? { ...rest, privateNotes: kept } : rest;

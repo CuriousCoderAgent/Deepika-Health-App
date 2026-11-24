@@ -123,7 +123,7 @@ export default async function Home(props: {
 
         {!canSignUp && !insecure && (
           <p className="mt-6 text-center text-[12px] leading-relaxed text-ink-faint">
-            Signing up isn't open on this deployment. Deepika can add you.
+            Signing up isn’t open on this deployment. Deepika can add you.
           </p>
         )}
 

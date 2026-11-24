@@ -45,7 +45,6 @@ export default function Member360(props: { params: Promise<{ id: string }> }) {
     modules,
     actions,
     pulses,
-    messages,
     sessions,
     radar,
     reports,

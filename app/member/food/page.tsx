@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ChevronLeft, Minus, Plus, Search, Trash2, X } from "lucide-react";
+import { ChevronLeft, Minus, Plus, Search, Trash2 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import BottomSheet from "@/components/BottomSheet";
 import MealText from "@/components/MealText";

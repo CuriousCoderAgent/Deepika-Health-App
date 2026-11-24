@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, ArrowDownRight, Sparkle } from "lucide-react";
+import { AlertTriangle, ArrowDownRight } from "lucide-react";
 import BottomSheet from "./BottomSheet";
 import ExerciseFigure from "./ExerciseFigure";
 import type { ExerciseSet } from "@/lib/types";

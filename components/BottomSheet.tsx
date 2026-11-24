@@ -57,7 +57,10 @@ export default function BottomSheet({
     setHost(document.getElementById("sheet-root"));
   }, []);
 
+  // The newest onClose, read only by the Escape listener below, never during
+  // a render.
   const close = useRef(onClose);
+  // eslint-disable-next-line react-hooks/refs
   close.current = onClose;
 
   useEffect(() => {
