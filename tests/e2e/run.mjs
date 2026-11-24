@@ -12,8 +12,10 @@
 import { check, indiaToday, launchBrowser, log, note, openDatabase, startApp, startDatabase, tally } from "./harness.mjs";
 import flow from "./flow.mjs";
 import sheets from "./sheets.mjs";
+import refused from "./refused.mjs";
 
-const SUITES = { flow, sheets };
+// `refused` goes last: one of its checks reads the server log of the whole run.
+const SUITES = { flow, sheets, refused };
 const asked = process.argv.slice(2).filter((arg) => !arg.startsWith("-"));
 const unknown = asked.filter((name) => !SUITES[name]);
 if (unknown.length) {
@@ -77,7 +79,7 @@ try {
     console.log(`\n${name}`);
     const problems = [];
     try {
-      await SUITES[name]({ base: app.url, browser, db, problems, coachPassword: app.coachPassword, today });
+      await SUITES[name]({ base: app.url, browser, db, problems, coachPassword: app.coachPassword, today, serverLog: app.output });
     } catch (error) {
       // A step that could not be taken at all — a button that never appeared.
       check(`${name}: ran to the end`, false, error.message.split("\n")[0]);

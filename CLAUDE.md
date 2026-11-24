@@ -193,6 +193,15 @@ Fonts load via `<link>` in `app/layout.tsx`, deliberately not `next/font` —
 build-time font fetching turns a transient network blip into a failed deploy.
 Keep it that way.
 
+**Next 14 no longer gets security fixes**, and two things it leaves switched on
+are shut here because of that: the image-resizing address (`next.config.mjs`)
+and POSTs to a page (`middleware.ts`, `app/api/[...missing]`). So until the
+app moves to Next 16: no Server Actions, no `<form>` that posts to a page, no
+`next/image`, no rewrite or redirect to another host, no `fetch` in server
+code. Every save goes to a route under `/api`. The reasoning, advisory by
+advisory, is in `docs/DEPLOYMENT.md` under "The Next.js version", and
+`tests/e2e/refused.mjs` checks the doors stay shut.
+
 ---
 
 ## Code map
