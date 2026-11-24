@@ -179,9 +179,10 @@ from there: it runs ahead of every signed-in page and only has to check a
 cookie's signature, while `lib/accounts.ts` reaches the database.
 See `docs/DEPLOYMENT.md`.
 
-**Signing in with Google** is built and off: it appears only when
-`GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are both set, and with neither
-no screen mentions Google. `lib/google.ts` (server-only) says how it works at
+**Signing in with Google** is built, and on in production since 24 November
+2026: it appears only when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are
+both set (they are, for Production only), and with neither no screen mentions
+Google. `lib/google.ts` (server-only) says how it works at
 the top. Three rules it rests on: a Google account is matched to an account
 here by Google's id for it, never by email address; signing in never creates
 an account — only "Create your account" does, join code included; and

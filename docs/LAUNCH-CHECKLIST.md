@@ -147,14 +147,17 @@ code, one tap to WhatsApp), **temporary-password reset** by Deepika, members
   too, under *What better looks like*. The meaning is unchanged, but they are
   Deepika's library — worth her reading them once.
 
-**Built, and switched off**
+**Built switched off, and switched on that evening**
 
 - **Continue with Google.** Members can create an account, and sign in, with
   their Google account instead of a username and password; a member who
-  already has a password can connect Google from *Your account*. Nothing on
-  any screen mentions it until two keys from Google are set in Vercel — see
-  item 12 below. It asks Google only who she is, keeps her address and
-  Google's id for her account, and tells Google nothing she logs.
+  already has a password can connect Google from *Your account*. No screen
+  mentioned it until two keys from Google were set in Vercel, which they were
+  the same evening: the live sign-in page now offers it. It asks Google only
+  who she is, keeps her address and Google's id for her account, and tells
+  Google nothing she logs. What has and has not been tried on the live site
+  is item 12 below — **members have not been told yet, and should not be
+  until that item is done.**
 
 ## Moved to Next.js 16 (24 November 2026)
 
@@ -235,13 +238,21 @@ In rough order. Items 1–4 are small and should be done before anyone is invite
 11. **Try a reminder on your own phone.** Sign in as a member, check in, accept
     the reminder offer, and wait for the 7:30 run. Delivery to a real phone could
     not be tested from the build environment (see *Not tested here*).
-12. **Switch on Continue with Google**, if you want it. It needs a client ID
-    and secret from a Google account you own, which nobody else can create for
-    you. The steps, about ten minutes, are in `docs/DEPLOYMENT.md` under
-    *Signing in with Google → Switching it on*. Set the two keys for
-    **Production only**. Then try it yourself — once in a browser, once from
-    the Android app and once from an iPhone's Home Screen — before telling
-    members: the phone round trips have not been tried by hand.
+12. **Finish switching on Continue with Google.** The keys are set, for
+    Production only, and the button is live (24 November). One thing was
+    tried on the live site: signing in with a Google account that has no
+    account here, which is correctly turned away. Still to do by hand, before
+    telling members:
+    - make one account with *Create your account → Continue with Google*, and
+      delete it afterwards from *Your account* if it was only a test;
+    - connect Google to an account that has a password, from *Your account*;
+    - do the trip to Google and back once from the Android app and once from
+      an iPhone's Home Screen. Neither has ever been tried.
+
+    Then set `WEBSITE_GOOGLE_SIGN_IN=1` on the website's project, so the
+    public page says people can join with Google. What exists at Google, and
+    what happened on the first try, is in `docs/DEPLOYMENT.md` under
+    *Signing in with Google → Switching it on*.
 13. **Check the first deploy on Next 16.** It is the first build on Vercel
     with Turbopack, and the first with `proxy.ts` where `middleware.ts` was.
     Everything was tested on a production build, and a preview on Vercel was
