@@ -3,8 +3,9 @@ const nextConfig = {
   reactStrictMode: true,
 
   // Without this, `next dev` writes an AGENTS.md of Next's own into the
-  // repository. What an agent working here should know is in CLAUDE.md,
-  // including where Next 16's own docs are.
+  // repository whenever it sees a coding agent running it — which is how most
+  // of the work here is done. What an agent working here should know is in
+  // CLAUDE.md, including where Next 16's own docs are.
   agentRules: false,
 
   // No screen here uses next/image, but Next serves its image-resizing address
