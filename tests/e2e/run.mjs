@@ -12,10 +12,11 @@
 import { check, indiaToday, launchBrowser, log, note, openDatabase, startApp, startDatabase, tally } from "./harness.mjs";
 import flow from "./flow.mjs";
 import sheets from "./sheets.mjs";
+import google from "./google.mjs";
 import refused from "./refused.mjs";
 
 // `refused` goes last: one of its checks reads the server log of the whole run.
-const SUITES = { flow, sheets, refused };
+const SUITES = { flow, sheets, google, refused };
 const asked = process.argv.slice(2).filter((arg) => !arg.startsWith("-"));
 const unknown = asked.filter((name) => !SUITES[name]);
 if (unknown.length) {
@@ -27,6 +28,9 @@ const names = asked.length ? asked : Object.keys(SUITES);
 const started = Date.now();
 const today = indiaToday();
 let database, app, db, browser;
+/** Anything else a suite started and must not outlive the run: a second copy
+ *  of the app, a stand-in for Google. */
+const extras = [];
 let stopping = false;
 
 async function takeDown() {
@@ -34,6 +38,7 @@ async function takeDown() {
   stopping = true;
   await browser?.close().catch(() => {});
   await db?.close().catch(() => {});
+  for (const extra of extras) await extra.stop().catch(() => {});
   await app?.stop().catch(() => {});
   await database?.stop().catch(() => {});
 }
@@ -79,7 +84,23 @@ try {
     console.log(`\n${name}`);
     const problems = [];
     try {
-      await SUITES[name]({ base: app.url, browser, db, problems, coachPassword: app.coachPassword, today, serverLog: app.output });
+      await SUITES[name]({
+        base: app.url,
+        browser,
+        db,
+        problems,
+        coachPassword: app.coachPassword,
+        today,
+        serverLog: app.output,
+        /** Starts something the run will stop at the end, whatever happens. */
+        alsoRunning: async (starting) => {
+          const started = await starting;
+          extras.push(started);
+          return started;
+        },
+        /** A second copy of the app on the same database, with its own settings. */
+        anotherApp: (settings) => startApp(database.url, { settings, build: false }),
+      });
     } catch (error) {
       // A step that could not be taken at all — a button that never appeared.
       check(`${name}: ran to the end`, false, error.message.split("\n")[0]);

@@ -29,6 +29,9 @@ to an existing build.
 | `MEMBERS` | The cohort. See below. |
 | `DATABASE_URL` | Postgres connection string. Optional, but required for self-signup — see Storage. `POSTGRES_URL` is read as an alternative. |
 | `SIGNUP_CODE` | Optional. When set, creating an account asks for this code. Shown to Deepika, and written into the invite message, on the Members page. |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Optional, and only together. With both set the sign-in page offers **Continue with Google**; with either missing, no screen mentions Google at all. Production only. See *Signing in with Google*. |
+| `COACH_GOOGLE_EMAIL` | Optional. Deepika's own Google address. With it set, that Google account opens the console. |
+| `APP_ORIGIN` | Optional, and not needed on Vercel. The app's public address (`https://…`), for a server behind a proxy that cannot see its own. Only Google sign-in uses it. |
 | `SUPPORT_EMAIL` | Optional. An inbox someone actually reads. With it unset, the public privacy and deletion pages tell people to contact Deepika directly; with it set they show this address. There is deliberately no placeholder address. |
 | `CRON_SECRET` | Recommended once reminders are in use. Any long random string (`openssl rand -base64 32`). Vercel sends it to the scheduled reminder job and the job refuses calls without it. Unset, the job still runs, and the most a stranger calling it could do is send opted-in members the reminder they were due anyway, a little early — see *Reminders*. |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | Optional. The key pair that signs reminders. Unset, one is generated on first use and kept in the database (`app_meta`), which is the normal case. Set them only to carry the same pair across databases. |
@@ -95,6 +98,102 @@ account over. This works for accounts held in the database; one whose login is
 in `MEMBERS` belongs to whoever runs the deployment and is changed there.
 The sign-up form still asks for the password twice, because the cheapest
 recovery is a typo that never happened.
+
+## Signing in with Google
+
+Off until `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are both set. With
+them, the sign-in page gains **Continue with Google**, in both of its modes:
+
+- **Sign in** — for an account that was made with Google, or has Google
+  connected. A Google account nobody has connected is told so and told what to
+  do. It never makes an account: someone who already had one would land in a
+  second, empty one and conclude everything she had logged was gone.
+- **Create your account** — makes the account from her Google name: no
+  username to choose, no password to remember. Where `SIGNUP_CODE` is set the
+  join code is still asked for, and checked before she is sent to Google.
+
+A member who signed up with a password can connect Google from *Your account*
+— it asks for her password first, as changing it does, so an unlocked phone is
+not enough for someone to connect their own — and can disconnect it again. A
+member who has only Google cannot disconnect it. If she ever loses that Google
+account, *Reset her password* on her page in the console gives her a temporary
+password, and with it a second way in.
+
+One Google account opens one account here. It is matched on Google's own id
+for the account, never on the email address — so a Google account cannot be
+used to get into an existing password account merely by having the same
+address.
+
+**What is kept.** Google's id for her Google account, her email address, and —
+only when the account is made this way — her name. Nothing else is asked for
+(`openid email profile`), and nothing she logs is sent to Google. The address
+is shown to her on *Your account* and is in her data download. Deepika's
+console does not show it. The privacy page says all this, but only where
+Google sign-in is switched on.
+
+**How it works** is written out at the top of `lib/google.ts`. In short: no
+script from Google runs on any page. Her browser is sent to Google and back,
+and the server then makes one call to Google to confirm who she is. That call
+uses Node's own `https`, not `fetch` — see *The Next.js version* below.
+
+**Deepika.** Set `COACH_GOOGLE_EMAIL` to her own Google address and that
+Google account opens the console. Use an address only she controls: a Gmail
+address, or one in a Google Workspace she owns. Unset, she signs in with her
+password, as now. This one is matched on the address, because there is no
+row in the database to hold Google's id for her.
+
+### Switching it on
+
+Use a Google account that belongs to the practice rather than to one
+person's phone — whoever owns it owns this setting.
+
+These steps were written from how Google's console stood in 2026, and could
+not be checked against Google's help pages from where this was built. Google
+renames these screens every year or two. Where the screen and this list
+differ, trust the screen; the search box at the top of the console finds
+anything by name.
+
+1. Go to <https://console.cloud.google.com> and create a project. Its name is
+   only for you.
+2. Search for **OAuth consent screen** (the section is currently called
+   *Google Auth Platform*). Fill in the app's name as members should see it on
+   Google's page, an email address for support, and choose **External** as the
+   audience.
+   - The product's name is still undecided. Whatever goes here can be changed
+     later without anyone having to sign in differently.
+   - Leave the permissions ("scopes") at the basic three: `openid`, `email`
+     and `profile`. Add nothing — the app asks for nothing more, and anything
+     more brings Google's review with it.
+   - **Publish** it, so its status reads "In production". Left on "Testing",
+     only the addresses you add by hand can sign in.
+3. Create a client: *Clients* → *Create client* (older screens: *Credentials*
+   → *Create credentials* → *OAuth client ID*). Type: **Web application**.
+   Under **Authorised redirect URIs** add exactly
+
+       https://deepika-health-app.vercel.app/api/auth/google/callback
+
+   and the same path on any other address the app is opened at, such as a
+   custom domain later. Nothing is needed under "JavaScript origins".
+4. Google shows a **client ID** and a **client secret**. In Vercel → the app's
+   project → Settings → Environment Variables, add them as `GOOGLE_CLIENT_ID`
+   and `GOOGLE_CLIENT_SECRET`, for **Production only**, and mark the secret
+   Sensitive. Preview builds live at other addresses, which Google will not
+   send anyone back to; with the keys absent there, previews simply do not
+   offer it.
+5. Redeploy. The sign-in page now has **Continue with Google**. Try it with
+   your own Google account in "Create your account" first.
+6. Once it is on: set `WEBSITE_GOOGLE_SIGN_IN=1` on the website's project so
+   the public page says so, and — if the Android app is on Google Play by then
+   — add "email address" to its Data safety form.
+
+If Google's page says the redirect address does not match, the address in
+step 3 is not exactly the one the app is open at: look for `http` instead of
+`https`, a missing path, or a different domain.
+
+**Not tried on a real phone:** the trip to Google and back from inside the
+Android app, and from an iPhone's Home Screen app. Both open Google in the
+phone's own browser, which is what Google requires — but neither has been
+done by hand. Do each once before telling members about it.
 
 ## Storage
 
@@ -277,7 +376,11 @@ safety net it would not have had before.
   with 405;
 - `next/image` — pictures would load unresized, and switching resizing back
   on reopens the first door;
-- a rewrite or redirect to another host, or server code that calls `fetch`.
+- a `rewrites()` or `redirects()` rule in `next.config.mjs` that points at
+  another host (a route that answers with a redirect, as Google sign-in does,
+  is not that), or server code that calls `fetch`.
+  Server code that has to call another service uses Node's own `https`, as
+  `lib/google.ts` does for the one call Google sign-in makes.
 
 ## Tests
 
@@ -288,7 +391,7 @@ committing.
 `npm run test:e2e` runs the app itself: it builds it, starts it as in
 production against a Postgres it creates for the run, and walks through it in a
 browser as a member and as Deepika — sign-up, a day's actions, the next day, a
-session with a pain flag, the Radar. About a minute and a half. It never reads
+session with a pain flag, the Radar, signing in with Google. About two minutes. It never reads
 `DATABASE_URL` and will not touch a database that is not a local scratch one;
 `tests/e2e/README.md` says what it needs and how to point it at a database of
 your own.

@@ -172,6 +172,14 @@ Node's crypto is not available in the Edge middleware, which is why the
 middleware imports from `lib/auth.ts` and never from there.
 See `docs/DEPLOYMENT.md`.
 
+**Signing in with Google** is built and off: it appears only when
+`GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are both set, and with neither
+no screen mentions Google. `lib/google.ts` (server-only) says how it works at
+the top. Three rules it rests on: a Google account is matched to an account
+here by Google's id for it, never by email address; signing in never creates
+an account — only "Create your account" does, join code included; and
+connecting Google to an existing account asks for the password first.
+
 ```bash
 npm install
 npm run dev      # http://localhost:3000
@@ -197,8 +205,9 @@ Keep it that way.
 are shut here because of that: the image-resizing address (`next.config.mjs`)
 and POSTs to a page (`middleware.ts`, `app/api/[...missing]`). So until the
 app moves to Next 16: no Server Actions, no `<form>` that posts to a page, no
-`next/image`, no rewrite or redirect to another host, no `fetch` in server
-code. Every save goes to a route under `/api`. The reasoning, advisory by
+`next/image`, no `rewrites()` or `redirects()` rule pointing at another host,
+no `fetch` in server code (a call out uses Node's `https`, as `lib/google.ts`
+does). Every save goes to a route under `/api`. The reasoning, advisory by
 advisory, is in `docs/DEPLOYMENT.md` under "The Next.js version", and
 `tests/e2e/refused.mjs` checks the doors stay shut.
 
@@ -236,6 +245,9 @@ lib/
   foodParse.ts              "2 rotis and dal" → entries she checks; a word matcher, not AI
   reminders.ts              When a check-in reminder goes out and what it says (pure)
   push.ts                   Web Push sending and VAPID keys — server-only
+  google.ts                 Signing in with Google: the attempt, the checks on
+                            what Google says, a username from a name — server-only
+  sessionCookies.ts         The one place a session is started, whichever way in
   replyDrafts.ts            Drafts for Deepika's messages, suggested by the Radar
   display.ts                Members by name in the console; initials behind the
                             privacy screen (privacyScreen.ts, per device); and
@@ -257,6 +269,7 @@ components/
   Reminders.tsx             Reminder setting; ReminderPrompt / InstallPrompt are
                             the one-time offers on Today after a check-in
   MemberName.tsx            A member's name in the console, or her initials
+  GoogleConnection.tsx      Connect / disconnect Google, on Your account
 tests/
   logic.test.mjs            The rules with no browser: dates, the daily plan,
                             the Radar, privacy (npm run test:logic)
@@ -306,7 +319,7 @@ each colour means semantically. Read those comments before adding a colour.
 - Run `npm run test:logic` as well as `npm run build` before committing.
 - Run `npm run test:e2e` as well when the change touches a screen a member or
   Deepika uses, or what gets saved: Today, a sheet, the session page, the
-  Radar, the store. It takes about a minute and a half, makes its own database,
+  Radar, the store, signing in. It takes about two minutes, makes its own database,
   and cannot reach a real one (`tests/e2e/README.md`). When a bug gets through
   it, add the check that would have caught it.
 - **A promise on her screen needs a rule on Deepika's.** The session page told a
