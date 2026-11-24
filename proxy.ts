@@ -11,7 +11,7 @@ const SIGNED_IN_ONLY = /^\/(?:member|coach)(?:\/|$)|^\/onboarding\/?$/;
  * before the page does, so an unauthenticated request never reaches a
  * screen holding someone's health data.
  */
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Nothing in this app is submitted to a page: every save, sign-in and

@@ -22,7 +22,7 @@ export const dynamic = "force-dynamic";
  * not a product's.
  */
 export default async function Home() {
-  const session = await readSessionToken(cookies().get(sessionCookieName)?.value);
+  const session = await readSessionToken((await cookies()).get(sessionCookieName)?.value);
   if (session) redirect(session.role === "coach" ? "/coach" : "/member");
 
   const insecure = !sessionsAreSecure();
