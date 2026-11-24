@@ -460,8 +460,8 @@ export default function Member360(props: { params: Promise<{ id: string }> }) {
             </div>
             {myReports.length === 0 ? (
               <p className="mt-2.5 text-[14px] text-ink-faint">
-                Nothing uploaded. {they.Subject} can add these {they.reflexive} from Progress → Your
-                reports, or you can enter them during a session.
+                Nothing uploaded. {they.Subject} can add these {they.reflexive} from Insights → Health
+                Data, or you can enter them during a session.
               </p>
             ) : (
               <div className="mt-3 space-y-4">
