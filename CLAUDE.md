@@ -172,18 +172,46 @@ Node's crypto is not available in the Edge middleware, which is why the
 middleware imports from `lib/auth.ts` and never from there.
 See `docs/DEPLOYMENT.md`.
 
+**Signing in with Google** is built and off: it appears only when
+`GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are both set, and with neither
+no screen mentions Google. `lib/google.ts` (server-only) says how it works at
+the top. Three rules it rests on: a Google account is matched to an account
+here by Google's id for it, never by email address; signing in never creates
+an account — only "Create your account" does, join code included; and
+connecting Google to an existing account asks for the password first.
+
 ```bash
 npm install
 npm run dev      # http://localhost:3000
 npm run build    # must pass before any commit
 ```
 
+`.claude/settings.json` lets the routine checks run without a permission prompt
+in a Claude Code session: the build, the logic tests, the end-to-end checks,
+lint, the type-check, the dev server, the website build (`node build.mjs` in
+`website/`) and read-only git. Nothing that commits, pushes, installs, deploys
+or reaches a real database is on that list — the end-to-end checks make their
+own database and delete it — and it should stay that way. It is there to save
+prompts on checks, not to get round one.
+
 Deploys to Vercel (import repo, zero config) or Railway (`npm start` reads
-injected `PORT`).
+injected `PORT`). After a deploy, `/api/health` says whether the app reached
+its database — and opening it is what makes the tables, and applies any change
+to them (`MIGRATIONS` in `lib/db.ts`), instead of the first member doing so.
 
 Fonts load via `<link>` in `app/layout.tsx`, deliberately not `next/font` —
 build-time font fetching turns a transient network blip into a failed deploy.
 Keep it that way.
+
+**Next 14 no longer gets security fixes**, and two things it leaves switched on
+are shut here because of that: the image-resizing address (`next.config.mjs`)
+and POSTs to a page (`middleware.ts`, `app/api/[...missing]`). So until the
+app moves to Next 16: no Server Actions, no `<form>` that posts to a page, no
+`next/image`, no `rewrites()` or `redirects()` rule pointing at another host,
+no `fetch` in server code (a call out uses Node's `https`, as `lib/google.ts`
+does). Every save goes to a route under `/api`. The reasoning, advisory by
+advisory, is in `docs/DEPLOYMENT.md` under "The Next.js version", and
+`tests/e2e/refused.mjs` checks the doors stay shut.
 
 ---
 
@@ -212,15 +240,20 @@ lib/
   store.tsx                 Context, localStorage, all mutations
   calendar.ts               Dates in India time; the one definition of "today"
   dailyPlan.ts              Roll a member forward a day; build today's actions
+  workoutLog.ts             One record per session and day; saving again corrects
+                            it, and when that counts as a new pain flag
   starterPlan.ts            The 12-week plan a new member starts on
   privacy.ts                What a member may read/write of her own document
   foodParse.ts              "2 rotis and dal" → entries she checks; a word matcher, not AI
   reminders.ts              When a check-in reminder goes out and what it says (pure)
   push.ts                   Web Push sending and VAPID keys — server-only
+  google.ts                 Signing in with Google: the attempt, the checks on
+                            what Google says, a username from a name — server-only
+  sessionCookies.ts         The one place a session is started, whichever way in
   replyDrafts.ts            Drafts for Deepika's messages, suggested by the Radar
   display.ts                Members by name in the console; initials behind the
-                            privacy screen (privacyScreen.ts, per device);
-                            pronouns() for the few sentences that need one
+                            privacy screen (privacyScreen.ts, per device); and
+                            she / he / they for a member — pronouns()
   useWidth.ts               A chart's real pixel width, so it is drawn, not stretched
 components/
   ui.tsx                    EffortRamp, ProvenanceChip, ConsistencyBand, Sparkline
@@ -232,12 +265,18 @@ components/
   DayHistory.tsx            Her last 14 days; yesterday can still be marked
   Toast.tsx                 "Recorded" / "Handled", with Undo — both sides
   QuickFind.tsx             Deepika's jump-to-a-member (/ or Ctrl+K)
-  HerWeek.tsx               A member's last 7 days, a row each, on the member page
+  HerWeek.tsx               Her last 7 days, a row each, on the member page
   PulseCard.tsx             Daily Pulse (member + coach-on-behalf modes)
   MealText.tsx              Type what you ate → check → add
   Reminders.tsx             Reminder setting; ReminderPrompt / InstallPrompt are
                             the one-time offers on Today after a check-in
   MemberName.tsx            A member's name in the console, or her initials
+  GoogleConnection.tsx      Connect / disconnect Google, on Your account
+tests/
+  logic.test.mjs            The rules with no browser: dates, the daily plan,
+                            the Radar, privacy (npm run test:logic)
+  e2e/                      The app in a browser against a throwaway Postgres
+                            (npm run test:e2e) — read its README first
 ```
 
 **Time.** Every record is a `dayOffset` from the date in `member.anchorDate`, and
@@ -280,6 +319,11 @@ each colour means semantically. Read those comments before adding a colour.
   for real members, never the sample cohort, and nobody in the sample cohort
   has flagged pain (R12).
 - Run `npm run test:logic` as well as `npm run build` before committing.
+- Run `npm run test:e2e` as well when the change touches a screen a member or
+  Deepika uses, or what gets saved: Today, a sheet, the session page, the
+  Radar, the store, signing in. It takes about two minutes, makes its own database,
+  and cannot reach a real one (`tests/e2e/README.md`). When a bug gets through
+  it, add the check that would have caught it.
 - **A promise on her screen needs a rule on Deepika's.** The session page told a
   member who flagged pain that Deepika would see it first and to wait for a
   reply — for months nothing told Deepika. If member copy says Deepika will
@@ -288,18 +332,14 @@ each colour means semantically. Read those comments before adding a colour.
   message, a pain flag, a symptom report) carries that record's id; a flag
   about a pattern comes back after a week if still true. Never key a flag on
   a count or a day offset — both change overnight. See `lib/radar.ts`.
-- **The console does not assume a member is a woman.** Onboarding asks, and a
-  member can answer man, or prefer not to say. Write console copy without a
-  pronoun wherever the sentence allows it ("Last 7 days", "Reset password") —
-  it is shorter and cannot be wrong. Where a sentence about one member needs
-  one, take it from `pronouns(member)` in `lib/display.ts`, which says "they"
-  for anyone who did not say; and put `subject` only before a verb that does
-  not change (will, can, a past tense), because "they" takes a different one.
-  Rule text in `lib/radar.ts` and module text in `lib/seed.ts` are one
-  sentence for everybody, so they carry none — and a module's lines are read
-  by the member too, on their own Journey screen. `npm run test:logic` reads
-  the console's source and fails on a "her" or a "his"; a line that names
-  Deepika is about her and may say "she".
+- **Not every member is "she".** Onboarding asks, and offers Man and Other. A
+  sentence in the console about one member takes its words from
+  `pronouns(member)` in `lib/display.ts` — "they" for anyone who was never
+  asked. Copy about members in general says "a member". Text a member reads
+  about herself — the module library above all — is written with no "she" in
+  it at all. Deepika is still "she": that is who she is, not an assumption.
+  `npm run test:logic` reads the console's source for a pronoun typed straight
+  into a string — an error an API route sends to the console counts too.
 - **A rating of 0 means "not rated".** The one-tap mood saves sleep as 0. Any
   rule or sentence that reads sleep has to skip it (`lowSleepNights` in
   `lib/dayView.ts`), or a mood-only check-in reads as a bad night.
@@ -307,6 +347,7 @@ each colour means semantically. Read those comments before adding a colour.
   sheet that pushed the whole phone frame up for everyone else. Reduced motion
   is for stable screenshots; `reducedMotion: "no-preference"` is what members
   have, and a flow is not checked until it has been run that way.
+  `npm run test:e2e` runs the flow with animations on and every sheet both ways.
 
 ---
 

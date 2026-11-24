@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run build *)",
+      "Bash(npm run test:logic *)",
+      "Bash(npm run test:e2e *)",
+      "Bash(npm run lint *)",
+      "Bash(npm run dev *)",
+      "Bash(npx tsc --noEmit *)",
+      "Bash(node build.mjs *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git fetch *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)"
+    ]
+  }
+}

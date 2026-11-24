@@ -1,13 +1,8 @@
 import { NextResponse } from "next/server";
-import {
-  createSessionToken,
-  sessionCookieName,
-  sessionMaxAge,
-  verifyCredentials,
-} from "@/lib/auth";
+import { verifyCredentials } from "@/lib/auth";
 import { normaliseUsername, verifyAccount } from "@/lib/accounts";
 import { isConfigured, isDeletedAccount } from "@/lib/db";
-import { encodeUserCookie, USER_COOKIE } from "@/lib/session-client";
+import { startSession } from "@/lib/sessionCookies";
 
 export const runtime = "nodejs";
 
@@ -57,21 +52,6 @@ export async function POST(req: Request) {
   }
 
   const res = NextResponse.json({ role: user.role });
-  res.cookies.set(sessionCookieName, await createSessionToken(user), {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: sessionMaxAge,
-  });
-  // Readable companion cookie — identity only, never a credential. See
-  // lib/session-client.ts for why the two are separate.
-  res.cookies.set(USER_COOKIE, encodeUserCookie(user), {
-    httpOnly: false,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: sessionMaxAge,
-  });
+  await startSession(res, user);
   return res;
 }

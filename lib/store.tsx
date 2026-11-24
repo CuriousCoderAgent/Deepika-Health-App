@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useMemo, useRef, useState 
 import * as seed from "./seed";
 import { evaluateRadar, markHandled, radarRules, reopenHandled, withShippedRules, type RadarRule } from "./radar";
 import { clockLabel, dateKey } from "./calendar";
+import { withSessionLog } from "./workoutLog";
 import {
   engagementFor,
   isSampleMember,
@@ -548,7 +549,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         }),
 
       logWorkout: (log) =>
-        patch((s) => ({ ...s, workoutLogs: [{ ...log, id: `wl-${Date.now()}` }, ...s.workoutLogs] })),
+        patch((s) => ({ ...s, workoutLogs: withSessionLog(s.workoutLogs, log, `wl-${Date.now()}`) })),
 
       updateAction: (id, p) =>
         patch((s) => ({ ...s, actions: s.actions.map((a) => (a.id === id ? { ...a, ...p } : a)) })),

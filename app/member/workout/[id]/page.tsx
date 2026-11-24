@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { ChevronLeft, AlertTriangle, Check } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { dateKey } from "@/lib/calendar";
+import { sessionLogOn } from "@/lib/workoutLog";
 import ExerciseFigure from "@/components/ExerciseFigure";
 import ExerciseSheet from "@/components/ExerciseSheet";
 import type { EffortLevel, ExerciseSet } from "@/lib/types";
@@ -15,7 +17,7 @@ export default function WorkoutDetail({
   params: { id: string };
   searchParams?: { day?: string };
 }) {
-  const { workouts, activeMember, logWorkout, actions, completeAction } = useStore();
+  const { workouts, activeMember, logWorkout, workoutLogs, actions, completeAction } = useStore();
   const w = workouts.find((x) => x.id === params.id);
 
   const [openExercise, setOpenExercise] = useState<ExerciseSet | null>(null);
@@ -24,6 +26,7 @@ export default function WorkoutDetail({
   const [rpe, setRpe] = useState(6);
   const [pain, setPain] = useState(false);
   const [felt, setFelt] = useState("");
+  const [begun, setBegun] = useState(false);
 
   if (!w) {
     return (
@@ -42,6 +45,23 @@ export default function WorkoutDetail({
   const yesterdays = searchParams?.day === "-1" ? on(-1) : undefined;
   const day = yesterdays ? -1 : 0;
   const linked = yesterdays ?? on(0);
+
+  /* One record per session and day (lib/workoutLog.ts). If she has already
+     saved this one, saving again corrects it — so the form has to open on what
+     she said, not on blanks. Otherwise looking at a move and tapping through
+     would quietly untick a pain flag she had raised, and take it off Deepika's
+     Radar with it. */
+  const already = sessionLogOn(workoutLogs, activeMember.id, w.id, day);
+  const openForm = () => {
+    if (already && !begun) {
+      setLevel(already.completedLevel);
+      setRpe(already.rpe);
+      setPain(already.painFlag);
+      setFelt(already.feltLike ?? "");
+    }
+    setBegun(true);
+    setStage("finish");
+  };
 
   if (stage === "done") {
     return (
@@ -78,6 +98,11 @@ export default function WorkoutDetail({
         <h1 className="mt-4 font-display text-2xl">
           {day === -1 ? "How did it go yesterday?" : "How did that go?"}
         </h1>
+        {already && (
+          <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">
+            You logged this {day === -1 ? "for yesterday" : "earlier today"}. Saving again updates it.
+          </p>
+        )}
 
         <div className="mt-6">
           <p className="label">What did you get through?</p>
@@ -136,6 +161,7 @@ export default function WorkoutDetail({
 
         <button
           onClick={() => setPain((p) => !p)}
+          aria-pressed={pain}
           className={`tap mt-6 flex w-full items-center gap-3 rounded-xl p-3.5 text-left transition-colors ${
             pain ? "bg-attention-tint ring-1 ring-attention/30" : "bg-paper-card shadow-card"
           }`}
@@ -172,7 +198,7 @@ export default function WorkoutDetail({
               provenance: {
                 source: "member_manual",
                 enteredBy: activeMember.name.split(" ")[0],
-                at: new Date().toISOString().slice(0, 10),
+                at: dateKey(),
               },
             });
             if (linked) completeAction(linked.id, level);
@@ -276,7 +302,7 @@ export default function WorkoutDetail({
       </div>
 
       <button
-        onClick={() => setStage("finish")}
+        onClick={openForm}
         className="tap mt-6 w-full rounded-xl bg-ink text-sm font-medium text-white"
       >
         {day === -1 ? "I did this yesterday" : "I have finished"}

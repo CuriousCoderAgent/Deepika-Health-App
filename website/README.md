@@ -37,6 +37,7 @@ project (they override `site.config.json`, so nothing needs committing):
 | Variable | Set it when | What it does |
 | --- | --- | --- |
 | `WEBSITE_PLAY_URL` | the app is live on Google Play | Swaps "coming soon" for a real Google Play button. Must start with `https://play.google.com/`. |
+| `WEBSITE_GOOGLE_SIGN_IN` | "Continue with Google" is switched on in the app (`GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set there) | Any value (e.g. `1`) adds one line to "How do I join?" and one to the privacy list. **Leave it off until it is true** — the page describes only what the app really does. |
 | `WEBSITE_SUPPORT_EMAIL` | there is an inbox someone actually reads | Shows a contact address in the footer. Left empty, none is shown — better than one nobody reads. |
 | `WEBSITE_PUBLIC_URL` | the site has its final domain | Turns on the canonical link, the link-preview image and the sitemap. |
 | `WEBSITE_INDEXABLE` | the name is final | Any value (e.g. `1`) removes `noindex` and opens `robots.txt`. **Leave it off until the name is decided** — a page indexed under a working name lingers in search results long after the name changes. |

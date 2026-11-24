@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Check, Copy, KeyRound, MessageCircle } from "lucide-react";
 import { BRAND } from "@/lib/brand";
+import type { Pronouns } from "@/lib/display";
 
 /**
  * Deepika setting a member a temporary password.
@@ -11,7 +12,16 @@ import { BRAND } from "@/lib/brand";
  * already knows her. The password is shown once, here, and Deepika passes it on;
  * the member then changes it from her own account page.
  */
-export default function ResetPassword({ username, firstName }: { username: string; firstName: string }) {
+export default function ResetPassword({
+  username,
+  firstName,
+  they,
+}: {
+  username: string;
+  firstName: string;
+  /** she / he / they for this member — lib/display.ts */
+  they: Pronouns;
+}) {
   const [stage, setStage] = useState<"idle" | "confirm" | "busy" | "done">("idle");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +70,7 @@ export default function ResetPassword({ username, firstName }: { username: strin
         <p className="label">Temporary password — shown once</p>
         <p className="mt-1.5 font-mono text-[20px] tracking-wide">{password}</p>
         <p className="mt-1.5 text-[12px] leading-relaxed text-ink-faint">
-          The old password no longer works. This one stops mattering the moment it is changed.
+          {they.Possessive} old password no longer works. This one stops mattering the moment {they.subject} change{they.s} it.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <button
@@ -88,7 +98,7 @@ export default function ResetPassword({ username, firstName }: { username: strin
       {stage === "confirm" ? (
         <div className="card p-4">
           <p className="text-[14px] leading-relaxed">
-            Set a new temporary password for <span className="font-mono">{username}</span>? The
+            Set a new temporary password for <span className="font-mono">{username}</span>? {they.Possessive}{" "}
             current one will stop working straight away.
           </p>
           <div className="mt-3 flex gap-2">
@@ -112,7 +122,7 @@ export default function ResetPassword({ username, firstName }: { username: strin
           disabled={stage === "busy"}
           className="tap inline-flex items-center gap-1.5 rounded-xl bg-paper-sunk px-3 text-[13px] text-ink-soft hover:bg-ink-line hover:text-ink disabled:opacity-40"
         >
-          <KeyRound size={14} /> {stage === "busy" ? "Resetting…" : "Reset password"}
+          <KeyRound size={14} /> {stage === "busy" ? "Resetting…" : `Reset ${they.possessive} password`}
         </button>
       )}
       {error && (

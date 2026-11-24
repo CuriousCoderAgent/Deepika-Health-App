@@ -3,8 +3,8 @@
  *
  * Her record is one JSON document, and it also carries things that are
  * Deepika's, not hers: her private coach notes, her private notes on each
- * session, and unpublished plan drafts. The interface hides them — "only you
- * see this" — but hiding a field in the UI while sending it over the wire is
+ * session, and unpublished plan drafts. The interface hides them — "she never
+ * sees this" — but hiding a field in the UI while sending it over the wire is
  * not privacy: it is in the network response of anyone who opens developer
  * tools. So the server enforces it.
  *

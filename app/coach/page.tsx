@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import { ChevronRight, Check, SlidersHorizontal, X } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { pronouns } from "@/lib/display";
 import { bucketMeta } from "@/lib/radar";
 import MemberName from "@/components/MemberName";
 import { draftForRules } from "@/lib/replyDrafts";
@@ -140,7 +141,7 @@ export default function RadarPage() {
           <p className="label">{longDate(dateKey())}</p>
           <h1 className="mt-2 font-display text-4xl leading-tight">Radar</h1>
           <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-ink-soft">
-            {members.length} {members.length === 1 ? "person" : "people"},{" "}
+            {members.length} {members.length === 1 ? "member" : "members"},{" "}
             {openCount} {openCount === 1 ? "thing" : "things"} worth your attention. Not an
             alphabetical list of everyone.
           </p>
@@ -351,7 +352,7 @@ export default function RadarPage() {
                               </div>
                             )}
                             {spark?.kind === "days" && (
-                              <div className="mt-2" title="Last 14 days, today on the right">
+                              <div className="mt-2" title={`${pronouns(m).Possessive} last 14 days, today on the right`}>
                                 <ConsistencyBand days={lastDays(m.id, 14, data)} compact />
                               </div>
                             )}
@@ -374,8 +375,8 @@ export default function RadarPage() {
 
                     {/* Wraps instead of squeezing: in a narrow column the two
                         ways in drop under "Handled" rather than losing letters —
-                        and, where the column is narrower than the pair, "Open"
-                        drops under "Write a message" rather than out of the card. */}
+                        and where the column is narrower than the pair, "Open"
+                        drops under "Write to…" rather than out of the card. */}
                     <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
                       <button
                         onClick={() => handle(items)}
@@ -386,7 +387,7 @@ export default function RadarPage() {
                       </button>
                       <div className="ml-auto flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
                         {(() => {
-                          // Most of what the Radar asks is "write a message": open
+                          // Most of what the Radar asks is "write to her": open
                           // her page with a draft in the box, to edit and send.
                           const draft = draftForRules(items.map((i) => i.ruleId));
                           return draft ? (
@@ -394,7 +395,7 @@ export default function RadarPage() {
                               href={`/coach/members/${m.id}?draft=${draft.id}`}
                               className="tap inline-flex items-center whitespace-nowrap rounded-lg bg-effort-tint px-2.5 text-[12px] font-medium text-effort-stretch hover:bg-effort-min/40"
                             >
-                              Write a message
+                              Write to {pronouns(m).object}
                             </Link>
                           ) : null;
                         })()}

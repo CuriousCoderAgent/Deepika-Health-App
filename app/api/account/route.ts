@@ -1,5 +1,7 @@
 /**
- * Deleting your own account.
+ * Your own account: how you sign in to it, and deleting it.
+ *
+ * Deleting it —
  *
  * Required by Google Play for any app that lets people create accounts, and
  * required of us anyway: this holds health data about identifiable people, and
@@ -12,11 +14,42 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { readSessionToken, sessionCookieName } from "@/lib/auth";
+import { signInSummary } from "@/lib/accounts";
 import { deleteMemberAccount, isConfigured } from "@/lib/db";
+import { googleConfig } from "@/lib/google";
 import { USER_COOKIE } from "@/lib/session-client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+/**
+ * How she signs in, for her account screen: whether she has a password, and
+ * which Google account is connected, if one is. Her own, from the session —
+ * there is no id to ask about anyone else's with.
+ *
+ * `stored` is false for an account this cannot say anything about: Deepika
+ * looking at a member's app, a login that lives in the deployment's settings,
+ * or a deployment with no database.
+ */
+export async function GET() {
+  const user = await readSessionToken(cookies().get(sessionCookieName)?.value);
+  if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+
+  const none = { stored: false, hasPassword: true, google: { available: false, email: null } };
+  if (user.role !== "member" || !isConfigured()) return NextResponse.json(none);
+  try {
+    const summary = await signInSummary(user.sub);
+    if (!summary) return NextResponse.json(none);
+    return NextResponse.json({
+      stored: true,
+      hasPassword: summary.hasPassword,
+      google: { available: Boolean(googleConfig()), email: summary.googleEmail },
+    });
+  } catch (err) {
+    console.error("[account] could not read how she signs in", err);
+    return NextResponse.json(none);
+  }
+}
 
 export async function DELETE() {
   const user = await readSessionToken(cookies().get(sessionCookieName)?.value);

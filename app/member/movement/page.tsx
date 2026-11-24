@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ChevronRight, Dumbbell, ShieldCheck, User } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { dateKey, weekdayOf } from "@/lib/calendar";
 import { EffortRamp } from "@/components/ui";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -114,7 +115,7 @@ export default function Movement() {
                     isToday ? "font-medium text-ink" : "text-ink-faint"
                   }`}
                 >
-                  {DAYS[(new Date().getDay() + 6 + offset) % 7]}
+                  {DAYS[(weekdayOf(dateKey()) + 6 + offset) % 7]}
                 </p>
               </div>
             );

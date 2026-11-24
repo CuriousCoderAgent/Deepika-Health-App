@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Search, ChevronRight } from "lucide-react";
 import { useStore } from "@/lib/store";
 import MemberName from "@/components/MemberName";
-import { ENGAGEMENT, matchesMember } from "@/lib/display";
+import { ENGAGEMENT, matchesMember, pronouns } from "@/lib/display";
 import { isSampleMember } from "@/lib/dailyPlan";
 import { daysBetween } from "@/lib/calendar";
 import { lastDays, lastSeen, lastSeenLabel } from "@/lib/dayView";
@@ -198,7 +198,7 @@ export default function MembersPage() {
                 </div>
 
                 {/* Her fortnight at a glance: one square a day, today on the right. */}
-                <div className="hidden w-40 shrink-0 md:block" title="Last 14 days, today on the right">
+                <div className="hidden w-40 shrink-0 md:block" title={`${pronouns(m).Possessive} last 14 days, today on the right`}>
                   <ConsistencyBand days={lastDays(m.id, 14, data)} compact />
                   <p className="mt-1 text-right font-mono text-[9px] uppercase tracking-wider text-ink-faint">14 days</p>
                 </div>

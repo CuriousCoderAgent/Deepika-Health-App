@@ -11,7 +11,7 @@ const RULES = [
   ["Human when human", "A message from you is visibly from you. A system nudge never pretends to be."],
   ["Frequency cap", "One non-critical system nudge a day, plus genuine coach messages. Quiet hours are the member's to set."],
   ["Escalation by silence", "If a prompt is ignored repeatedly, send fewer — not more."],
-  ["Explain adaptation", "If the plan changed because of a member's sleep or week, say so plainly."],
+  ["Explain adaptation", "If the plan changed because of someone's sleep or week, say so plainly."],
 ];
 
 export default function NotificationsPage() {
@@ -82,7 +82,7 @@ export default function NotificationsPage() {
         </div>
         <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-ink-soft">
           This one works. It reliably produces app opens. It also produces the exact
-          all-or-nothing collapse that made {members.length ? "your members" : "people"} quit
+          all-or-nothing collapse that made {members.length ? "these members" : "people"} quit
           everything they tried before — so it does not ship.
         </p>
       </div>

@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { Check, Smile, Meh, Moon, Frown } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { MOODS as MOOD_VALUES, moodOf } from "@/lib/dayView";
 import { pronouns } from "@/lib/display";
+import { MOODS as MOOD_VALUES, moodOf } from "@/lib/dayView";
 import { ProvenanceChip } from "./ui";
 import BottomSheet from "./BottomSheet";
 
@@ -50,9 +50,6 @@ export default function PulseCard({
 }) {
   const { members, pulses, submitPulse } = useStore();
   const existing = pulses.find((p) => p.memberId === memberId && p.dayOffset === 0);
-  // Deepika's on-behalf button is the one line here that is about the member
-  // rather than addressed to them.
-  const { possessive: their } = pronouns(members.find((m) => m.id === memberId));
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [v, setV] = useState({
@@ -179,7 +176,7 @@ export default function PulseCard({
         }}
         className="tap mt-5 w-full rounded-xl bg-effort-stretch text-sm font-medium text-white transition-opacity disabled:opacity-30"
       >
-        {asCoach ? `Save on ${their} behalf` : "Done"}
+        {asCoach ? `Save on ${pronouns(members.find((x) => x.id === memberId)).possessive} behalf` : "Done"}
       </button>
 
       {asCoach && (

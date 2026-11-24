@@ -23,11 +23,13 @@ import { promisify } from "util";
 import {
   isDeletedAccount,
   readAccount,
+  readAccountByGoogle,
   updateAccountHash,
   writeAccount,
   writeMemberDoc,
 } from "./db";
 import { newMember } from "./emptyState";
+import { usernameCandidates, usernameFrom, type GooglePerson } from "./google";
 import { RESERVED_USERNAMES } from "./persist";
 import type { SessionUser } from "./auth";
 
@@ -42,7 +44,12 @@ const KEYLEN = 64;
 export interface StoredAccount {
   userId: string;
   name: string;
-  hash: string;
+  /** Null for an account made by signing in with Google: there is no password. */
+  hash: string | null;
+  /** Google's id for her Google account, when one is connected. */
+  googleSub?: string | null;
+  /** The address of that Google account — shown to her, and to nobody else. */
+  email?: string | null;
 }
 
 async function hashPassword(password: string): Promise<string> {
@@ -51,7 +58,10 @@ async function hashPassword(password: string): Promise<string> {
   return `scrypt$${salt.toString("base64")}$${key.toString("base64")}`;
 }
 
-async function passwordMatches(password: string, stored: string): Promise<boolean> {
+async function passwordMatches(password: string, stored: string | null): Promise<boolean> {
+  // No password on record — an account that signs in with Google — matches
+  // nothing, including the empty string.
+  if (!stored) return false;
   const [scheme, saltB64, keyB64] = stored.split("$");
   if (scheme !== "scrypt" || !saltB64 || !keyB64) return false;
   const expected = Buffer.from(keyB64, "base64");
@@ -125,7 +135,12 @@ export async function createAccount(
   // A second signup that raced this one loses here rather than overwriting.
   if (!created) return null;
 
-  await writeMemberDoc(username, {
+  await writeEmptyRecord(username, name);
+  return { sub: username, role: "member", name };
+}
+
+function writeEmptyRecord(username: string, name: string): Promise<void> {
+  return writeMemberDoc(username, {
     member: newMember(username, name),
     actions: [],
     pulses: [],
@@ -135,8 +150,44 @@ export async function createAccount(
     reports: [],
     foodEntries: [],
   });
+}
 
-  return { sub: username, role: "member", name };
+/**
+ * An account for someone who arrived by "Continue with Google" and has none.
+ *
+ * She typed nothing, so the username is made from her name (lib/google.ts) and
+ * numbered if it is taken. There is no password: Google is how she gets in,
+ * and if she ever cannot, Deepika can set her a temporary one the usual way.
+ *
+ * Returns null only if no username could be found, or if the same Google
+ * account was given an account by another request in the same instant.
+ */
+export async function createGoogleAccount(person: GooglePerson): Promise<SessionUser | null> {
+  const name = person.name.trim() || person.email.split("@")[0];
+  for (const username of usernameCandidates(usernameFrom(name, person.email))) {
+    if (usernameProblem(username) || isTaken(username)) continue;
+    if (await readAccount(username)) continue;
+    if (await isDeletedAccount(username)) continue;
+
+    const created = await writeAccount({ userId: username, name, hash: null, googleSub: person.sub, email: person.email });
+    if (created) {
+      await writeEmptyRecord(username, name);
+      return { sub: username, role: "member", name };
+    }
+    // Not written: either someone took that username this instant, or this
+    // Google account now has an account. Only the first is worth another try.
+    if (await readAccountByGoogle(person.sub)) return null;
+  }
+  return null;
+}
+
+/** What her account screen needs to know about how she signs in. */
+export async function signInSummary(
+  userId: string
+): Promise<{ hasPassword: boolean; googleEmail: string | null } | null> {
+  const account = await readAccount(userId);
+  if (!account) return null;
+  return { hasPassword: Boolean(account.hash), googleEmail: account.googleSub ? account.email ?? "" : null };
 }
 
 export async function verifyAccount(
@@ -189,7 +240,7 @@ export async function issueTemporaryPassword(rawUsername: string): Promise<Reset
   return { ok: true, name: account.name, password };
 }
 
-export type ChangeOutcome = { ok: true } | { ok: false; reason: "wrong" | "weak" | "env"; message: string };
+export type ChangeOutcome = { ok: true } | { ok: false; reason: "wrong" | "weak" | "env" | "google"; message: string };
 
 /** A member changing her own password. Needs the current one, so a phone left
  *  signed in on a table cannot be used to lock her out. */
@@ -204,6 +255,13 @@ export async function changePassword(
       ok: false,
       reason: "env",
       message: "Your password is set by whoever runs this deployment, so it can't be changed here.",
+    };
+  }
+  if (!account.hash) {
+    return {
+      ok: false,
+      reason: "google",
+      message: "You sign in with Google, so there is no password to change.",
     };
   }
   if (!(await passwordMatches(current, account.hash))) {

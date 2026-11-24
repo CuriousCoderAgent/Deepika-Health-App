@@ -29,6 +29,9 @@ to an existing build.
 | `MEMBERS` | The cohort. See below. |
 | `DATABASE_URL` | Postgres connection string. Optional, but required for self-signup — see Storage. `POSTGRES_URL` is read as an alternative. |
 | `SIGNUP_CODE` | Optional. When set, creating an account asks for this code. Shown to Deepika, and written into the invite message, on the Members page. |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Optional, and only together. With both set the sign-in page offers **Continue with Google**; with either missing, no screen mentions Google at all. Production only. See *Signing in with Google*. |
+| `COACH_GOOGLE_EMAIL` | Optional. Deepika's own Google address. With it set, that Google account opens the console. |
+| `APP_ORIGIN` | Optional, and not needed on Vercel. The app's public address (`https://…`), for a server behind a proxy that cannot see its own. Only Google sign-in uses it. |
 | `SUPPORT_EMAIL` | Optional. An inbox someone actually reads. With it unset, the public privacy and deletion pages tell people to contact Deepika directly; with it set they show this address. There is deliberately no placeholder address. |
 | `CRON_SECRET` | Recommended once reminders are in use. Any long random string (`openssl rand -base64 32`). Vercel sends it to the scheduled reminder job and the job refuses calls without it. Unset, the job still runs, and the most a stranger calling it could do is send opted-in members the reminder they were due anyway, a little early — see *Reminders*. |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | Optional. The key pair that signs reminders. Unset, one is generated on first use and kept in the database (`app_meta`), which is the normal case. Set them only to carry the same pair across databases. |
@@ -88,13 +91,109 @@ for a new account to go.
 
 **Forgotten passwords.** There is no email service, so recovery goes through
 the person who knows the member: Deepika opens the member's page and chooses
-*Reset password*, which sets a temporary one (shown once, stored only as a
+*Reset her password*, which sets a temporary one (shown once, stored only as a
 hash) for her to pass on. The member then changes it from *Your account*, which
 asks for the current password so an unlocked phone is not enough to take the
 account over. This works for accounts held in the database; one whose login is
 in `MEMBERS` belongs to whoever runs the deployment and is changed there.
 The sign-up form still asks for the password twice, because the cheapest
 recovery is a typo that never happened.
+
+## Signing in with Google
+
+Off until `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are both set. With
+them, the sign-in page gains **Continue with Google**, in both of its modes:
+
+- **Sign in** — for an account that was made with Google, or has Google
+  connected. A Google account nobody has connected is told so and told what to
+  do. It never makes an account: someone who already had one would land in a
+  second, empty one and conclude everything she had logged was gone.
+- **Create your account** — makes the account from her Google name: no
+  username to choose, no password to remember. Where `SIGNUP_CODE` is set the
+  join code is still asked for, and checked before she is sent to Google.
+
+A member who signed up with a password can connect Google from *Your account*
+— it asks for her password first, as changing it does, so an unlocked phone is
+not enough for someone to connect their own — and can disconnect it again. A
+member who has only Google cannot disconnect it. If she ever loses that Google
+account, *Reset her password* on her page in the console gives her a temporary
+password, and with it a second way in.
+
+One Google account opens one account here. It is matched on Google's own id
+for the account, never on the email address — so a Google account cannot be
+used to get into an existing password account merely by having the same
+address.
+
+**What is kept.** Google's id for her Google account, her email address, and —
+only when the account is made this way — her name. Nothing else is asked for
+(`openid email profile`), and nothing she logs is sent to Google. The address
+is shown to her on *Your account* and is in her data download. Deepika's
+console does not show it. The privacy page says all this, but only where
+Google sign-in is switched on.
+
+**How it works** is written out at the top of `lib/google.ts`. In short: no
+script from Google runs on any page. Her browser is sent to Google and back,
+and the server then makes one call to Google to confirm who she is. That call
+uses Node's own `https`, not `fetch` — see *The Next.js version* below.
+
+**Deepika.** Set `COACH_GOOGLE_EMAIL` to her own Google address and that
+Google account opens the console. Use an address only she controls: a Gmail
+address, or one in a Google Workspace she owns. Unset, she signs in with her
+password, as now. This one is matched on the address, because there is no
+row in the database to hold Google's id for her.
+
+### Switching it on
+
+Use a Google account that belongs to the practice rather than to one
+person's phone — whoever owns it owns this setting.
+
+These steps were written from how Google's console stood in 2026, and could
+not be checked against Google's help pages from where this was built. Google
+renames these screens every year or two. Where the screen and this list
+differ, trust the screen; the search box at the top of the console finds
+anything by name.
+
+1. Go to <https://console.cloud.google.com> and create a project. Its name is
+   only for you.
+2. Search for **OAuth consent screen** (the section is currently called
+   *Google Auth Platform*). Fill in the app's name as members should see it on
+   Google's page, an email address for support, and choose **External** as the
+   audience.
+   - The product's name is still undecided. Whatever goes here can be changed
+     later without anyone having to sign in differently.
+   - Leave the permissions ("scopes") at the basic three: `openid`, `email`
+     and `profile`. Add nothing — the app asks for nothing more, and anything
+     more brings Google's review with it.
+   - **Publish** it, so its status reads "In production". Left on "Testing",
+     only the addresses you add by hand can sign in.
+3. Create a client: *Clients* → *Create client* (older screens: *Credentials*
+   → *Create credentials* → *OAuth client ID*). Type: **Web application**.
+   Under **Authorised redirect URIs** add exactly
+
+       https://deepika-health-app.vercel.app/api/auth/google/callback
+
+   and the same path on any other address the app is opened at, such as a
+   custom domain later. Nothing is needed under "JavaScript origins".
+4. Google shows a **client ID** and a **client secret**. In Vercel → the app's
+   project → Settings → Environment Variables, add them as `GOOGLE_CLIENT_ID`
+   and `GOOGLE_CLIENT_SECRET`, for **Production only**, and mark the secret
+   Sensitive. Preview builds live at other addresses, which Google will not
+   send anyone back to; with the keys absent there, previews simply do not
+   offer it.
+5. Redeploy. The sign-in page now has **Continue with Google**. Try it with
+   your own Google account in "Create your account" first.
+6. Once it is on: set `WEBSITE_GOOGLE_SIGN_IN=1` on the website's project so
+   the public page says so, and — if the Android app is on Google Play by then
+   — add "email address" to its Data safety form.
+
+If Google's page says the redirect address does not match, the address in
+step 3 is not exactly the one the app is open at: look for `http` instead of
+`https`, a missing path, or a different domain.
+
+**Not tried on a real phone:** the trip to Google and back from inside the
+Android app, and from an iPhone's Home Screen app. Both open Google in the
+phone's own browser, which is what Google requires — but neither has been
+done by hand. Do each once before telling members about it.
 
 ## Storage
 
@@ -127,6 +226,13 @@ host): serverless functions open many short-lived connections and a free-tier
 database will run out of direct ones. Vercel's own integrations already give
 you the pooled one.
 
+**After a deploy, open `/api/health`.** It answers
+`{"ok":true,"storage":"database"}` once the app has reached its database — and
+because the tables are made, and any change to them applied, the first time
+something needs the database, opening it is also what applies them, rather
+than leaving that to the first member who opens the app. It says nothing about
+anyone.
+
 The schema creates itself on first request. The six fictional sample members
 are **not** seeded unless `SEED_DEMO_COHORT=1`, so a new deployment starts with
 an empty console. A deployment that was already seeded shows them on Deepika's
@@ -151,7 +257,7 @@ above and `docs/ANDROID.md`.)
 **What a member can read of her own record.** Her document also holds things
 that are Deepika's: her private coach notes, her private notes on each session,
 and unpublished plan drafts. The server strips these from what a member is sent
-and ignores them when she saves (`lib/privacy.ts`), so "only you see this" is
+and ignores them when she saves (`lib/privacy.ts`), so "she never sees this" is
 true of the network response and not just of the screen.
 
 ## Conflict handling
@@ -222,8 +328,77 @@ Screen (iOS 16.4 or later); the account page says so, and Today offers the
 Home Screen instead of reminders there. The Android app (`docs/ANDROID.md`)
 delegates notifications to Chrome, so it works there as on the web.
 
+## The Next.js version
+
+The app is on Next 14.2.35, the last release of the 14 line — and that line no
+longer gets security fixes. On 24 November 2026 `npm audit` listed 26
+advisories against it, three of them rated critical, whose fix exists only in
+Next 15.5 or 16; plus four against the copy of PostCSS that Next carries for
+its own build step.
+
+Each was read against what this app actually uses. Most have no way in, and
+the two widest ways in are shut on purpose rather than by luck:
+
+- **The image-resizing address, `/_next/image`.** Five of the advisories,
+  two of the critical ones among them, are in it. No screen uses `next/image`,
+  but `next start` serves the address regardless. `next.config.mjs` switches
+  it off and hands the address to `/api`, which answers 404.
+- **POSTs to a page** — form actions, which Next calls Server Actions. Eight
+  of the advisories are about them. The app has none: every save, sign-in and
+  sign-out goes to `/api`. But Next starts reading such a request before it
+  finds that out, so `middleware.ts` refuses any POST to a page with 405, and
+  `app/api/[...missing]` stops a mistyped `/api` address falling through to a
+  page.
+
+`npm run test:e2e` checks that both stay shut, and that sign-in, sign-out and
+ordinary pages are not caught with them (`tests/e2e/refused.mjs`).
+
+Of the other thirteen:
+
+- the third critical one needs a Windows server;
+- eight need something this app does not have — a rewrite or redirect to
+  another host (the one rewrite here points inside the app), the Pages Router,
+  CSP nonces, `beforeInteractive` scripts, or server code that calls `fetch`;
+- one, forged WebSocket upgrade requests, affects an app served by Next's own
+  server and, in the advisory's words, not one hosted on Vercel. **So it
+  matters the day this runs anywhere with `npm start`** — Railway included.
+  Put a proxy in front that refuses WebSocket upgrades; the app uses none;
+- three, one rated moderate and two low, are about a shared cache in front of
+  the app mixing up two kinds of response. In production that cache is
+  Vercel's. These are open.
+
+The PostCSS ones need CSS written by a stranger; the build here only
+processes its own.
+
+**None of this is a reason to stay on 14.** New advisories against it will
+keep arriving and will not be fixed, and each one has to be read against the
+app by hand, as these were. The fix is the move to Next 16. That brings React
+19 with it and changes how every page and route reads its address and its
+cookies, so it is a piece of work of its own — with `npm run test:e2e` as the
+safety net it would not have had before.
+
+**Until then, do not add any of these without doing that upgrade first:**
+
+- a Server Action, or a `<form>` that posts to a page — it would be refused
+  with 405;
+- `next/image` — pictures would load unresized, and switching resizing back
+  on reopens the first door;
+- a `rewrites()` or `redirects()` rule in `next.config.mjs` that points at
+  another host (a route that answers with a redirect, as Google sign-in does,
+  is not that), or server code that calls `fetch`.
+  Server code that has to call another service uses Node's own `https`, as
+  `lib/google.ts` does for the one call Google sign-in makes.
+
 ## Tests
 
 `npm run test:logic` runs the date, rollover, daily-plan, Radar, privacy,
 typed-food, reply-draft and reminder tests with no browser or database. Run it, and `npm run build`, before
 committing.
+
+`npm run test:e2e` runs the app itself: it builds it, starts it as in
+production against a Postgres it creates for the run, and walks through it in a
+browser as a member and as Deepika — sign-up, a day's actions, the next day, a
+session with a pain flag, the Radar, signing in with Google. About two minutes. It never reads
+`DATABASE_URL` and will not touch a database that is not a local scratch one;
+`tests/e2e/README.md` says what it needs and how to point it at a database of
+your own.

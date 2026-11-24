@@ -31,6 +31,7 @@ export const members: Member[] = [
   {
     id: "radhika",
     name: "Radhika Menon",
+    gender: "woman",
     age: 44,
     city: "Bengaluru",
     initials: "RM",
@@ -101,6 +102,7 @@ export const members: Member[] = [
   {
     id: "megha",
     name: "Megha Sharma",
+    gender: "woman",
     age: 41,
     city: "Gurugram",
     initials: "MS",
@@ -123,6 +125,7 @@ export const members: Member[] = [
   {
     id: "anita",
     name: "Anita Deshpande",
+    gender: "woman",
     age: 47,
     city: "Pune",
     initials: "AD",
@@ -145,6 +148,7 @@ export const members: Member[] = [
   {
     id: "shreya",
     name: "Shreya Iyer",
+    gender: "woman",
     age: 39,
     city: "Mumbai",
     initials: "SI",
@@ -165,6 +169,7 @@ export const members: Member[] = [
   {
     id: "nidhi",
     name: "Nidhi Kapoor",
+    gender: "woman",
     age: 49,
     city: "Delhi",
     initials: "NK",
@@ -188,6 +193,7 @@ export const members: Member[] = [
   {
     id: "priya",
     name: "Priya Raghavan",
+    gender: "woman",
     age: 43,
     city: "Chennai",
     initials: "PR",
@@ -328,7 +334,7 @@ export const modules: CoachModule[] = [
     tracking: "Completion level; steps if a device is connected.",
     coachPlaybook: {
       ask: ["What time of day actually worked?"],
-      barriers: ["Weather", "Not safe to walk in the area after dark"],
+      barriers: ["Weather", "Not safe to walk after dark nearby"],
       escalation: "None.",
     },
     notificationTemplates: ["A 10-minute walk after dinner counts as the whole thing."],
@@ -341,7 +347,7 @@ export const modules: CoachModule[] = [
     version: "1.3",
     status: "active",
     purpose:
-      "Raise protein at two meals that are already part of the day, without introducing tracking or restriction.",
+      "Raise protein at two of the day's existing meals, without introducing tracking or restriction.",
     betterLooksLike:
       "Looking at a plate and knowing whether there is protein on it. No weighing, no logging.",
     eligibility:
@@ -441,7 +447,7 @@ export const modules: CoachModule[] = [
     tracking: "Self-report.",
     coachPlaybook: {
       ask: ["What is realistically the last thing you do at night?"],
-      barriers: ["The only quiet time is late at night"],
+      barriers: ["The only quiet time in the day is late at night"],
       escalation: "Refer if insomnia persists beyond four weeks.",
     },
     notificationTemplates: ["Five minutes with the lights down still counts."],
@@ -456,7 +462,7 @@ export const modules: CoachModule[] = [
     purpose:
       "Replace Instagram-level understanding with an accurate picture of what is happening and why.",
     betterLooksLike:
-      "Describing the transition in plain words, and no longer thinking something is wrong.",
+      "Being able to explain the transition in everyday words — and no longer thinking something is wrong.",
     eligibility: "Any member in or approaching the transition.",
     keyIdeas: [
       "Perimenopause can run for several years before periods stop.",
@@ -487,7 +493,7 @@ export const modules: CoachModule[] = [
     version: "1.0",
     status: "active",
     purpose: "Explain why strength and loading matter more now than they did at thirty.",
-    betterLooksLike: "Knowing why the lifting matters, and so keeping it up.",
+    betterLooksLike: "Understanding why the lifting matters, so the lifting continues.",
     eligibility: "Peri and postmenopausal members.",
     keyIdeas: [
       "Bone responds to load. Walking alone is not enough loading.",

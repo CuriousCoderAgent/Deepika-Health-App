@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ChevronLeft, FileText, Plus, Upload, X } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { dateKey } from "@/lib/calendar";
 import { ProvenanceChip, ScopeNotice, Sparkline } from "@/components/ui";
 import type { ReportValue } from "@/lib/types";
 
@@ -185,7 +186,7 @@ export default function Reports() {
                 provenance: {
                   source: "imported_document",
                   enteredBy: m.name.split(" ")[0],
-                  at: new Date().toISOString().slice(0, 10),
+                  at: dateKey(),
                 },
               });
               setOpen(false);

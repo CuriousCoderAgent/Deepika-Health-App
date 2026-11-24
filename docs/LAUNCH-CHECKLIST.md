@@ -54,7 +54,7 @@ code, one tap to WhatsApp), **temporary-password reset** by Deepika, members
 - **Names in Deepika's console**, with a per-device **privacy screen** (initials
   only) for when someone can see her screen.
 - **Drafts for Deepika's messages** — hello, gentle check-in, welcome back and
-  others — suggested by each member's Radar flags, and a **Write a message** button
+  others — suggested by each member's Radar flags, and a **Write to her** button
   on Radar cards that opens the draft ready to edit. Nothing is sent for her.
 - **Check-in reminders**, opt-in, at most one a day, fewer when someone goes
   quiet (`docs/DEPLOYMENT.md` → *Reminders*).
@@ -85,7 +85,7 @@ code, one tap to WhatsApp), **temporary-password reset** by Deepika, members
 - **The day in four numbers** on the Radar — here today, waiting for a reply,
   sessions by tomorrow, gone quiet — and a Members list that says when each
   woman was last here.
-- **Last 7 days** on a member's page: what she did each day, how she rated
+- **Her last 7 days** on a member's page: what she did each day, how she rated
   it, what she wrote, and any pain flag.
 
 **Fixed — found by running the app as a member and as Deepika, end to end**
@@ -107,6 +107,54 @@ code, one tap to WhatsApp), **temporary-password reset** by Deepika, members
   shown to anyone who checked in by mood two days running without rating sleep,
   and nothing made her day lighter. It now appears only when she really rated
   sleep low, and says only that.
+
+## Added 24 November 2026, later the same day
+
+**Security**
+
+- **Next.js 14.2.35**, the last release of the 14 line. That line no longer
+  gets security fixes: 26 advisories against it are fixed only in Next 15.5 or
+  16. All 26 were read against this app. Thirteen come through two things Next
+  leaves switched on whether an app uses them or not — its image-resizing
+  address and POSTs to a page — and both are now shut, with end-to-end checks
+  that they stay shut. Most of the rest need something the app does not have.
+  What is left, and what must not be added until the app moves to Next 16, is
+  in `docs/DEPLOYMENT.md` under *The Next.js version*. **The move to Next 16 is
+  the real fix and is still to do.**
+
+**Fixed**
+
+- **One session, one record.** Opening today's session again and saving it
+  added a second record — and a second pain flag for Deepika. Saving again now
+  updates the first, and the form opens on what she already said, so a pain
+  flag cannot be unticked by tapping through. If she adds to what she wrote
+  about pain after Deepika marked it handled, it comes back.
+- **"First action after 5 inactive days"** was four inactive days. It now says
+  "First action in 5 days", counted the same way as "Nothing recorded for 5
+  days".
+- **Dates on what she saves** were London's, which is yesterday's until 5:30 in
+  the morning in India. They are India's.
+
+**For Deepika**
+
+- **The console no longer calls every member "her".** It uses what each member
+  said when they joined — she, he, or they — and "they" for anyone who joined
+  before the question was asked. Nothing changes for a member who said she is
+  a woman.
+- **Fourteen lines of the module library were reworded** so that anyone
+  assigned a module can read them about themselves: "She can carry shopping in
+  one hand…" is now "Carrying shopping in one hand…". Members see these lines
+  too, under *What better looks like*. The meaning is unchanged, but they are
+  Deepika's library — worth her reading them once.
+
+**Built, and switched off**
+
+- **Continue with Google.** Members can create an account, and sign in, with
+  their Google account instead of a username and password; a member who
+  already has a password can connect Google from *Your account*. Nothing on
+  any screen mentions it until two keys from Google are set in Vercel — see
+  item 12 below. It asks Google only who she is, keeps her address and
+  Google's id for her account, and tells Google nothing she logs.
 
 ## Only the owner can do these
 
@@ -153,6 +201,17 @@ In rough order. Items 1–4 are small and should be done before anyone is invite
 11. **Try a reminder on your own phone.** Sign in as a member, check in, accept
     the reminder offer, and wait for the 7:30 run. Delivery to a real phone could
     not be tested from the build environment (see *Not tested here*).
+12. **Switch on Continue with Google**, if you want it. It needs a client ID
+    and secret from a Google account you own, which nobody else can create for
+    you. The steps, about ten minutes, are in `docs/DEPLOYMENT.md` under
+    *Signing in with Google → Switching it on*. Set the two keys for
+    **Production only**. Then try it yourself — once in a browser, once from
+    the Android app and once from an iPhone's Home Screen — before telling
+    members: the phone round trips have not been tried by hand.
+13. **Plan the move to Next 16.** The app is on the last release of Next 14,
+    which no longer gets security fixes. What that means today, and what has
+    been shut because of it, is in `docs/DEPLOYMENT.md` under *The Next.js
+    version*. It is a piece of work of its own.
 
 ---
 
