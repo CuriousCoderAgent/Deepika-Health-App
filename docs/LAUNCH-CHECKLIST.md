@@ -120,7 +120,7 @@ code, one tap to WhatsApp), **temporary-password reset** by Deepika, members
   that they stay shut. Most of the rest need something the app does not have.
   What is left, and what must not be added until the app moves to Next 16, is
   in `docs/DEPLOYMENT.md` under *The Next.js version*. **The move to Next 16 is
-  the real fix and is still to do.**
+  the real fix** — made the same day; see the next section.
 
 **Fixed**
 
@@ -155,6 +155,20 @@ code, one tap to WhatsApp), **temporary-password reset** by Deepika, members
   any screen mentions it until two keys from Google are set in Vercel — see
   item 12 below. It asks Google only who she is, keeps her address and
   Google's id for her account, and tells Google nothing she logs.
+
+## Moved to Next.js 16 (24 November 2026)
+
+- **Next.js 16.4.6 and React 19.3.1.** The 16 line gets security fixes until
+  about October 2027, and `npm audit --omit=dev` finds nothing. The two doors
+  shut on 14 stay shut, because the same two places have produced the worst
+  advisories on 16 as well. What changed, and what is still off-limits, is in
+  `docs/DEPLOYMENT.md` under *The Next.js version*.
+- **Checked on the production build here:** the build, the logic tests, lint,
+  all 112 end-to-end checks, and a click-through against a local Postgres —
+  signing up with a join code, the food log, every member and coach screen,
+  reminders, a password change and a reset by Deepika, her private notes
+  staying private, and deleting an account. **Not checked:** a deploy on
+  Vercel itself — item 13.
 
 ## Only the owner can do these
 
@@ -208,10 +222,12 @@ In rough order. Items 1–4 are small and should be done before anyone is invite
     **Production only**. Then try it yourself — once in a browser, once from
     the Android app and once from an iPhone's Home Screen — before telling
     members: the phone round trips have not been tried by hand.
-13. **Plan the move to Next 16.** The app is on the last release of Next 14,
-    which no longer gets security fixes. What that means today, and what has
-    been shut because of it, is in `docs/DEPLOYMENT.md` under *The Next.js
-    version*. It is a piece of work of its own.
+13. **Check the first deploy on Next 16.** It is the first build on Vercel
+    with Turbopack, and the first with `proxy.ts` where `middleware.ts` was.
+    Everything was tested on a production build, but not on Vercel. Once it is
+    live: open `/api/health`, sign in once as a member and once as Deepika,
+    and save something. If anything is off, Vercel's *Instant Rollback* puts
+    the previous deployment back while it is looked at.
 
 ---
 

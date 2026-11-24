@@ -134,7 +134,7 @@ Google sign-in is switched on.
 **How it works** is written out at the top of `lib/google.ts`. In short: no
 script from Google runs on any page. Her browser is sent to Google and back,
 and the server then makes one call to Google to confirm who she is. That call
-uses Node's own `https`, not `fetch` — see *The Next.js version* below.
+uses Node's own `https`; `lib/google.ts` says why.
 
 **Deepika.** Set `COACH_GOOGLE_EMAIL` to her own Google address and that
 Google account opens the console. Use an address only she controls: a Gmail
@@ -243,7 +243,7 @@ marker alone so they are not seeded again.
 ## What auth does and does not do today
 
 **Does:** signed, HTTP-only session cookies; server-side route protection via
-`middleware.ts`, so an unauthenticated request never reaches a screen holding
+`proxy.ts`, so an unauthenticated request never reaches a screen holding
 health data; role separation, so a member cannot open the coach console; a
 forged cookie is rejected by signature check; per-account data isolation, in
 both storage modes.
@@ -330,64 +330,72 @@ delegates notifications to Chrome, so it works there as on the web.
 
 ## The Next.js version
 
-The app is on Next 14.2.35, the last release of the 14 line — and that line no
-longer gets security fixes. On 24 November 2026 `npm audit` listed 26
-advisories against it, three of them rated critical, whose fix exists only in
-Next 15.5 or 16; plus four against the copy of PostCSS that Next carries for
-its own build step.
+The app is on **Next 16.4.6, with React 19.3.1** (24 November 2026). Next keeps
+each major line in support for two years from its first release; 16.0 came out
+in October 2025, so the 16 line gets security fixes until about October 2027.
+The app went straight from 14.2.35 to 16: by then 15.x had reached the end of
+its own two years, around 21 October 2026.
 
-Each was read against what this app actually uses. Most have no way in, and
-the two widest ways in are shut on purpose rather than by luck:
+`npm audit --omit=dev` finds nothing against it — including the four PostCSS
+advisories 14 carried, since 16.4.6 brings PostCSS 8.5.23. New advisories will
+keep arriving, and they are fixed in 16.x patch releases, so keep `next` on the
+newest 16.x; `npm audit --omit=dev` is how to tell when that is due.
 
-- **The image-resizing address, `/_next/image`.** Five of the advisories,
-  two of the critical ones among them, are in it. No screen uses `next/image`,
+**What 16 changed here**, for anyone working on the code:
+
+- `middleware.ts` is now `proxy.ts`, and its function is called `proxy`. It
+  runs on Node rather than the Edge runtime, and still only checks the session
+  cookie's signature with `lib/auth.ts`. It never imports `lib/accounts.ts`,
+  which reaches the database.
+- Pages and routes read the request asynchronously: `await cookies()`, and a
+  page's `params` and `searchParams` arrive as promises, which client pages
+  unwrap with React's `use()`.
+- Turbopack builds the app, for `next dev` and `next build`. There is no
+  webpack config; if a `webpack()` is ever added to `next.config.mjs`, the
+  build stops with an error until it is moved to Turbopack or `--webpack` is
+  passed.
+- `next lint` is gone and `next build` no longer lints. `npm run lint` runs
+  ESLint with `eslint.config.mjs`, which says what was decided about each rule
+  it changes.
+- Node.js 20.9 or later. Vercel builds on Node 24; anywhere else that runs
+  `npm start` — Railway, say — needs at least 20.9.
+- `next-env.d.ts` is generated and no longer committed: `next dev` and
+  `next build` write different paths into it. `agentRules: false` in
+  `next.config.mjs` stops `next dev` writing an `AGENTS.md` of its own;
+  guidance for agents is in `CLAUDE.md`.
+
+**Two doors stay shut.** They were shut on 14 because the advisories behind
+them were never going to be fixed there. On 16 they are fixed — but the same
+two places keep producing them. npm's advisory database lists 45 advisories
+against 16.0.0, all fixed by 16.4.6: eight are in the image optimizer, eleven
+in how Next reads Server Action and Server Component requests, and three of
+the five rated critical — each one remote code execution — came through one
+or the other. (The other two need a Windows server, or `use cache`, which this
+app does not use.) The app uses neither door, so the next advisory in either
+place has nothing to reach here:
+
+- **The image-resizing address, `/_next/image`.** No screen uses `next/image`,
   but `next start` serves the address regardless. `next.config.mjs` switches
-  it off and hands the address to `/api`, which answers 404.
-- **POSTs to a page** — form actions, which Next calls Server Actions. Eight
-  of the advisories are about them. The app has none: every save, sign-in and
-  sign-out goes to `/api`. But Next starts reading such a request before it
-  finds that out, so `middleware.ts` refuses any POST to a page with 405, and
-  `app/api/[...missing]` stops a mistyped `/api` address falling through to a
-  page.
+  resizing off and hands the address to `/api`, which answers 404.
+- **POSTs to a page** — form actions, which Next calls Server Actions. The app
+  has none: every save, sign-in and sign-out goes to `/api`. But Next starts
+  reading such a request before it finds that out, so `proxy.ts` refuses any
+  POST to a page with 405, and `app/api/[...missing]` stops a mistyped `/api`
+  address falling through to a page.
 
 `npm run test:e2e` checks that both stay shut, and that sign-in, sign-out and
 ordinary pages are not caught with them (`tests/e2e/refused.mjs`).
 
-Of the other thirteen:
+**So, still: no Server Action, no `<form>` that posts to a page, and no
+`next/image`** — not without opening that door on purpose and changing
+`refused.mjs` with it. A Server Action would be refused with 405, and
+`next/image` would load pictures unresized.
 
-- the third critical one needs a Windows server;
-- eight need something this app does not have — a rewrite or redirect to
-  another host (the one rewrite here points inside the app), the Pages Router,
-  CSP nonces, `beforeInteractive` scripts, or server code that calls `fetch`;
-- one, forged WebSocket upgrade requests, affects an app served by Next's own
-  server and, in the advisory's words, not one hosted on Vercel. **So it
-  matters the day this runs anywhere with `npm start`** — Railway included.
-  Put a proxy in front that refuses WebSocket upgrades; the app uses none;
-- three, one rated moderate and two low, are about a shared cache in front of
-  the app mixing up two kinds of response. In production that cache is
-  Vercel's. These are open.
-
-The PostCSS ones need CSS written by a stranger; the build here only
-processes its own.
-
-**None of this is a reason to stay on 14.** New advisories against it will
-keep arriving and will not be fixed, and each one has to be read against the
-app by hand, as these were. The fix is the move to Next 16. That brings React
-19 with it and changes how every page and route reads its address and its
-cookies, so it is a piece of work of its own — with `npm run test:e2e` as the
-safety net it would not have had before.
-
-**Until then, do not add any of these without doing that upgrade first:**
-
-- a Server Action, or a `<form>` that posts to a page — it would be refused
-  with 405;
-- `next/image` — pictures would load unresized, and switching resizing back
-  on reopens the first door;
-- a `rewrites()` or `redirects()` rule in `next.config.mjs` that points at
-  another host (a route that answers with a redirect, as Google sign-in does,
-  is not that), or server code that calls `fetch`.
-  Server code that has to call another service uses Node's own `https`, as
-  `lib/google.ts` does for the one call Google sign-in makes.
+The other rules from the 14 days are lifted. A rewrite or redirect to another
+host, and server code that calls `fetch`, were off-limits only because their
+advisories were open on 14; they are fixed in 16. `lib/google.ts` still makes
+its one call to Google with Node's own `https` — it works and is tested, so it
+stays.
 
 ## Tests
 
