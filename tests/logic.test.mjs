@@ -979,6 +979,49 @@ test("how far back her record goes decides how many weeks there are to show", ()
   assert.equal(dv.shortDate(-2, TODAY), "4 Oct");
 });
 
+test("the console calls a member what the member said, and assumes nothing", () => {
+  const words = (m) => {
+    const p = display.pronouns(m);
+    return `${p.Subject} see${p.s} it; ${p.subject} ${p.is} here; write to ${p.object}; ${p.possessive} app; ${p.Possessive} week; by ${p.reflexive}`;
+  };
+  assert.equal(words({ id: "a", gender: "woman" }), "She sees it; she is here; write to her; her app; Her week; by herself");
+  assert.equal(words({ id: "a", gender: "man" }), "He sees it; he is here; write to him; his app; His week; by himself");
+  const they = "They see it; they are here; write to them; their app; Their week; by themselves";
+  assert.equal(words({ id: "a", gender: "other" }), they);
+  assert.equal(words({ id: "a" }), they, "someone who was never asked is not assumed to be a woman");
+  assert.equal(words(undefined), they);
+  assert.equal(words(null), they);
+
+  // The six sample members are written as women, and say so.
+  assert.deepEqual(seed.members.map((m) => m.gender), Array(6).fill("woman"));
+  // A copy of one stored before the question existed still reads as written…
+  assert.equal(display.pronouns({ id: "radhika" }).subject, "she");
+  // …but never over what a record itself says.
+  assert.equal(display.pronouns({ id: "radhika", gender: "other" }).subject, "they");
+});
+
+test("what the Radar says about one member uses that member's word; its rules name no one", () => {
+  const since = (gender) =>
+    radarWith({ members: [onboarded({ onboardedAt: "2026-10-01", gender })] }).find((e) => e.ruleId === "R01").detail;
+  assert.equal(since("woman"), "Nothing recorded since she joined 5 days ago.");
+  assert.equal(since("man"), "Nothing recorded since he joined 5 days ago.");
+  assert.equal(since(undefined), "Nothing recorded since they joined 5 days ago.");
+
+  // A rule is about members in general, so its own wording has no "her" in it.
+  for (const rule of radar.radarRules) {
+    assert.doesNotMatch(`${rule.name} ${rule.trigger} ${rule.suggestedAction}`, /\b(she|her|hers|herself|woman|women)\b/i, rule.id);
+  }
+});
+
+test("the library is written so that anyone assigned a module can read it about themselves", () => {
+  // "What better looks like" is on Deepika's library page and on the member's
+  // own module page. It used to read "She can carry shopping in one hand…" —
+  // to the member, about herself, and to a man about someone else.
+  const shown = [seed.modules, seed.workouts, seed.notificationTemplates, seed.articles ?? []];
+  const said = JSON.stringify(shown).match(/[^"]*\b(she|her|hers|herself)\b[^"]*/gi) ?? [];
+  assert.deepEqual(said, []);
+});
+
 test("no screen works out today's date for itself", () => {
   // `new Date().toISOString().slice(0, 10)` is the date in London: from
   // midnight to 5:30 in the morning in India it is still yesterday there. The

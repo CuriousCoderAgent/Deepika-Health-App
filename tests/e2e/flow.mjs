@@ -13,6 +13,7 @@
 import { aDayPasses, check, gone, note, openPage, seen, settle, shot, signInAsCoach, signUpAndOnboard, textOf, until } from "./harness.mjs";
 
 const MEERA = { name: "Meera Nair", username: "meera-nair", password: "first-pass-123" };
+const ARJUN = { name: "Arjun Rao", username: "arjun-rao", password: "second-pass-456", gender: "Man" };
 const HINT = "Tap a circle when you’ve done one";
 const SESSION = "Foundations session";
 const escapeRegex = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -402,5 +403,62 @@ export default async function flow({ base, browser, db, problems, coachPassword,
     "D3  and Deepika has one pain flag for it, not two, carrying what she wrote",
     painFlags.length === 1 && hers.includes(`Flagged that something hurt in ${secondSession}, today: “right shoulder, sharp”`),
     hers.slice(0, 260)
+  );
+
+  // ------------------------------------------ E. a member who is not a woman
+  // The console said "her" about everyone. Onboarding asks, and offers Man and
+  // Other; the console now uses what the member said, and "they" if nobody asked.
+  const a = await openPage(browser, "phone", "a second member", problems);
+  await signUpAndOnboard(a, base, ARJUN);
+  await db.memberWhen(ARJUN.username, (d) => d.member.gender === "man" && Boolean(d.member.onboardedAt));
+
+  /** Everything written on his page, tab by tab — placeholders and tooltips too. */
+  const everyTab = async () => {
+    let all = "";
+    for (const tab of ["Overview", "Assessment", "Journey builder", "Week planner", "Notes", "Session prep"]) {
+      await c.getByRole("button", { name: tab, exact: true }).click();
+      all += ` [${tab}] ` + (await textOf(c.locator("main")));
+      all += " " + (await c.locator("main [placeholder], main [title]").evaluateAll((els) => els.map((el) => `${el.getAttribute("placeholder") ?? ""} ${el.getAttribute("title") ?? ""}`).join(" ")));
+    }
+    return all.replace(/\s+/g, " ");
+  };
+  // Labels are shown in capitals, so the lines are looked for whatever their case.
+  const says = (text, lines) => lines.every((line) => text.toLowerCase().includes(line.toLowerCase()));
+  // Not a /g pattern: those remember where the last test() stopped.
+  const womanly = /\b(she|her|hers|herself)\b/i;
+  const whereItSays = (text, words) => (text.match(new RegExp(`.{0,30}\\b(?:${words})\\b.{0,30}`, "gi")) ?? []).slice(0, 4).join(" | ");
+
+  await c.goto(`${base}/coach/members/${ARJUN.username}`, { waitUntil: "networkidle" });
+  await seen(c.getByRole("link", { name: /^See his app/ }));
+  let his = await everyTab();
+  check(
+    "E1  a member who said he is a man is he, him and his on his page",
+    says(his, ["See his app", "What he is trying to get to", "His last 7 days", "Send him something", "he never sees this", "Reset his password"]),
+    his.slice(0, 300)
+  );
+  check('E2  and nothing on any tab of it still says "she" or "her"', !womanly.test(his), whereItSays(his, "she|her|hers|herself"));
+
+  await c.goto(`${base}/coach`, { waitUntil: "networkidle" });
+  await seen(firstCard());
+  const hisCard = c.locator("main div.card", { hasText: "Arjun" }).first();
+  check(
+    "E3  the Radar offers to write to him, and still to her",
+    (await seen(hisCard.getByRole("link", { name: "Write to him" }))) && (await c.locator("main div.card", { hasText: "Meera" }).first().getByRole("link", { name: "Write to her" }).isVisible()),
+    (await textOf(hisCard)).slice(0, 200)
+  );
+
+  // Someone who joined before the question was asked has no answer on record.
+  const asked = await db.memberDoc(ARJUN.username);
+  delete asked.member.gender;
+  await db.setMemberDoc(ARJUN.username, asked);
+  await c.goto(`${base}/coach/members/${ARJUN.username}`, { waitUntil: "networkidle" });
+  await seen(c.getByRole("link", { name: /^See their app/ }));
+  his = await everyTab();
+  check(
+    "E4  and a member nobody asked is they — never assumed to be a woman",
+    says(his, ["See their app", "What they are trying to get to", "Their last 7 days", "Send them something", "they never see this"]) &&
+      !womanly.test(his) &&
+      !/\b(he|him|his|himself)\b/i.test(his),
+    whereItSays(his, "she|her|hers|herself|he|him|his|himself") || his.slice(0, 300)
   );
 }

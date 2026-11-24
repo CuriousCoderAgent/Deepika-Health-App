@@ -21,7 +21,7 @@ that a sheet does not move the page it opens over.
 
 | | |
 | --- | --- |
-| `flow.mjs` | One member's first two days, then what Deepika sees of them: sign-up, marking and un-marking, the check-in, the history, a session logged for yesterday with a pain flag, the Radar, Handled and Undo, quick find, her page, a second pain flag. |
+| `flow.mjs` | One member's first two days, then what Deepika sees of them: sign-up, marking and un-marking, the check-in, the history, a session logged for yesterday with a pain flag, the Radar, Handled and Undo, quick find, her page, a second pain flag, the same session saved twice — and a second member, a man, to check what the console calls him. |
 | `sheets.mjs` | Every bottom sheet, with animations **on and off**: the frame must not move, exactly the right sheet must be open, and keyboard focus must be inside it. |
 | `refused.mjs` | Requests the app never makes and must turn away: the image-resizing address, and POSTs to a page. No browser — plain requests, the kind a scanner sends. See "The Next.js version" in `docs/DEPLOYMENT.md` for why they matter. |
 | `harness.mjs` | The database, the app, the browser, and the helpers the suites read the page and the tables with. |

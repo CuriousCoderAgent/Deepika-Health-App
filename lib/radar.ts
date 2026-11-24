@@ -1,4 +1,5 @@
 import { dateKey, daysBetween } from "./calendar";
+import { pronouns } from "./display";
 import type {
   DailyAction,
   Member,
@@ -126,7 +127,7 @@ export const radarRules: RadarRule[] = [
     id: "R11",
     name: "New member",
     bucket: "celebrate",
-    trigger: "Joined in the last 3 days and you have not written to her yet",
+    trigger: "Joined in the last 3 days and has not had a message from you yet",
     suggestedAction: "Send a short hello. It sets the tone for everything after.",
     enabled: true,
   },
@@ -303,7 +304,7 @@ export function evaluateRadar(
         // "needs attention" card on Deepika's Radar for a woman who had joined
         // that morning. Wait until she has had a few days to start.
         if (joinedDays === null) push(m.id, "R01", "Nothing recorded yet.");
-        else if (joinedDays >= 3) push(m.id, "R01", `Nothing recorded since she joined ${joinedDays} days ago.`);
+        else if (joinedDays >= 3) push(m.id, "R01", `Nothing recorded since ${pronouns(m).subject} joined ${joinedDays} days ago.`);
       } else if (lastTouch <= -3) {
         push(m.id, "R01", `Nothing recorded for ${Math.abs(lastTouch)} days.`);
       }

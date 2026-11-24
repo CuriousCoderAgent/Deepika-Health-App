@@ -238,7 +238,8 @@ lib/
   push.ts                   Web Push sending and VAPID keys — server-only
   replyDrafts.ts            Drafts for Deepika's messages, suggested by the Radar
   display.ts                Members by name in the console; initials behind the
-                            privacy screen (privacyScreen.ts, per device)
+                            privacy screen (privacyScreen.ts, per device); and
+                            she / he / they for a member — pronouns()
   useWidth.ts               A chart's real pixel width, so it is drawn, not stretched
 components/
   ui.tsx                    EffortRamp, ProvenanceChip, ConsistencyBand, Sparkline
@@ -316,6 +317,12 @@ each colour means semantically. Read those comments before adding a colour.
   message, a pain flag, a symptom report) carries that record's id; a flag
   about a pattern comes back after a week if still true. Never key a flag on
   a count or a day offset — both change overnight. See `lib/radar.ts`.
+- **Not every member is "she".** Onboarding asks, and offers Man and Other. A
+  sentence in the console about one member takes its words from
+  `pronouns(member)` in `lib/display.ts` — "they" for anyone who was never
+  asked. Copy about members in general says "a member". Text a member reads
+  about herself — the module library above all — is written with no "she" in
+  it at all. Deepika is still "she": that is who she is, not an assumption.
 - **A rating of 0 means "not rated".** The one-tap mood saves sleep as 0. Any
   rule or sentence that reads sleep has to skip it (`lowSleepNights` in
   `lib/dayView.ts`), or a mood-only check-in reads as a bad night.
