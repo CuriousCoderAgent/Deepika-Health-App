@@ -842,6 +842,15 @@ test("a check-in reads back as the mood she tapped, when it was one", () => {
   assert.equal(dv.moodOf({ energy: 5, stress: 1 }), null, "detailed numbers are not forced into a mood");
 });
 
+test("a check-in with no sleep rating is not a bad night", () => {
+  // The one-tap mood saves sleep as 0. Two of those used to put "Your sleep
+  // was more disrupted than usual" on her Today screen.
+  const moodOnly = { sleep: 0 };
+  assert.equal(dv.lowSleepNights([moodOnly, moodOnly, moodOnly]), 0);
+  assert.equal(dv.lowSleepNights([{ sleep: 2 }, moodOnly, { sleep: 1 }, { sleep: 3 }]), 2);
+  assert.equal(dv.lowSleepNights([]), 0);
+});
+
 test("last seen counts anything of hers, and says it in words", () => {
   const data = dayData({
     actions: [touch.action(-5, "minimum"), touch.action(-2, "rest"), touch.action(0, null)],

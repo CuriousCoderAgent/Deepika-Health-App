@@ -213,6 +213,17 @@ export const MOODS = [
 ] as const;
 export type MoodKey = (typeof MOODS)[number]["key"];
 
+/**
+ * How many of these check-ins rated sleep 2 or below.
+ *
+ * A sleep of 0 is "not rated" — the one-tap mood leaves it there. It is not a
+ * bad night, and counting it as one told every member who checked in by mood
+ * two days running that her sleep had been disrupted.
+ */
+export function lowSleepNights(pulses: Pick<PulseEntry, "sleep">[]): number {
+  return pulses.filter((p) => p.sleep >= 1 && p.sleep <= 2).length;
+}
+
 export function moodOf(pulse: Pick<PulseEntry, "energy" | "stress">): (typeof MOODS)[number] | null {
   return MOODS.find((m) => m.energy === pulse.energy && m.stress === pulse.stress) ?? null;
 }

@@ -12,7 +12,7 @@ import PulseCard from "@/components/PulseCard";
 import ReminderPrompt from "@/components/ReminderPrompt";
 import QuickDone from "@/components/QuickDone";
 import DayHistory from "@/components/DayHistory";
-import { lastDays } from "@/lib/dayView";
+import { lastDays, lowSleepNights } from "@/lib/dayView";
 import { DEMO_MEMBER_ID } from "@/lib/session-client";
 import type { DailyAction, EffortLevel } from "@/lib/types";
 
@@ -54,10 +54,14 @@ function greetingFor(
   // and the screen should stop sounding as if it is still waiting.
   if (doneToday > 0)
     return { hi, line: "That's a full day already. Anything more is a bonus." };
+  // Says only what she rated, and offers the minimum. It used to read "Your
+  // sleep was more disrupted than usual last night. We've made today lighter."
+  // — a comparison the app has no baseline for, and a change to her day that
+  // nothing here makes.
   if (poorSleep)
     return {
       hi,
-      line: "Your sleep was more disrupted than usual last night. We've made today lighter.",
+      line: "You've rated your sleep low a couple of times lately. The minimum is plenty today.",
     };
   if (energy !== null && energy >= 4)
     return { hi, line: "You have had a good run. Today can be a bigger one if you want it." };
@@ -122,7 +126,7 @@ export default function Today() {
   const recent = pulses
     .filter((p) => p.memberId === m.id && p.dayOffset >= -3)
     .sort((a, b) => b.dayOffset - a.dayOffset);
-  const poorSleep = recent.filter((p) => p.sleep <= 2).length >= 2;
+  const poorSleep = lowSleepNights(recent) >= 2;
   const welcomeBack = isWelcomeBack(m.id, actions, pulses, messages, foodEntries);
   const greeting = greetingFor(recent[0]?.energy ?? null, poorSleep, first, hour, welcomeBack, doneCount);
 
