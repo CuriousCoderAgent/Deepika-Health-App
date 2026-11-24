@@ -23,6 +23,8 @@
     "lib/display.ts",
     "lib/reminders.ts",
     "lib/dayView.ts",
-    "lib/workoutLog.ts"
+    "lib/workoutLog.ts",
+    "lib/google.ts",
+    "lib/auth.ts"
   ]
 }

@@ -276,6 +276,7 @@
         <li>No ads, no selling your data, and no analytics trackers in the app.</li>
         <li>Reminders are off unless you turn them on, and never say anything about your health on your lock screen.</li>
         <li>Your password is stored as a hash that nobody can read back.</li>
+        {{#GOOGLE_SIGN_IN}}<li>If you sign in with Google, we get your name and email address from it and nothing else — and Google is told nothing about what you log.</li>{{/GOOGLE_SIGN_IN}}
         <li>You can delete your account whenever you like, from inside the app. It removes everything immediately.</li>
       </ul>
       <p class="links-row">
@@ -312,7 +313,7 @@
         </details>
         <details>
           <summary>How do I join?</summary>
-          <p>Open the app and create an account. We're starting with a small first group coached by Deepika; if you've been given an invitation code, enter it when you sign up.</p>
+          <p>Open the app and create an account. We're starting with a small first group coached by Deepika; if you've been given an invitation code, enter it when you sign up.{{#GOOGLE_SIGN_IN}} You can use your Google account instead of choosing a password.{{/GOOGLE_SIGN_IN}}</p>
         </details>
         <details>
           <summary>Who can see my reports and check-ins?</summary>

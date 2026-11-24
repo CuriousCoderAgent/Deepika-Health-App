@@ -147,6 +147,15 @@ code, one tap to WhatsApp), **temporary-password reset** by Deepika, members
   too, under *What better looks like*. The meaning is unchanged, but they are
   Deepika's library — worth her reading them once.
 
+**Built, and switched off**
+
+- **Continue with Google.** Members can create an account, and sign in, with
+  their Google account instead of a username and password; a member who
+  already has a password can connect Google from *Your account*. Nothing on
+  any screen mentions it until two keys from Google are set in Vercel — see
+  item 12 below. It asks Google only who she is, keeps her address and
+  Google's id for her account, and tells Google nothing she logs.
+
 ## Only the owner can do these
 
 In rough order. Items 1–4 are small and should be done before anyone is invited.
@@ -192,6 +201,17 @@ In rough order. Items 1–4 are small and should be done before anyone is invite
 11. **Try a reminder on your own phone.** Sign in as a member, check in, accept
     the reminder offer, and wait for the 7:30 run. Delivery to a real phone could
     not be tested from the build environment (see *Not tested here*).
+12. **Switch on Continue with Google**, if you want it. It needs a client ID
+    and secret from a Google account you own, which nobody else can create for
+    you. The steps, about ten minutes, are in `docs/DEPLOYMENT.md` under
+    *Signing in with Google → Switching it on*. Set the two keys for
+    **Production only**. Then try it yourself — once in a browser, once from
+    the Android app and once from an iPhone's Home Screen — before telling
+    members: the phone round trips have not been tried by hand.
+13. **Plan the move to Next 16.** The app is on the last release of Next 14,
+    which no longer gets security fixes. What that means today, and what has
+    been shut because of it, is in `docs/DEPLOYMENT.md` under *The Next.js
+    version*. It is a piece of work of its own.
 
 ---
 

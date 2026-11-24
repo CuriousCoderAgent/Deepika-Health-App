@@ -103,6 +103,11 @@ function secret(): string {
   return process.env.AUTH_SECRET || "dev-only-unsafe-secret-set-AUTH_SECRET";
 }
 
+/** The signing secret, for the one other thing that is signed with it: the
+ *  short-lived cookie of a Google sign-in in progress (lib/google.ts), which
+ *  labels what it signs so that it can never pass for a session. */
+export const authSecret = secret;
+
 /* ------------------------------------------------------------------ */
 /* Signing — Web Crypto, so this works in both the Edge middleware and  */
 /* Node route handlers without a polyfill.                              */
@@ -153,7 +158,12 @@ export async function readSessionToken(token: string | undefined): Promise<Sessi
   try {
     const body = JSON.parse(new TextDecoder().decode(fromB64url(payload)));
     if (typeof body.exp !== "number" || body.exp * 1000 < Date.now()) return null;
-    return { sub: body.sub, role: body.role, name: body.name };
+    // A session names someone. Anything validly signed that does not — there
+    // is nothing else signed this way today, and this is why there never can
+    // be — is not a session, rather than a session for nobody.
+    if (typeof body.sub !== "string" || !body.sub) return null;
+    if (body.role !== "coach" && body.role !== "member") return null;
+    return { sub: body.sub, role: body.role, name: typeof body.name === "string" ? body.name : "" };
   } catch {
     return null;
   }

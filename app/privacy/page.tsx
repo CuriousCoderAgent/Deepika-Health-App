@@ -1,5 +1,10 @@
 import Link from "next/link";
+import { googleConfig } from "@/lib/google";
 import { SUPPORT_EMAIL } from "@/lib/support";
+
+// Read when the page is asked for, not when the app was built: what it says
+// about signing in with Google has to match whether that is switched on now.
+export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Privacy — Bharosa",
@@ -18,6 +23,8 @@ export const metadata = {
 
 
 const UPDATED = "16 October 2026";
+/** The date the paragraphs about signing in with Google were written. */
+const UPDATED_WITH_GOOGLE = "24 November 2026";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -29,6 +36,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 export default function Privacy() {
+  // The two paragraphs about Google are only true where "Continue with Google"
+  // is offered, so they are only shown there.
+  const google = Boolean(googleConfig());
   return (
     <main className="min-h-dvh bg-paper">
       <div className="mx-auto max-w-2xl px-6 py-12">
@@ -37,7 +47,7 @@ export default function Privacy() {
         </Link>
 
         <h1 className="mt-6 font-display text-[2rem] leading-tight">Privacy</h1>
-        <p className="mt-2 text-[13px] text-ink-faint">Last updated {UPDATED}</p>
+        <p className="mt-2 text-[13px] text-ink-faint">Last updated {google ? UPDATED_WITH_GOOGLE : UPDATED}</p>
 
         <p className="mt-6 text-[15px] leading-relaxed text-ink-soft">
           This app is used by a small number of people coached by Deepika. It
@@ -50,6 +60,17 @@ export default function Privacy() {
           <p>Only what you enter, and only because the coaching needs it:</p>
           <ul className="list-disc space-y-1.5 pl-5">
             <li>Your name, the username you chose, and your password.</li>
+            {google && (
+              <li>
+                If you sign in with Google: the email address of that Google
+                account and the identifier Google uses for it, so the app
+                knows you the next time. If your account was made that way,
+                the name on your Google account is your name here and your
+                username is made from it. We never see your Google password,
+                and we ask Google for nothing else — not your contacts, your
+                calendar or your files.
+              </li>
+            )}
             <li>
               What you answered when you started: your age, how you describe
               yourself, where you are in your cycle or your training, your
@@ -131,6 +152,16 @@ export default function Privacy() {
             which loads the typefaces and in doing so sees your IP address — the
             same as on most of the web.
           </p>
+          {google && (
+            <p>
+              Only if you choose to sign in with Google, your browser goes to
+              Google to confirm who you are and comes straight back. Google
+              learns that you signed in to this app, and when. It is told
+              nothing about what you log, and no Google software runs inside
+              the app. You can disconnect it from your account screen if you
+              also have a password.
+            </p>
+          )}
           <p>
             Only if you turn on check-in reminders, each reminder travels
             through your phone&rsquo;s own notification service — Google&rsquo;s

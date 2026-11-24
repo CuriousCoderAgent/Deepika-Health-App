@@ -116,4 +116,11 @@ export default async function refused({ base, serverLog }) {
     ["the service worker", await send("/sw.js")],
   ];
   check("R10 pages and files load as before", ordinary.every(([, r]) => r.status === 200), saw(ordinary));
+
+  const health = await send("/api/health");
+  check(
+    "R11 the address to open after a deploy says the app can reach its database, and nothing else",
+    health.status === 200 && health.body === '{"ok":true,"storage":"database"}',
+    `${health.status} ${health.body.slice(0, 80)}`
+  );
 }
