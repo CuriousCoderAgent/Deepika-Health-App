@@ -121,7 +121,7 @@ notes; Sessions with capacity maths; Messages; Notification preview centre
 (including the streak notification we deliberately do not ship, with the
 reason); Pilot feedback triage board.
 
-**The engine.** `lib/radar.ts` computes ten rules from live data on every
+**The engine.** `lib/radar.ts` computes twelve rules from live data on every
 render. All ten fire against the seeded cohort. Publishing a plan change
 requires a written rationale and pushes it to the member's Today screen.
 

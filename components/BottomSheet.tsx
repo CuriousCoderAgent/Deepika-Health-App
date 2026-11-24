@@ -16,6 +16,27 @@ import { X } from "lucide-react";
  * backdrop tap, by the grab handle, by Escape; it traps nothing it shouldn't
  * but does return focus; and it honours prefers-reduced-motion, which the
  * global stylesheet already enforces on the transition.
+ *
+ * Two things here are easy to undo by accident, and both broke the Today
+ * screen once it had two sheets:
+ *
+ *  - Focus moves with `preventScroll`. The panel is focused while it is still
+ *    sliding up from below the frame, and a browser asked to focus something
+ *    off-screen scrolls its ancestors to show it — including the phone frame,
+ *    which is `overflow: hidden` and so can be scrolled by code but never
+ *    scrolled back by a finger. The whole screen jumped up and stayed there.
+ *  - A closed sheet is `invisible`, not merely transparent. Transparent
+ *    buttons can still be reached with Tab, and focusing one does the same.
+ *    It turns invisible only after the slide-down has finished, and turns
+ *    visible at once on opening — not as a transition, because an element
+ *    whose visibility is still at the start of one cannot take focus yet.
+ *  - The effect that moves focus depends on `open` alone. `onClose` is nearly
+ *    always an inline function, so depending on it re-ran the effect on every
+ *    render of the page behind — handing focus back to that page and taking
+ *    it again 30ms later, out of whatever she was typing in.
+ *
+ * The frame itself is `overflow: clip` as well (app/member/layout.tsx), which
+ * cannot be scrolled by anything.
  */
 export default function BottomSheet({
   open,
@@ -36,28 +57,33 @@ export default function BottomSheet({
     setHost(document.getElementById("sheet-root"));
   }, []);
 
+  const close = useRef(onClose);
+  close.current = onClose;
+
   useEffect(() => {
     if (!open) return;
     returnFocusTo.current = document.activeElement as HTMLElement;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") close.current();
     };
     document.addEventListener("keydown", onKey);
     // Give the sheet focus so screen readers and keyboards land inside it.
-    const t = window.setTimeout(() => panelRef.current?.focus(), 30);
+    const t = window.setTimeout(() => panelRef.current?.focus({ preventScroll: true }), 30);
     return () => {
       document.removeEventListener("keydown", onKey);
       window.clearTimeout(t);
-      returnFocusTo.current?.focus?.();
+      returnFocusTo.current?.focus?.({ preventScroll: true });
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!host) return null;
 
   return createPortal(
     <div
-      className={`absolute inset-0 z-50 flex flex-col justify-end transition-opacity duration-200 ${
-        open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
+      className={`absolute inset-0 z-50 flex flex-col justify-end ${
+        open
+          ? "pointer-events-auto visible opacity-100 transition-opacity duration-200"
+          : "pointer-events-none invisible opacity-0 [transition:opacity_200ms,visibility_0s_linear_300ms]"
       }`}
       aria-hidden={!open}
     >

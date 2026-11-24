@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Activity, CalendarHeart, Home, MessageCircle, TrendingUp } from "lucide-react";
 import { useStore } from "@/lib/store";
+import Toaster from "@/components/Toast";
 
 const tabs = [
   { href: "/member", label: "Today", icon: Home },
@@ -60,8 +61,13 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
           fluid below it — a 360px Android gets the same layout in less room,
           not a shrunken copy of a 412px canvas. */}
       <div className="flex min-h-0 flex-1 justify-center sm:items-center sm:p-4">
+        {/* `overflow-clip` on top of `overflow-hidden`: a hidden box can still
+            be scrolled by code (a focus() on something below its edge is
+            enough), and nothing the member can do scrolls it back. A clipped
+            one cannot be scrolled at all. Hidden stays as the fallback for
+            browsers that do not know clip. */}
         <div
-          className="relative flex w-full flex-col overflow-hidden bg-paper shadow-lift sm:h-[760px] sm:max-h-full sm:rounded-[2.25rem] sm:border-[10px] sm:border-ink"
+          className="relative flex w-full flex-col overflow-hidden overflow-clip bg-paper shadow-lift sm:h-[760px] sm:max-h-full sm:rounded-[2.25rem] sm:border-[10px] sm:border-ink"
           style={{ maxWidth: "var(--phone-reference)" }}
         >
           <div className="scroll-hide min-h-0 flex-1 overflow-y-auto overscroll-contain">
@@ -74,7 +80,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
           {/* Bottom sheets portal in here, so they stay inside the phone frame
               on a desktop instead of covering the browser window. */}
           <div id="sheet-root" />
-
+          <Toaster />
 
           <nav className="safe-bottom shrink-0 border-t border-ink-line bg-paper-card/95 backdrop-blur">
             <div className="flex">

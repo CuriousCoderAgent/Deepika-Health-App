@@ -10,8 +10,11 @@ import { isWelcomeBack } from "@/lib/dailyPlan";
 import { CategoryIcon, ConsistencyBand } from "@/components/ui";
 import PulseCard from "@/components/PulseCard";
 import ReminderPrompt from "@/components/ReminderPrompt";
+import QuickDone from "@/components/QuickDone";
+import DayHistory from "@/components/DayHistory";
+import { lastDays, lowSleepNights } from "@/lib/dayView";
 import { DEMO_MEMBER_ID } from "@/lib/session-client";
-import type { EffortLevel } from "@/lib/types";
+import type { DailyAction, EffortLevel } from "@/lib/types";
 
 /**
  * Time of day, from her phone's clock.
@@ -35,7 +38,8 @@ function greetingFor(
   poorSleep: boolean,
   name: string,
   hour: number | null,
-  welcomeBack: boolean
+  welcomeBack: boolean,
+  doneToday: number
 ) {
   // Null until the clock has been read on the client. Rendering a time-based
   // greeting on the server would bake the server's hour into the HTML and
@@ -46,35 +50,48 @@ function greetingFor(
   // long she was away — see isWelcomeBack.
   if (welcomeBack)
     return { hi, line: "Good to see you back. Nothing reset — we are continuing." };
+  // Once anything is done, say so. One thing at its minimum is the whole ask,
+  // and the screen should stop sounding as if it is still waiting.
+  if (doneToday > 0)
+    return { hi, line: "That's a full day already. Anything more is a bonus." };
+  // Says only what she rated, and offers the minimum. It used to read "Your
+  // sleep was more disrupted than usual last night. We've made today lighter."
+  // — a comparison the app has no baseline for, and a change to her day that
+  // nothing here makes.
   if (poorSleep)
     return {
       hi,
-      line: "Your sleep was more disrupted than usual last night. We've made today lighter.",
+      line: "You've rated your sleep low a couple of times lately. The minimum is plenty today.",
     };
   if (energy !== null && energy >= 4)
     return { hi, line: "You have had a good run. Today can be a bigger one if you want it." };
   return { hi, line: "One thing done today keeps the week intact." };
 }
 
-/** A single glanceable status, not a ramp of dots plus a text label plus a chevron. */
+/**
+ * A single glanceable status — and the thing she taps to say "done". It reads
+ * as a checkbox because that is what it is; the size she did is chosen in the
+ * sheet it opens, and shown here by the colour it fills with.
+ */
+const DONE_FILL: Record<EffortLevel, string> = {
+  minimum: "bg-effort-min text-effort-stretch",
+  target: "bg-effort-target text-white",
+  stretch: "bg-effort-stretch text-white",
+};
 function FocusStatus({ level, rest }: { level: EffortLevel | null; rest?: boolean }) {
   if (rest) {
-    return <span className="h-6 w-6 shrink-0 rounded-full border-2 border-rest" aria-label="Rest day" />;
-  }
-  if (!level) {
     return (
-      <span
-        className="h-6 w-6 shrink-0 rounded-full border-2 border-ink-line"
-        aria-label="Not done yet"
-      />
+      <span className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-rest">
+        <span className="h-0.5 w-2.5 rounded-full bg-rest" />
+      </span>
     );
   }
+  if (!level) {
+    return <span className="h-7 w-7 rounded-full border-2 border-ink-faint/50 transition-colors group-hover:border-effort-target" />;
+  }
   return (
-    <span
-      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-effort-stretch text-white"
-      aria-label="Done"
-    >
-      <Check size={13} strokeWidth={3} />
+    <span className={`flex h-7 w-7 items-center justify-center rounded-full ${DONE_FILL[level]}`}>
+      <Check size={15} strokeWidth={3} />
     </span>
   );
 }
@@ -93,12 +110,15 @@ export default function Today() {
     sessions,
     modules,
     foodEntries,
+    workoutLogs,
     replayOnboarding,
     session,
   } = useStore();
   const router = useRouter();
   const [playing, setPlaying] = useState(false);
   const [planExpanded, setPlanExpanded] = useState(false);
+  const [quick, setQuick] = useState<DailyAction | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const first = m.name.split(" ")[0];
   const todays = actions.filter((a) => a.memberId === m.id && a.dayOffset === 0);
@@ -106,9 +126,9 @@ export default function Today() {
   const recent = pulses
     .filter((p) => p.memberId === m.id && p.dayOffset >= -3)
     .sort((a, b) => b.dayOffset - a.dayOffset);
-  const poorSleep = recent.filter((p) => p.sleep <= 2).length >= 2;
+  const poorSleep = lowSleepNights(recent) >= 2;
   const welcomeBack = isWelcomeBack(m.id, actions, pulses, messages, foodEntries);
-  const greeting = greetingFor(recent[0]?.energy ?? null, poorSleep, first, hour, welcomeBack);
+  const greeting = greetingFor(recent[0]?.energy ?? null, poorSleep, first, hour, welcomeBack, doneCount);
 
   const voiceNote = messages.find(
     (x) => x.memberId === m.id && x.from === "coach" && x.kind === "voice" && x.dayOffset >= -1
@@ -118,21 +138,10 @@ export default function Today() {
     .sort((a, b) => a.dayOffset - b.dayOffset)[0];
 
   // Progress cue — a count, deliberately not a streak.
-  const last14days = Array.from({ length: 14 }).map((_, i) => {
-    const off = i - 13;
-    const day = actions.filter((a) => a.memberId === m.id && a.dayOffset === off);
-    const level = day.find((a) => a.completed === "stretch")
-      ? "stretch"
-      : day.find((a) => a.completed === "target")
-      ? "target"
-      : day.find((a) => a.completed === "minimum")
-      ? "minimum"
-      : day.find((a) => a.completed === "rest")
-      ? "rest"
-      : null;
-    return { level: level as any, dayOffset: off };
-  });
-  const activeDays = last14days.filter((d) => d.level && d.level !== "rest").length;
+  const last14days = lastDays(m.id, 14, { actions, pulses, foodEntries, messages, workoutLogs });
+  const activeDays = last14days.filter((d) => d.done.length > 0).length;
+  // Until she has marked anything at all, say how — once.
+  const neverMarked = !actions.some((a) => a.memberId === m.id && a.completed);
 
   const proteinTarget = m.proteinTargetG;
   const proteinToday = foodEntries
@@ -267,6 +276,11 @@ export default function Today() {
             Any one of these, at its minimum, is a full day.
           </p>
         )}
+        {!welcomeBack && neverMarked && todays.length > 0 && (
+          <p className="mt-1 text-[13px] leading-relaxed text-ink-soft">
+            Tap a circle when you&rsquo;ve done one. Any size counts.
+          </p>
+        )}
         <div className="mt-2.5 space-y-2">
           {todays.length === 0 && (
             <div className="card p-4 text-center">
@@ -277,33 +291,44 @@ export default function Today() {
             const mod = modules.find((x) => x.id === a.moduleId);
             const level = a.completed === "rest" ? null : (a.completed as EffortLevel | null);
             const secondary =
-              a.completed && a.completed !== "rest"
-                ? a.completed === "minimum"
-                  ? a.minimum.label
-                  : a.completed === "target"
-                  ? a.target.label
-                  : a.stretch.label
+              a.completed === "rest"
+                ? `Not today${a.skipReason ? ` · ${a.skipReason.toLowerCase()}` : ""}`
+                : a.completed
+                ? `${{ minimum: "Minimum", target: "Target", stretch: "Stretch" }[a.completed]} · ${a[a.completed].label}`
                 : a.minimum.minutes > 0 && !welcomeBack
                 ? `Minimum ${a.minimum.minutes} min · Target ${a.target.minutes} min`
                 : `Minimum: ${a.minimum.label}`;
             return (
-              <Link
-                key={a.id}
-                href={`/member/action/${a.id}`}
-                className="card flex items-center gap-3 px-4 py-3.5 transition-shadow hover:shadow-lift"
-              >
-                {mod && (
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-paper-sunk">
-                    <CategoryIcon category={mod.category} />
-                  </span>
-                )}
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium leading-snug">{a.title}</p>
-                  <p className="mt-0.5 text-[13px] leading-snug text-ink-faint">{secondary}</p>
-                </div>
-                <FocusStatus level={level} rest={a.completed === "rest"} />
-                <ChevronRight size={16} className="shrink-0 text-ink-faint" />
-              </Link>
+              /* Two targets side by side, not one inside the other: the circle
+                 marks it done, the rest of the row opens what it is. */
+              <div key={a.id} className="card flex items-stretch transition-shadow hover:shadow-lift">
+                <button
+                  onClick={() => setQuick(a)}
+                  aria-label={
+                    a.completed === "rest"
+                      ? `${a.title}: marked not today. Change`
+                      : level
+                      ? `${a.title}: done. Change`
+                      : `Mark ${a.title} done`
+                  }
+                  className="tap group flex w-[3.4rem] shrink-0 items-center justify-center rounded-l-2xl"
+                >
+                  <FocusStatus level={level} rest={a.completed === "rest"} />
+                </button>
+                <Link
+                  href={`/member/action/${a.id}`}
+                  className="flex min-w-0 flex-1 items-center gap-2 py-3.5 pr-3.5"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium leading-snug">{a.title}</p>
+                    <p className="mt-0.5 flex items-start gap-1.5 text-[13px] leading-snug text-ink-faint">
+                      {mod && <CategoryIcon category={mod.category} size={13} className="mt-[3px] shrink-0 text-ink-faint" />}
+                      <span>{secondary}</span>
+                    </p>
+                  </div>
+                  <ChevronRight size={16} className="shrink-0 text-ink-faint" />
+                </Link>
+              </div>
             );
           })}
         </div>
@@ -365,31 +390,36 @@ export default function Today() {
       {/* 7 — One progress cue. A count, never a streak. In week one there is
           nothing to count yet, so it says what it is for instead of showing
           fourteen empty squares and reading as a scoreboard she is losing. */}
-      <div className="mt-4 rounded-2xl bg-effort-tint px-4 py-3">
-        {welcomeBack ? (
-          // The band would draw the gap. On the day she comes back, it does
-          // not need drawing.
+      {welcomeBack || activeDays === 0 ? (
+        <div className="mt-4 rounded-2xl bg-effort-tint px-4 py-3">
           <p className="text-[13px] leading-relaxed text-effort-stretch">
-            Nothing to catch up on. Today counts the same as any other day.
+            {welcomeBack
+              ? // The band would draw the gap. On the day she comes back, it
+                // does not need drawing.
+                "Nothing to catch up on. Today counts the same as any other day."
+              : "This is where your consistency will show — any day with at least one healthy action counts. Nothing to catch up on yet."}
           </p>
-        ) : activeDays === 0 ? (
+        </div>
+      ) : (
+        /* The whole band opens the days behind it. Fourteen squares are too
+           narrow to be fourteen targets, so it is one. */
+        <button
+          onClick={() => setHistoryOpen(true)}
+          className="press mt-4 block w-full rounded-2xl bg-effort-tint px-4 py-3 text-left"
+        >
           <p className="text-[13px] leading-relaxed text-effort-stretch">
-            This is where your consistency will show — any day with at least one
-            healthy action counts. Nothing to catch up on yet.
+            You&rsquo;re building consistency —{" "}
+            <span className="font-medium">{activeDays} of the last 14 days</span> included
+            at least one healthy action.
           </p>
-        ) : (
-          <>
-            <p className="text-[13px] leading-relaxed text-effort-stretch">
-              You&rsquo;re building consistency —{" "}
-              <span className="font-medium">{activeDays} of the last 14 days</span> included
-              at least one healthy action.
-            </p>
-            <div className="mt-2.5">
-              <ConsistencyBand days={last14days} showDayLetters />
-            </div>
-          </>
-        )}
-      </div>
+          <div className="mt-2.5">
+            <ConsistencyBand days={last14days} showDayLetters />
+          </div>
+          <p className="mt-2 flex items-center gap-0.5 text-[12px] font-medium text-effort-stretch">
+            See each day <ChevronRight size={13} />
+          </p>
+        </button>
+      )}
 
       {/* Demo control, only on the seeded account. Lets the welcome flow be
           walked again for someone watching, without resetting the five weeks
@@ -418,6 +448,16 @@ export default function Today() {
       </Link>
 
       <div className="h-6" />
+
+      <QuickDone action={quick} onClose={() => setQuick(null)} />
+      <DayHistory
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        onMark={(a) => {
+          setHistoryOpen(false);
+          setQuick(a);
+        }}
+      />
     </div>
   );
 }

@@ -309,6 +309,9 @@ export interface RadarEvent {
   suggestedAction: string;
   resolved: boolean;
   snoozed: boolean;
+  /** True when the flag is about a pattern rather than one particular thing,
+   *  so "handled" lasts a week and not for good — see lib/radar.ts. */
+  pattern?: boolean;
 }
 
 /**

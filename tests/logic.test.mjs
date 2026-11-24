@@ -20,6 +20,7 @@ const food = require("../.test-build/lib/foodParse.js");
 const drafts = require("../.test-build/lib/replyDrafts.js");
 const display = require("../.test-build/lib/display.js");
 const rem = require("../.test-build/lib/reminders.js");
+const dv = require("../.test-build/lib/dayView.js");
 
 // ---------------------------------------------------------------- fixtures
 const TODAY = "2026-10-06"; // a Tuesday
@@ -267,18 +268,146 @@ test("once Deepika has written to her, the welcome prompt goes away", () => {
 
 test("the sample cohort still fills all four Radar buckets", () => {
   const events = radar.evaluateRadar(
-    seed.members, seed.dailyActions, seed.pulses, seed.messages, seed.sessions, radar.radarRules, []
+    seed.members, seed.dailyActions, seed.pulses, seed.messages, seed.sessions, radar.radarRules, [],
+    seed.workoutLogs, seed.workouts, TODAY
   );
   for (const b of ["attention", "prepare", "celebrate", "admin"]) {
     assert.ok(events.some((e) => e.bucket === b), `bucket ${b} is empty`);
   }
   assert.ok(!events.some((e) => e.ruleId === "R11"), "sample members must never look newly joined");
+  assert.ok(!events.some((e) => e.ruleId === "R12"), "nobody in the sample cohort has flagged pain");
+  assert.equal(new Set(events.map((e) => e.id)).size, events.length, "every flag has its own id");
+});
+
+// ------------------------------------------------- a pain flag reaches Deepika
+const WORKOUTS = [{ id: "wk-a", name: "Strength A" }];
+const hurtLog = (over = {}) => ({
+  id: "wl-1", memberId: "priya-s", workoutId: "wk-a", dayOffset: 0,
+  completedLevel: "minimum", rpe: 7, painFlag: true, ...over,
+});
+const radarWith = ({ members, actions = [], pulses = [], messages = [], sessions = [], handled = [], logs = [], today = TODAY }) =>
+  radar.evaluateRadar(members, actions, pulses, messages, sessions, radar.radarRules, handled, logs, WORKOUTS, today);
+
+test("a pain flag is on the Radar the moment she saves it, above everything else", () => {
+  // The session page tells her Deepika will see it first and to wait for a
+  // reply. Until this rule existed, nothing told Deepika.
+  const quiet = onboarded({ id: "anita-k", onboardedAt: "2026-09-20" }); // silent: fires R01
+  const hurt = onboarded({ id: "priya-s", onboardedAt: "2026-09-20" });
+  const events = radarWith({
+    members: [quiet, hurt],
+    pulses: [{ id: "p", memberId: "priya-s", dayOffset: 0, energy: 3, sleep: 3, stress: 3, symptoms: [] }],
+    logs: [hurtLog({ feltLike: "left knee on the way down" })],
+  });
+  assert.equal(events[0].ruleId, "R12", "the pain flag is first, ahead of a member listed before her");
+  assert.equal(events[0].memberId, "priya-s");
+  assert.equal(events[0].bucket, "attention");
+  assert.equal(events[0].detail, "Flagged that something hurt in Strength A, today: “left knee on the way down”");
+  // Not everyone Deepika coaches is a woman; the rule's own wording names no one.
+  assert.ok(!/\b(she|her)\b/i.test(events[0].trigger + events[0].suggestedAction + events[0].detail));
+  assert.ok(events.some((e) => e.ruleId === "R01" && e.memberId === "anita-k"), "and the rest still follow");
+});
+
+test("a session without a pain flag raises nothing", () => {
+  const m = onboarded();
+  const events = radarWith({ members: [m], logs: [hurtLog({ painFlag: false })] });
+  assert.ok(!events.some((e) => e.ruleId === "R12"));
+});
+
+test("a pain flag stays for four weeks unless she handles it, and never ages off in one", () => {
+  const m = onboarded({ onboardedAt: "2026-08-01" });
+  const at = (dayOffset) => radarWith({ members: [m], logs: [hurtLog({ dayOffset })] }).filter((e) => e.ruleId === "R12");
+  assert.equal(at(-1)[0].detail, "Flagged that something hurt in Strength A, yesterday.");
+  assert.equal(at(-10).length, 1, "still there after the week the other rules look at");
+  assert.equal(at(-28).length, 1);
+  assert.equal(at(-29).length, 0);
+});
+
+test("handling one pain flag never hides the next one", () => {
+  const m = onboarded({ onboardedAt: "2026-08-01" });
+  const first = hurtLog({ id: "wl-1", dayOffset: -6 });
+  const handled = radar.markHandled([], radarWith({ members: [m], logs: [first] })[0].id, "2026-09-30");
+  // a fortnight later it is still handled — one particular flag stays handled for good
+  const later = radarWith({ members: [m], logs: [hurtLog({ id: "wl-1", dayOffset: -20 })], handled, today: "2026-10-14" });
+  assert.equal(later.find((e) => e.ruleId === "R12").resolved, true);
+  // and a second flag is a new thing on the page
+  const again = radarWith({ members: [m], logs: [first, hurtLog({ id: "wl-2", dayOffset: 0 })], handled });
+  const pain = again.filter((e) => e.ruleId === "R12");
+  assert.deepEqual(pain.map((e) => e.resolved), [false, true], "newest first; only the old one is handled");
+});
+
+// ------------------------------------------------------------ what "Handled" means
+test("handled hides one session or one message, not every later one", () => {
+  // This is the bug it replaces: ids were `member-rule` and kept for ever, so
+  // one Handled on "session tomorrow" hid every session she ever had after it.
+  const m = onboarded({ onboardedAt: "2026-08-01" });
+  const pulse = { id: "p", memberId: m.id, dayOffset: 0, energy: 3, sleep: 3, stress: 3, symptoms: [] };
+  const session = (id) => ({ id, memberId: m.id, dayOffset: 1, status: "scheduled", type: "1:1 coaching", time: "6:00 pm" });
+  const msg = (id, dayOffset) => ({ id, memberId: m.id, from: "member", kind: "text", body: "?", dayOffset, time: "9:00 am", read: false });
+
+  const first = radarWith({ members: [m], pulses: [pulse], sessions: [session("s-1")], messages: [msg("m-1", 0)] });
+  let handled = [];
+  for (const e of first.filter((e) => e.ruleId === "R07" || e.ruleId === "R06")) handled = radar.markHandled(handled, e.id, TODAY);
+  const same = radarWith({ members: [m], pulses: [pulse], sessions: [session("s-1")], messages: [msg("m-1", 0)], handled });
+  assert.ok(same.filter((e) => e.ruleId === "R07" || e.ruleId === "R06").every((e) => e.resolved));
+
+  // next week: another session, and she has written again
+  const next = radarWith({
+    members: [m], pulses: [pulse], sessions: [session("s-2")], messages: [msg("m-1", -7), msg("m-2", 0)],
+    handled, today: cal.addDays(TODAY, 7),
+  });
+  assert.equal(next.find((e) => e.ruleId === "R07").resolved, false, "a new session is a new flag");
+  assert.equal(next.find((e) => e.ruleId === "R06").resolved, false, "a new message is a new flag");
+});
+
+test("handling a pattern hides it for a week, then it comes back if still true", () => {
+  const m = onboarded({ id: "anita-k", onboardedAt: "2026-09-01" }); // nothing recorded: R01
+  const id = radarWith({ members: [m] }).find((e) => e.ruleId === "R01").id;
+  const handled = radar.markHandled([], id, TODAY);
+  const on = (n) => radarWith({ members: [m], handled, today: cal.addDays(TODAY, n) }).find((e) => e.ruleId === "R01");
+  assert.equal(on(0).resolved, true);
+  assert.equal(on(radar.HANDLED_DAYS - 1).resolved, true);
+  assert.equal(on(radar.HANDLED_DAYS).resolved, false, "still silent a week on: Deepika is told again");
+  assert.equal(on(0).pattern, true, "and the page can say so when she handles it");
+});
+
+test("a Handled from before it had a date no longer hides anything", () => {
+  const m = onboarded({ id: "anita-k", onboardedAt: "2026-09-01" });
+  const e = radarWith({ members: [m], handled: ["anita-k-R01", "anita-k-R07"] }).find((x) => x.ruleId === "R01");
+  assert.equal(e.resolved, false);
+});
+
+test("marking handled, and taking it back", () => {
+  let list = radar.markHandled([], "a-R01", "2026-10-01");
+  list = radar.markHandled(list, "a-R01", "2026-10-06");
+  assert.deepEqual(list, ["a-R01|2026-10-06"], "handling again restamps it rather than adding a second");
+  list = radar.markHandled(list, "b-R07-s-1", "2026-10-06");
+  assert.deepEqual(radar.reopenHandled(list, "a-R01"), ["b-R07-s-1|2026-10-06"]);
+  assert.deepEqual(radar.reopenHandled(["old-style", "a-R01|2026-10-06"], "old-style"), ["a-R01|2026-10-06"]);
+  let many = [];
+  for (let i = 0; i < 620; i++) many = radar.markHandled(many, `m-R06-${i}`, "2026-10-06");
+  assert.equal(many.length, 500, "the list is bounded");
+  assert.equal(many[many.length - 1], "m-R06-619|2026-10-06", "and keeps the newest");
+});
+
+test("coming back is celebrated however much she does that day", () => {
+  // Two things marked on the day she returned used to read as "no gap".
+  const m = onboarded({ onboardedAt: "2026-09-01" });
+  const before = action({ id: "old", dayOffset: -5, completed: "minimum" });
+  const one = [before, action({ id: "new-1", dayOffset: 0, completed: "minimum" })];
+  const two = [...one, action({ id: "new-2", dayOffset: 0, completed: "target", moduleId: "sl-reset" })];
+  const r08 = (actions) => radarWith({ members: [m], actions }).find((e) => e.ruleId === "R08");
+  assert.equal(r08(one).detail, "First action after 5 inactive days.");
+  assert.equal(r08(two).detail, "First action after 5 inactive days.");
+  assert.equal(r08(one).id, r08(two).id, "and it is the same flag, so handling it once is enough");
 });
 
 test("rules added in a release reach a stored copy, keeping her switches", () => {
-  const stored = radar.radarRules.filter((r) => r.id !== "R11").map((r) => (r.id === "R03" ? { ...r, enabled: false } : r));
+  const stored = radar.radarRules
+    .filter((r) => r.id !== "R11" && r.id !== "R12")
+    .map((r) => (r.id === "R03" ? { ...r, enabled: false } : r));
   const merged = radar.withShippedRules(stored);
   assert.ok(merged.some((r) => r.id === "R11"));
+  assert.equal(merged.find((r) => r.id === "R12").enabled, true, "the pain rule reaches her switched on");
   assert.equal(merged.find((r) => r.id === "R03").enabled, false);
   assert.equal(merged.find((r) => r.id === "R01").enabled, true);
 });
@@ -501,6 +630,9 @@ test("drafts answering her open Radar flags come first", () => {
   assert.equal(drafts.draftForRules(["R06"]), null, "an unanswered message needs a real reply, not a draft");
   assert.equal(drafts.draftForRules(["R06", "R01"]).id, "check-in");
   assert.equal(drafts.draftsFor([]).length, drafts.REPLY_DRAFTS.length, "every draft is always on offer");
+  // a pain flag is answered before anything else she might write
+  assert.equal(drafts.draftForRules(["R11", "R01", "R12"]).id, "something-hurt");
+  assert.notEqual(drafts.draftsFor([])[0].draft.id, "something-hurt", "but it is not pushed at her when nothing hurt");
 });
 
 test("every draft is addressed to her and keeps to the app's rules", () => {
@@ -642,4 +774,126 @@ test("a run decides once per member, sends to each device, and forgets dead ones
   const outside = await rem.runReminders("evening", TODAY, 3, deps);
   assert.equal(outside.inWindow, false);
   assert.equal(outside.members, 0, "outside the window nothing is even read");
+});
+
+// ------------------------------------------------------------- a day, read once
+const dayData = ({ actions = [], pulses = [], food = [], messages = [], workouts = [] } = {}) => ({
+  actions, pulses, foodEntries: food, messages, workoutLogs: workouts,
+});
+
+test("a day is coloured by the biggest thing done in it", () => {
+  const a = (completed) => action({ id: `x-${completed}`, completed });
+  assert.equal(dv.levelForDay([a("minimum"), a("stretch"), a("target")]), "stretch");
+  assert.equal(dv.levelForDay([a("minimum"), a("rest")]), "minimum", "something done outranks a 'not today'");
+  assert.equal(dv.levelForDay([a("rest"), a(null)]), "rest");
+  assert.equal(dv.levelForDay([a(null)]), null);
+  assert.equal(dv.levelForDay([]), null);
+});
+
+test("a day view holds what she did, felt, ate and wrote that day — and nobody else's", () => {
+  const data = dayData({
+    actions: [
+      touch.action(-1, "target"), touch.action(-1, "rest"), touch.action(0, null),
+      action({ id: "other", memberId: "someone-else", dayOffset: -1, completed: "stretch" }),
+    ],
+    pulses: [touch.pulse(-1)],
+    food: [touch.food(-1), touch.food(-1), touch.food(0)],
+    messages: [touch.message(-1), touch.message(-1, "coach")],
+    workouts: [{ id: "w", memberId: "priya-s", workoutId: "wk", dayOffset: -1, completedLevel: "target", rpe: 6, painFlag: false }],
+  });
+  const d = dv.dayView("priya-s", -1, data);
+  assert.equal(d.level, "target");
+  assert.equal(d.actions.length, 2);
+  assert.equal(d.done.length, 1, "a 'not today' is not something done");
+  assert.equal(d.pulse.dayOffset, -1);
+  assert.equal(d.protein, 10);
+  assert.equal(d.foodCount, 2);
+  assert.equal(d.wrote, 1, "Deepika's message is not hers");
+  assert.equal(d.workouts.length, 1);
+  assert.ok(dv.hasAnything(d));
+  assert.ok(!dv.hasAnything(dv.dayView("priya-s", -5, data)));
+});
+
+test("the last n days run oldest to today, and their counts are plain counts", () => {
+  const data = dayData({
+    actions: [touch.action(-6, "minimum"), touch.action(-2, "stretch"), touch.action(-2, "target"), touch.action(0, "rest")],
+    pulses: [touch.pulse(-6), touch.pulse(0)],
+    food: [touch.food(-2), touch.food(-2), touch.food(-1)],
+  });
+  const days = dv.lastDays("priya-s", 7, data);
+  assert.deepEqual(days.map((d) => d.dayOffset), [-6, -5, -4, -3, -2, -1, 0]);
+  assert.deepEqual(days.map((d) => d.level), ["minimum", null, null, null, "stretch", null, "rest"]);
+  assert.deepEqual(dv.spanStats(days), {
+    days: 7, activeDays: 2, checkIns: 2, foodDays: 2, proteinAvg: 8, sessions: 0,
+  });
+  assert.equal(dv.spanStats(dv.lastDays("priya-s", 7, dayData())).proteinAvg, null, "no food logged is not zero grams");
+});
+
+test("days are named the way a person says them", () => {
+  assert.equal(dv.dayName(0, TODAY), "Today");
+  assert.equal(dv.dayName(-1, TODAY), "Yesterday");
+  assert.equal(dv.dayName(-2, TODAY), "Sun 4 Oct");
+  assert.equal(dv.dayName(-6, TODAY), "Wed 30 Sep", "across a month end");
+  assert.equal(dv.dayLetter(0, TODAY), "T");
+  assert.equal(dv.dayOfMonth(-6, TODAY), 30);
+});
+
+test("a check-in reads back as the mood she tapped, when it was one", () => {
+  assert.equal(dv.moodOf({ energy: 3, stress: 3 }).label, "Okay");
+  assert.equal(dv.moodOf({ energy: 2, stress: 3 }).label, "Tired");
+  assert.equal(dv.moodOf({ energy: 5, stress: 1 }), null, "detailed numbers are not forced into a mood");
+});
+
+test("a check-in with no sleep rating is not a bad night", () => {
+  // The one-tap mood saves sleep as 0. Two of those used to put "Your sleep
+  // was more disrupted than usual" on her Today screen.
+  const moodOnly = { sleep: 0 };
+  assert.equal(dv.lowSleepNights([moodOnly, moodOnly, moodOnly]), 0);
+  assert.equal(dv.lowSleepNights([{ sleep: 2 }, moodOnly, { sleep: 1 }, { sleep: 3 }]), 2);
+  assert.equal(dv.lowSleepNights([]), 0);
+});
+
+test("last seen counts anything of hers, and says it in words", () => {
+  const data = dayData({
+    actions: [touch.action(-5, "minimum"), touch.action(-2, "rest"), touch.action(0, null)],
+    food: [touch.food(-1, "coach_on_behalf")],
+    messages: [touch.message(-1, "coach")],
+  });
+  assert.equal(dv.lastSeen("priya-s", data), -2, "a 'not today' is being here; Deepika's entries are not");
+  assert.equal(dv.lastSeen("priya-s", dayData()), null);
+  assert.equal(dv.lastSeenLabel(0), "Here today");
+  assert.equal(dv.lastSeenLabel(-1), "Here yesterday");
+  assert.equal(dv.lastSeenLabel(-4), "Last here 4 days ago");
+  assert.equal(dv.lastSeenLabel(null), "Nothing logged yet");
+});
+
+test("weeks are full runs of seven days ending today, averaged only over what she rated", () => {
+  const pulse = (d, energy, sleep, stress) => ({ ...touch.pulse(d), energy, sleep, stress });
+  const data = dayData({
+    actions: [touch.action(0, "minimum"), touch.action(-6, "target"), touch.action(-7, "stretch"), touch.action(-13, "rest")],
+    pulses: [pulse(0, 4, 0, 4), pulse(-3, 2, 3, 3), pulse(-8, 3, 4, 2)],
+    food: [touch.food(-1), touch.food(-1), touch.food(-2)],
+  });
+  const [older, recent] = dv.weekBuckets("priya-s", 2, data);
+  assert.deepEqual([recent.weeksAgo, recent.fromOffset, recent.toOffset], [0, -6, 0]);
+  assert.deepEqual([older.weeksAgo, older.fromOffset, older.toOffset], [1, -13, -7]);
+  assert.equal(recent.activeDays, 2);
+  assert.equal(recent.checkIns, 2);
+  assert.equal(recent.energy, 3);
+  assert.equal(recent.sleep, 3, "the mood tap with no sleep rating is left out, not counted as zero");
+  assert.equal(recent.calm, 3.5);
+  assert.equal(recent.protein, 8, "averaged over the two days she logged, not seven");
+  assert.equal(older.activeDays, 1, "a 'not today' is not an active day");
+  assert.equal(older.sleep, 4);
+  assert.equal(older.protein, null);
+});
+
+test("how far back her record goes decides how many weeks there are to show", () => {
+  assert.equal(dv.weeksOfHistory("priya-s", dayData()), 0);
+  assert.equal(dv.weeksOfHistory("priya-s", dayData({ pulses: [touch.pulse(0)] })), 1);
+  assert.equal(dv.weeksOfHistory("priya-s", dayData({ pulses: [touch.pulse(-6)] })), 1);
+  assert.equal(dv.weeksOfHistory("priya-s", dayData({ pulses: [touch.pulse(-7)] })), 2);
+  assert.equal(dv.weeksOfHistory("priya-s", dayData({ actions: [touch.action(-200, "minimum")] })), 12, "capped at the length of the journey");
+  assert.equal(dv.weeksOfHistory("priya-s", dayData({ actions: [touch.action(-30, null)] })), 0, "a planned action is not a record of her");
+  assert.equal(dv.shortDate(-2, TODAY), "4 Oct");
 });

@@ -21,6 +21,7 @@
     "lib/foodParse.ts",
     "lib/replyDrafts.ts",
     "lib/display.ts",
-    "lib/reminders.ts"
+    "lib/reminders.ts",
+    "lib/dayView.ts"
   ]
 }

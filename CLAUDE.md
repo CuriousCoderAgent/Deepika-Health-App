@@ -206,7 +206,9 @@ app/
 lib/
   types.ts                  Domain model + Provenance envelope
   seed.ts                   6 personas, 14 modules, 3 workouts, plans, messages
-  radar.ts                  10 rules + evaluator
+  radar.ts                  12 rules + evaluator, and what "Handled" means
+  dayView.ts                One day of one member, read the same way everywhere
+                            (Today's history, Insights, Deepika's week view)
   store.tsx                 Context, localStorage, all mutations
   calendar.ts               Dates in India time; the one definition of "today"
   dailyPlan.ts              Roll a member forward a day; build today's actions
@@ -218,8 +220,18 @@ lib/
   replyDrafts.ts            Drafts for Deepika's messages, suggested by the Radar
   display.ts                Members by name in the console; initials behind the
                             privacy screen (privacyScreen.ts, per device)
+  useWidth.ts               A chart's real pixel width, so it is drawn, not stretched
 components/
   ui.tsx                    EffortRamp, ProvenanceChip, ConsistencyBand, Sparkline
+  charts.tsx                TrendRows, Columns, StatTile, DataTable — Insights
+  BottomSheet.tsx           Every sheet. Read its comment before changing focus
+                            or visibility: both broke the Today screen once
+  QuickDone.tsx             Mark an action done from Today: three sizes, not
+                            today, Undo. Sessions go to the session page
+  DayHistory.tsx            Her last 14 days; yesterday can still be marked
+  Toast.tsx                 "Recorded" / "Handled", with Undo — both sides
+  QuickFind.tsx             Deepika's jump-to-a-member (/ or Ctrl+K)
+  HerWeek.tsx               Her last 7 days, a row each, on the member page
   PulseCard.tsx             Daily Pulse (member + coach-on-behalf modes)
   MealText.tsx              Type what you ate → check → add
   Reminders.tsx             Reminder setting; ReminderPrompt / InstallPrompt are
@@ -263,9 +275,25 @@ each colour means semantically. Read those comments before adding a colour.
 - Verify with `npm run build` before committing. It type-checks.
 - After changing `lib/radar.ts` or `lib/seed.ts`, run `npm run test:logic` — it
   checks that the sample cohort still fills all four Radar buckets. There are
-  now eleven rules; R11 (a new member who has not been greeted) only ever fires
-  for real members, never the sample cohort.
+  now twelve rules; R11 (a new member who has not been greeted) only ever fires
+  for real members, never the sample cohort, and nobody in the sample cohort
+  has flagged pain (R12).
 - Run `npm run test:logic` as well as `npm run build` before committing.
+- **A promise on her screen needs a rule on Deepika's.** The session page told a
+  member who flagged pain that Deepika would see it first and to wait for a
+  reply — for months nothing told Deepika. If member copy says Deepika will
+  see, read or reply to something, check that the console actually raises it.
+- **"Handled" means this one.** A Radar flag about one thing (a session, a
+  message, a pain flag, a symptom report) carries that record's id; a flag
+  about a pattern comes back after a week if still true. Never key a flag on
+  a count or a day offset — both change overnight. See `lib/radar.ts`.
+- **A rating of 0 means "not rated".** The one-tap mood saves sleep as 0. Any
+  rule or sentence that reads sleep has to skip it (`lowSleepNights` in
+  `lib/dayView.ts`), or a mood-only check-in reads as a bad night.
+- **Look at screens with animations on.** Checks run with reduced motion hid a
+  sheet that pushed the whole phone frame up for everyone else. Reduced motion
+  is for stable screenshots; `reducedMotion: "no-preference"` is what members
+  have, and a flow is not checked until it has been run that way.
 
 ---
 

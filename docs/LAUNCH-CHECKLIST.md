@@ -61,6 +61,53 @@ code, one tap to WhatsApp), **temporary-password reset** by Deepika, members
 - **Add to Home Screen** offer, once, after the first check-in — on an iPhone the
   only way reminders can work.
 
+## Added 24 November 2026
+
+**For members**
+
+- **Done in one tap.** The circle beside each action on Today opens the three
+  sizes — Minimum, Target, Stretch, as equals — plus "not today" with a reason,
+  and an Undo afterwards. A strength session still goes to the session page,
+  because that is where effort and pain are recorded.
+- **The check-in folds away** to one line once answered, with Change.
+- **Her last 14 days**, day by day, from the consistency band. Yesterday can
+  still be marked — forgetting to tap is not the same as not doing it — and a
+  session marked that way is saved on yesterday, not today.
+- **Insights that can be read.** One range control (2 weeks / Journey), her own
+  energy, sleep and calm ratings on a labelled chart she can tap across,
+  protein against the target Deepika set, and the same numbers as a table.
+  Descriptive only: nothing is scored or interpreted.
+
+**For Deepika**
+
+- **Find a member** from anywhere (`/` or Ctrl+K), and a phone bar with the
+  four screens she lives in and the rest behind More.
+- **The day in four numbers** on the Radar — here today, waiting for a reply,
+  sessions by tomorrow, gone quiet — and a Members list that says when each
+  woman was last here.
+- **Her last 7 days** on a member's page: what she did each day, how she rated
+  it, what she wrote, and any pain flag.
+
+**Fixed — found by running the app as a member and as Deepika, end to end**
+
+- **A pain flag never reached Deepika.** A member who flagged that something
+  hurt was told "Deepika will see this before anything else today. Do not do
+  the next session until she has replied" — and nothing told Deepika. It is now
+  Radar rule R12, first in Needs attention for four weeks or until handled,
+  with a reply draft that asks what happened and holds the next session.
+- **"Handled" was for ever.** Marking "session tomorrow" as handled once hid
+  every later session for that member; the same for messages and quiet spells.
+  Handled now means that one flag: a new session, message, symptom report or
+  pain flag always shows, and a pattern comes back after a week if it is still
+  true. There is an Undo. **Anything Deepika marked handled before this
+  release reappears once** — that is the fix working, not a fault.
+- **A comeback was not celebrated** if she marked two things on the day she
+  returned.
+- **"Your sleep was more disrupted than usual… We've made today lighter"** was
+  shown to anyone who checked in by mood two days running without rating sleep,
+  and nothing made her day lighter. It now appears only when she really rated
+  sleep low, and says only that.
+
 ## Only the owner can do these
 
 In rough order. Items 1–4 are small and should be done before anyone is invited.

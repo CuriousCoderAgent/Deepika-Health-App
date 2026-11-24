@@ -92,6 +92,12 @@
     @apply min-h-[44px] min-w-[44px];
   }
 
+  /* The slight give of something pressed, so a tap is felt before the screen
+     changes. Reduced-motion turns the transition off below. */
+  .press {
+    @apply transition-transform duration-100 active:scale-[0.985];
+  }
+
   /* Keeps the bottom navigation clear of the iPhone home indicator and of
      Android gesture bars. Zero on hardware without an inset, so it costs
      nothing elsewhere. */

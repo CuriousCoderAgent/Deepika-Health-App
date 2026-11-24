@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Check, Smile, Meh, Moon, Frown } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { MOODS as MOOD_VALUES, moodOf } from "@/lib/dayView";
 import { ProvenanceChip } from "./ui";
 import BottomSheet from "./BottomSheet";
 
@@ -26,12 +27,16 @@ const SCALES = [
  * Icons, not emoji faces — one icon family throughout. No true red: that is
  * reserved for genuine system errors, never for how a woman says she feels.
  */
-const MOODS = [
-  { key: "good", label: "Good", energy: 4, stress: 4, icon: Smile, cls: "bg-effort-tint text-effort-stretch" },
-  { key: "okay", label: "Okay", energy: 3, stress: 3, icon: Meh, cls: "bg-paper-sunk text-ink-soft" },
-  { key: "tired", label: "Tired", energy: 2, stress: 3, icon: Moon, cls: "bg-calm-tint text-calm" },
-  { key: "stressed", label: "Stressed", energy: 2, stress: 2, icon: Frown, cls: "bg-attention-tint text-attention" },
-] as const;
+const MOOD_LOOK = {
+  good: { icon: Smile, cls: "bg-effort-tint text-effort-stretch" },
+  okay: { icon: Meh, cls: "bg-paper-sunk text-ink-soft" },
+  tired: { icon: Moon, cls: "bg-calm-tint text-calm" },
+  stressed: { icon: Frown, cls: "bg-attention-tint text-attention" },
+} as const;
+
+// What each mood stands for lives in lib/dayView.ts, so the history and
+// Deepika's week view read a check-in back the same way it was saved.
+const MOODS = MOOD_VALUES.map((m) => ({ ...m, ...MOOD_LOOK[m.key] }));
 
 const SYMPTOMS = ["Hot flush", "Night waking", "Bloating", "Joint aches", "Low mood", "Cramping"];
 
@@ -54,6 +59,9 @@ export default function PulseCard({
   const [symptoms, setSymptoms] = useState<string[]>(existing?.symptoms ?? []);
   const [note, setNote] = useState(existing?.note ?? "");
   const [justSaved, setJustSaved] = useState<string | null>(null);
+  // Once she has answered, the card folds to one line so the day's actions
+  // are not pushed down the screen by a question already answered.
+  const [changing, setChanging] = useState(false);
 
   const openSheet = () => {
     setV({
@@ -81,7 +89,10 @@ export default function PulseCard({
       asCoach
     );
     setJustSaved(mo.key);
-    window.setTimeout(() => setJustSaved(null), 2200);
+    window.setTimeout(() => {
+      setJustSaved(null);
+      setChanging(false);
+    }, 1600);
   };
 
   const ready = v.energy > 0 && v.sleep > 0 && v.stress > 0;
@@ -180,6 +191,56 @@ export default function PulseCard({
     </>
   );
 
+  const sheet = (
+    <BottomSheet open={sheetOpen} onClose={() => setSheetOpen(false)} title="How are you today?">
+      {detailForm}
+    </BottomSheet>
+  );
+
+  // Answered, and not being changed: one line. Deepika's on-behalf card stays
+  // open, because she is filling it in during a call rather than glancing at it.
+  if (existing && !changing && !justSaved && !asCoach) {
+    const mood = moodOf(existing);
+    const look = mood ? MOOD_LOOK[mood.key] : null;
+    const Icon = look?.icon ?? Check;
+    return (
+      <div className="card flex items-center gap-3 py-2.5 pl-4 pr-2">
+        <span
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+            look?.cls ?? "bg-effort-tint text-effort-stretch"
+          }`}
+        >
+          <Icon size={17} strokeWidth={2.1} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[14px] font-medium leading-snug">
+            {mood ? `Feeling ${mood.label.toLowerCase()} today` : "Checked in today"}
+          </p>
+          <p className="text-[12px] leading-snug text-ink-soft">
+            Energy {existing.energy}/5 · Sleep{" "}
+            {existing.sleep ? (
+              `${existing.sleep}/5`
+            ) : (
+              <button onClick={openSheet} className="text-effort-stretch underline underline-offset-2">
+                add
+              </button>
+            )}{" "}
+            · Calm {existing.stress}/5
+            {existing.symptoms.length > 0 &&
+              ` · ${existing.symptoms.length} symptom${existing.symptoms.length > 1 ? "s" : ""}`}
+          </p>
+        </div>
+        <button
+          onClick={() => setChanging(true)}
+          className="tap shrink-0 rounded-xl px-3 text-[13px] text-ink-soft underline underline-offset-2 hover:text-ink"
+        >
+          Change
+        </button>
+        {sheet}
+      </div>
+    );
+  }
+
   return (
     <div className="card p-4">
       <div className="flex items-baseline justify-between">
@@ -257,9 +318,7 @@ export default function PulseCard({
         </p>
       )}
 
-      <BottomSheet open={sheetOpen} onClose={() => setSheetOpen(false)} title="How are you today?">
-        {detailForm}
-      </BottomSheet>
+      {sheet}
     </div>
   );
 }

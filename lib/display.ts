@@ -1,4 +1,4 @@
-import type { Member } from "./types";
+import type { EngagementState, Member } from "./types";
 
 /**
  * How a member is named in the coach console.
@@ -43,3 +43,14 @@ export function matchesMember(m: Member, query: string): boolean {
   if (!q) return true;
   return m.name.toLowerCase().includes(q) || m.id.toLowerCase().includes(q);
 }
+
+/**
+ * How a member is doing, in a word. Descriptive, never stigmatising:
+ * "Needs attention", not "Non-compliant".
+ */
+export const ENGAGEMENT: Record<EngagementState, { label: string; cls: string }> = {
+  strong: { label: "On plan", cls: "bg-effort-tint text-effort-stretch" },
+  steady: { label: "Steady", cls: "bg-paper-sunk text-ink-soft" },
+  slipping: { label: "Needs attention", cls: "bg-attention-tint text-attention" },
+  quiet: { label: "Quiet lately", cls: "bg-attention-tint text-attention" },
+};
