@@ -11,16 +11,20 @@ const nextConfig = {
   // No screen here uses next/image, but Next serves its image-resizing address
   // (/_next/image) wherever the app runs under `next start`, used or not —
   // and it has been behind eight advisories against Next 16 alone, two of
-  // them remote code execution. So it is switched off, twice over, and both
-  // halves are needed:
+  // them remote code execution. So it is switched off, three times over:
   //
-  //  - `unoptimized` is the documented switch. With it the address resizes
-  //    nothing — but Next still answers it, by drawing the app's "page not
-  //    found" screen.
+  //  - `unoptimized` is the documented switch. With it Next's own resizer
+  //    resizes nothing — but Next still answers the address, by drawing the
+  //    app's "page not found" screen.
   //  - the rewrite below therefore hands the address to /api instead, where
   //    app/api/[...missing] answers a plain 404 and no page is drawn at all.
+  //  - neither of those stops Vercel, which has a resizer of its own at the
+  //    same address and answers ahead of the rewrite. proxy.ts runs before
+  //    it, and is what actually answers 404 there.
   //
-  // See "The Next.js version" in docs/DEPLOYMENT.md before changing either.
+  // See "The Next.js version" in docs/DEPLOYMENT.md before changing any of
+  // them — and after a deploy, open /_next/image?url=%2Ficons%2Ficon-192.png&w=64&q=75
+  // on the live address. It must answer 404, not a picture.
   images: { unoptimized: true },
   async rewrites() {
     return {

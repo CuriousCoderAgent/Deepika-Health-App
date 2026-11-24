@@ -10,6 +10,13 @@
  *
  * No browser and no database: these are plain requests, the kind a scanner
  * sends.
+ *
+ * What this cannot see is a host that answers an address itself, ahead of
+ * the app. Vercel does that with the image-resizing address: on the first
+ * Next 16 build there its own resizer served a picture while every check
+ * here passed. Only the proxy runs early enough to stop it, so R1 and R2 ask
+ * that the proxy was the one that answered — and docs/DEPLOYMENT.md has the
+ * address to open on the live site after a deploy, which is the real check.
  */
 import { check } from "./harness.mjs";
 
@@ -18,7 +25,12 @@ const ACTION = { "Next-Action": "0".repeat(40), "Content-Type": "text/plain;char
 export default async function refused({ base, serverLog }) {
   const send = async (path, init = {}) => {
     const res = await fetch(base + path, { redirect: "manual", ...init });
-    return { status: res.status, type: res.headers.get("content-type") ?? "", body: await res.text() };
+    return {
+      status: res.status,
+      type: res.headers.get("content-type") ?? "",
+      by: res.headers.get("x-refused-by") ?? "nobody in particular",
+      body: await res.text(),
+    };
   };
   /** A form, as a browser would post one. */
   const form = () => {
@@ -34,9 +46,9 @@ export default async function refused({ base, serverLog }) {
   const image = "/_next/image?url=%2Ficons%2Ficon-192.png&w=64&q=75";
   const resized = await send(image);
   check(
-    "R1 the image-resizing address resizes nothing — it answers 404, and as JSON, so no page was drawn either",
-    resized.status === 404 && resized.type.includes("json"),
-    `${resized.status} ${resized.type}`
+    "R1 the image-resizing address resizes nothing — the proxy answers 404, as JSON, before anything else can",
+    resized.status === 404 && resized.type.includes("json") && resized.by === "proxy",
+    `${resized.status} ${resized.type}, refused by ${resized.by}`
   );
 
   const spelt = [];
@@ -45,9 +57,9 @@ export default async function refused({ base, serverLog }) {
     spelt.push([`action to ${path.split("?")[0]}`, await send(path, { method: "POST", headers: ACTION, body: "[]" })]);
   }
   check(
-    "R2 a POST to that address, or anything spelt like it, gets the same plain 404",
-    spelt.every(([, r]) => r.status === 404 && r.type.includes("json")),
-    saw(spelt)
+    "R2 a POST to that address, or anything spelt like it, gets the same plain 404 from the proxy",
+    spelt.every(([, r]) => r.status === 404 && r.type.includes("json") && r.by === "proxy"),
+    spelt.map(([what, r]) => `${what} → ${r.status} by ${r.by}`).join(", ")
   );
 
   // ---- POSTs to a page --------------------------------------------------------
