@@ -184,14 +184,21 @@ B1, C1, D1, F1 and I1.
 **Waiting on:** Deepika, to accept or change the revised text.
 
 1. She reads the revised survey (`docs/SURVEY.md`) and says what to change.
+   A change of wording goes into the script and into the answers page.
 2. The form is made: `docs/survey/make-google-form.gs`, then the three things
    to do by hand that `docs/SURVEY.md` lists.
 3. She sends it.
-4. The answers are pasted into the answers page.
-5. They are read against the three answers that would change plans
+4. Eshan gives the link to the form's spreadsheet, and the answers page is
+   switched from its made-up answers to that sheet. The call to Google Drive
+   has to be tried against the real sheet first; it has not been, because
+   there is no sheet yet.
+5. The answers are read against the three that would change plans
    (`docs/SURVEY.md`), and go into the conversation in section 1.
 
-The answers page: not published yet.
+The answers page is a dashboard on Eshan's Claude account, listed under
+Artifacts as "Deepika's health survey" and private until he shares it. Its
+address is kept out of this repository, which is public. On 28 November it
+shows 48 made-up answers and says so.
 
 ---
 

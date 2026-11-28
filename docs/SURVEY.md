@@ -1,9 +1,9 @@
 # The survey
 
-Deepika's three-minute survey for the women's groups she is in, starting with
-I Am Moms. It is research for the programme she plans to open next year, not a
-feature of this app. It is written down here because what comes back is one of
-the three inputs to what the app becomes next (`docs/NEXT-STEPS.md`).
+Deepika's three-minute survey for the women's groups she is in on WhatsApp. It
+is research for the programme she plans to open next year, not a feature of
+this app. It is written down here because what comes back is one of the three
+inputs to what the app becomes next (`docs/NEXT-STEPS.md`).
 
 **State on 28 November 2026:** her draft has been reviewed and revised. Nothing
 has been sent, and nothing in the app was built for it.
@@ -223,7 +223,7 @@ Then, by hand:
 
 **In anything else.** The text above is all it needs. Keep the questions and
 options as written, or say what changed: the page that reads the answers
-matches on them.
+matches on them (*Where the answers go*, below).
 
 ---
 
@@ -244,12 +244,36 @@ matches on them.
 **The form's spreadsheet** holds everything, names and numbers included. It is
 the only place those are kept.
 
-**The answers page** is a private page on Eshan's Claude account; its address
-is in `docs/NEXT-STEPS.md`. Copy the whole spreadsheet, paste it in, and it
-shows each question as ranked bars that can be narrowed by age, work and
-youngest child, with the typed answers beside them. Pasting again replaces what
-was there. It refuses the name and number columns, so those never leave the
-spreadsheet.
+**The answers page** is a dashboard on Eshan's Claude account, private until he
+shares it. It is listed there, under Artifacts, as "Deepika's health survey".
+Its address is deliberately not written here: this repository is public, and
+the page will hold what real women typed. It shows who answered, then each
+question as bars ranked by how often an answer was picked, with what was typed
+beside them, and everything can be narrowed by age, work and youngest child.
+
+Until the survey has gone out it runs on 48 made-up answers, and says so at the
+top. Its source is named "Sample answers (made up)".
+
+When the form has answers, the page is pointed at the form's spreadsheet
+instead, through the Google Drive connection on that Claude account. From then
+on it reads the sheet afresh each time it is opened; nothing is pasted or
+copied, and the made-up answers and the note about them come off. For that the
+spreadsheet has to be one that Google account can open: either the script is
+run from that account, or the sheet is shared with it. If the connection will
+not do, an export of the sheet attached to the page as a file does the same
+job, one upload at a time.
+
+Three things about how it reads:
+
+- It keeps the survey's fourteen columns and drops every other one before
+  anything is counted or shown, so a name or a number never appears on it.
+- It finds each column by a few words of its question, and counts an answer as
+  an option only when it matches the option's text. An answer that matches
+  nothing is listed as typed, not lost. So a reworded question or option has to
+  be changed in the page too: its copy of the options is at the top of its
+  script.
+- Shares are out of those who answered the question, and add up to more than
+  100% where up to three could be picked.
 
 **Why the survey itself is not a Claude page.** A Claude page can only save
 something for a person who is signed in to Claude and has been given access.
@@ -272,8 +296,7 @@ Names and phone numbers of women who are not members, given for one purpose.
 - The survey says what the number is for and that it will not be shared. That
   is now a promise.
 - If someone asks to be taken off: delete her row in the spreadsheet and her
-  answer in the form's Responses tab, then paste the spreadsheet into the
-  answers page again.
-- Typed answers can identify someone even without a name. The answers page
-  stays private.
+  answer in the form's Responses tab. The answers page follows the sheet.
+- Typed answers can identify someone even without a name, so the answers page
+  is shared only with people who may read the sheet.
 - Nothing from the survey goes into this repository or the app's database.
