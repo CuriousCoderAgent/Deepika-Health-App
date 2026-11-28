@@ -185,13 +185,17 @@ B1, C1, D1, F1 and I1.
 
 1. She reads the revised survey (`docs/SURVEY.md`) and says what to change.
    A change of wording goes into the script and into the answers page.
-2. The form is made: `docs/survey/make-google-form.gs`, then the three things
-   to do by hand that `docs/SURVEY.md` lists.
+2. The form is made, in the practice's own Google account and no personal
+   one: `docs/survey/make-google-form.gs`, then the three things to do by hand
+   that `docs/SURVEY.md` lists.
 3. She sends it.
-4. Eshan gives the link to the form's spreadsheet, and the answers page is
-   switched from its made-up answers to that sheet. The call to Google Drive
-   has to be tried against the real sheet first; it has not been, because
-   there is no sheet yet.
+4. The answers page is switched from its made-up answers to the real ones.
+   Eshan to choose how (`docs/SURVEY.md`, *Where the answers go*): share the
+   sheet, view only, with the Google account his Claude's Drive connection
+   uses, so the page reads it live; or share nothing and give the page an
+   export without the name and number columns. The live way has to be tried
+   against the real sheet first; it has not been, because there is no sheet
+   yet.
 5. The answers are read against the three that would change plans
    (`docs/SURVEY.md`), and go into the conversation in section 1.
 

@@ -205,7 +205,10 @@ comes first"). Where her sheet says something different, hers wins.
 **As a Google Form.** `docs/survey/make-google-form.gs` builds the whole thing,
 with a spreadsheet for the answers. The steps are at the top of that file: sign
 in to the Google account that should own the answers, open script.new, paste,
-Run. It has not been run against Google from here, because there is no Google
+Run. That account is the practice's own Google account and no personal one
+(decided 28 November). If the browser is signed in to more than one Google
+account, do it in a private window signed in to that one alone: Apps Script
+misbehaves with several. It has not been run against Google from here, because there is no Google
 account in the build; `node docs/survey/check.mjs` runs it against a stand-in,
 which catches a mistake in the questions or a mistyped call and nothing more.
 If Google stops on a line, the line number is all that is needed to fix it.
@@ -254,14 +257,21 @@ beside them, and everything can be narrowed by age, work and youngest child.
 Until the survey has gone out it runs on 48 made-up answers, and says so at the
 top. Its source is named "Sample answers (made up)".
 
-When the form has answers, the page is pointed at the form's spreadsheet
-instead, through the Google Drive connection on that Claude account. From then
-on it reads the sheet afresh each time it is opened; nothing is pasted or
-copied, and the made-up answers and the note about them come off. For that the
-spreadsheet has to be one that Google account can open: either the script is
-run from that account, or the sheet is shared with it. If the connection will
-not do, an export of the sheet attached to the page as a file does the same
-job, one upload at a time.
+When the form has answers, the made-up ones and the note about them come off,
+and the page is given the real ones. There are two ways, and the choice follows
+from where the form lives. The form and its sheet are in the practice's Google
+account. The Google Drive connection on Eshan's Claude account belongs to a
+different, personal Google account, so it cannot see that sheet as things
+stand.
+
+- **Share the sheet, view only, with the account the connection uses.** The
+  page then reads the sheet afresh each time it is opened, and nothing is
+  pasted or copied. The sheet stays owned by the practice's account.
+- **Share nothing.** The page is given an export of the sheet instead, one
+  upload at a time, with the name and number columns deleted first: a file
+  attached to the page can be read whole by anyone the page is shared with.
+
+Which of the two is Eshan's to say.
 
 Three things about how it reads:
 
@@ -292,7 +302,7 @@ standing part of how people join.
 Names and phone numbers of women who are not members, given for one purpose.
 
 - Whoever owns the Google account that runs the script can read all of them.
-  Decide whose account that is first.
+  It is to be the practice's own account, not a personal one.
 - The survey says what the number is for and that it will not be shared. That
   is now a promise.
 - If someone asks to be taken off: delete her row in the spreadsheet and her

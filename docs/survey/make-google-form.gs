@@ -2,8 +2,10 @@
  * Makes Deepika's survey as a Google Form, with a spreadsheet for the answers.
  *
  * How to use it
- *   1. Sign in to the Google account that should own the answers. Whoever owns
- *      the form can read every name and phone number left on it.
+ *   1. Sign in to the Google account that should own the answers: the
+ *      practice's own, not a personal one. Whoever owns the form can read every
+ *      name and phone number left on it. With more than one Google account
+ *      signed in, use a private window signed in to that one alone.
  *   2. Open https://script.new, delete what is there, paste this whole file.
  *   3. Press Run. Google asks for permission the first time, because the script
  *      makes a form and a spreadsheet in your Drive. It is your own script, so
