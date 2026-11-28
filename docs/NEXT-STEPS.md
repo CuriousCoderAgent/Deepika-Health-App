@@ -181,28 +181,36 @@ B1, C1, D1, F1 and I1.
 
 ## 2. The survey
 
-**Waiting on:** Deepika, to accept or change the revised text.
+**Waiting on:** three changes to the form by hand, then Deepika's word to send.
 
-1. She reads the revised survey (`docs/SURVEY.md`) and says what to change.
-   A change of wording goes into the script and into the answers page.
-2. The form is made, in the practice's own Google account and no personal
-   one: `docs/survey/make-google-form.gs`, then the three things to do by hand
-   that `docs/SURVEY.md` lists.
+Where it stands on 28 November: the form exists, made by the script in the
+practice's own Google account, and has been sent to nobody. Its three links
+(to send, to change, to read the answers) are with Eshan. They are deliberately
+not in this repository, which is public.
+
+1. **Bring the name and the number onto the first page.** The form was made
+   with them on a second page, and that turned out to cost anyone answering
+   "No, thanks" an extra click on an empty page. Three changes in the form's
+   editor, listed in `docs/SURVEY.md` under *Making the form*. The script
+   already builds it the new way.
+2. **Deepika reads the revised wording** (`docs/SURVEY.md`) and says what to
+   change. A change goes into the form, into the script and into the answers
+   page, which matches on the exact words.
 3. She sends it.
-4. The answers page is switched from its made-up answers to the real ones.
+4. **The answers page is switched from its made-up answers to the real ones.**
    Eshan to choose how (`docs/SURVEY.md`, *Where the answers go*): share the
    sheet, view only, with the Google account his Claude's Drive connection
    uses, so the page reads it live; or share nothing and give the page an
-   export without the name and number columns. The live way has to be tried
-   against the real sheet first; it has not been, because there is no sheet
-   yet.
+   export without the name and number columns. On 28 November the sheet was
+   not visible to that connection. The live way has to be tried against the
+   real sheet before it is relied on.
 5. The answers are read against the three that would change plans
    (`docs/SURVEY.md`), and go into the conversation in section 1.
 
 The answers page is a dashboard on Eshan's Claude account, listed under
 Artifacts as "Deepika's health survey" and private until he shares it. Its
-address is kept out of this repository, which is public. On 28 November it
-shows 48 made-up answers and says so.
+address is kept out of this repository too. On 28 November it shows 48 made-up
+answers and says so.
 
 ---
 

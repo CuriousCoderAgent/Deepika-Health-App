@@ -5,8 +5,9 @@ is research for the programme she plans to open next year, not a feature of
 this app. It is written down here because what comes back is one of the three
 inputs to what the app becomes next (`docs/NEXT-STEPS.md`).
 
-**State on 28 November 2026:** her draft has been reviewed and revised. Nothing
-has been sent, and nothing in the app was built for it.
+**State on 28 November 2026:** her draft has been reviewed and revised, and the
+form has been made from the revised text, in the practice's own Google account.
+It has not been sent to anyone. Nothing in the app was built for it.
 
 ---
 
@@ -136,11 +137,9 @@ the end. Thank you!
     year?
     Yes, please share details / Maybe, keep me posted / No, thanks
 
-Only after "Yes" or "Maybe":
-    Your name
-    Your WhatsApp number
-    (Leave your name and WhatsApp number and I'll message you when the
-    programme opens. I'll use them only for that, and I won't share them
+    Your name (only if you said Yes or Maybe)
+    Your WhatsApp number (only if you said Yes or Maybe)
+    (I'll use it only to tell you about the programme, and I won't share it
     with anyone.)
 
 After sending: Thank you. This really helps. Deepika
@@ -164,7 +163,7 @@ exercise. Her wording is kept wherever it could be.
 | "What has worked best for you in the past and why? (pick one)" | No answer for someone for whom nothing worked, or who has never tried. Those are the two most useful answers she can get. And "why" cannot be answered with a tick. | Both answers added. The why is its own optional line, as she planned. |
 | "What was missing from the help you've had so far?" | Assumes she has had help. | "I haven't had any help so far" added. "Noone followed up diligently" is now "No one followed up to keep me on track". |
 | Choice questions | No way to say something else. | "Other" on every list where something else is possible. |
-| Name and phone number | Asked of everyone, including "No, thanks". | A second page that opens only after Yes or Maybe. Both optional, with a line saying what the number is for. The opening says the answers are otherwise anonymous. |
+| Name and phone number | Asked of everyone, with nothing to say they could be left blank or what the number was for. | Both optional, straight after the question, each marked "only if you said Yes or Maybe", with a line saying what the number is for. The opening says the answers are otherwise anonymous. |
 | How to exercise: three options | All three are online. | The two in-person options added. If in person is not on offer, take them out and put "online" in the question. |
 
 ### Added: hers to take or leave
@@ -207,17 +206,47 @@ with a spreadsheet for the answers. The steps are at the top of that file: sign
 in to the Google account that should own the answers, open script.new, paste,
 Run. That account is the practice's own Google account and no personal one
 (decided 28 November). If the browser is signed in to more than one Google
-account, do it in a private window signed in to that one alone: Apps Script
-misbehaves with several. It has not been run against Google from here, because there is no Google
-account in the build; `node docs/survey/check.mjs` runs it against a stand-in,
-which catches a mistake in the questions or a mistyped call and nothing more.
-If Google stops on a line, the line number is all that is needed to fix it.
+account, a private window signed in to that one alone is the safe way.
 
-Then, by hand:
+**It was run once, on 28 November 2026**, from a desktop browser, and made the
+form and its spreadsheet without an error. The form was then checked by hand
+there: the four long lists shuffle, no email address is collected, nobody has
+to sign in to Google, and two test answers reached the spreadsheet and were
+deleted. That is the report of the session that ran it. Nothing in this
+repository's build can reach Google to check it again.
+
+**That run found one thing wrong, and the script has changed since.** The
+version that ran put the name and the number on a second page, opened only by
+"Yes" or "Maybe". Google's way of doing that leaves the button as *Next* for
+everyone, and whoever answers "No, thanks" lands on a page with nothing on it
+but *Submit*. Anyone who closes the tab there has sent nothing, and the women
+least interested are the ones whose answers would go missing. So the script now
+builds one page, with the name and the number as its last two questions,
+optional and marked "only if you said Yes or Maybe".
+
+The form that exists was made by the earlier version, so it needs the same
+change by hand, in the form's editor:
+
+1. On question 14, open the three-dot menu and untick *Go to section based on
+   answer*.
+2. On the second section's heading ("Stay in touch"), open its three-dot menu
+   and choose *Merge with above*.
+3. Rename the last two questions to "Your name (only if you said Yes or Maybe)"
+   and "Your WhatsApp number (only if you said Yes or Maybe)", and give the
+   second this description, from its three-dot menu: "I'll use it only to tell
+   you about the programme, and I won't share it with anyone."
+
+The changed script has not itself been run against Google. `node
+docs/survey/check.mjs` runs it against a stand-in, which catches a mistake in
+the questions or a mistyped call and nothing more. It makes fewer calls than
+the version that ran, and no new ones.
+
+After making a form, or changing one, by hand:
 
 1. Open the link on a phone and answer it twice, once ending in "Yes" and once
-   in "No, thanks". The name and number should appear only the first time.
-   Delete both answers afterwards, in the form's Responses tab.
+   in "No, thanks". Both should end on the same single *Submit*. Delete both
+   answers afterwards, in the form's Responses tab **and** in the spreadsheet:
+   deleting an answer in the form leaves its row in the sheet.
 2. On questions 4, 5, 9 and 10, open the three-dot menu and turn on *Shuffle
    option order*. On a long list the first few options are picked more often,
    and shuffling evens that out. "Other" stays last.

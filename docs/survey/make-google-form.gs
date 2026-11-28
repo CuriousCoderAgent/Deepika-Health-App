@@ -10,7 +10,7 @@
  *   3. Press Run. Google asks for permission the first time, because the script
  *      makes a form and a spreadsheet in your Drive. It is your own script, so
  *      the "Google hasn't verified this app" screen is expected: Advanced, then
- *      "Go to Untitled project".
+ *      "Go to" followed by whatever the project is called.
  *   4. The link to send, the link to edit and the link to the answers are in
  *      the Execution log at the bottom.
  *
@@ -18,9 +18,13 @@
  * each one is worded the way it is. Running this again makes a second form; it
  * never changes one that already exists.
  *
- * Not run against Google from this repository: there is no Google account in
- * the build. `node docs/survey/check.mjs` runs it against a stand-in that knows
- * the method names used here, which catches a typo and nothing more.
+ * An earlier version was run against Google once, on 28 November 2026, and made
+ * the form without an error. That version put the name and the number on a
+ * second page, which cost anyone answering "No, thanks" an extra click on an
+ * almost empty page; this one keeps everything on one page. This version has
+ * not been run against Google. `node docs/survey/check.mjs` runs it against a
+ * stand-in that knows the method names used here, which catches a typo and
+ * nothing more.
  */
 
 var SURVEY = {
@@ -219,18 +223,21 @@ var SURVEY = {
       "title": "Would you like to hear more about the programme when I launch it next year?",
       "options": ["Yes, please share details", "Maybe, keep me posted", "No, thanks"],
       "required": true
+    },
+    {
+      "id": "name",
+      "kind": "line",
+      "title": "Your name (only if you said Yes or Maybe)",
+      "required": false
+    },
+    {
+      "id": "phone",
+      "kind": "line",
+      "title": "Your WhatsApp number (only if you said Yes or Maybe)",
+      "help": "I'll use it only to tell you about the programme, and I won't share it with anyone.",
+      "required": false
     }
-  ],
-  "contact": {
-    "after": "hear",
-    "skipOn": ["No, thanks"],
-    "title": "Stay in touch",
-    "help": "Leave your name and WhatsApp number and I'll message you when the programme opens. I'll use them only for that, and I won't share them with anyone.",
-    "fields": [
-      { "id": "name", "kind": "line", "title": "Your name", "required": false },
-      { "id": "phone", "kind": "line", "title": "Your WhatsApp number", "required": false }
-    ]
-  }
+  ]
 };
 
 function makeSurvey() {
@@ -246,31 +253,11 @@ function makeSurvey() {
     form.setRequireLogin(false);
   } catch (e) {}
 
-  var asked = {};
+  // One page, on purpose. Sending "No, thanks" straight to the end of the form
+  // was tried: Google keeps the button as Next and then shows a page with only
+  // a Submit button on it, and whoever closes the tab there has sent nothing.
   SURVEY.questions.forEach(function (q) {
-    asked[q.id] = addQuestion(form, q);
-  });
-
-  // The name and the number sit on a second page that "No, thanks" never opens.
-  // The page has to exist before the answers can point at it, so the question
-  // that leads there is made first and given its answers afterwards.
-  var contact = SURVEY.contact;
-  var page = form.addPageBreakItem();
-  page.setTitle(contact.title);
-  page.setHelpText(contact.help);
-
-  var leads = asked[contact.after];
-  var options = questionById(contact.after).options;
-  leads.setChoices(
-    options.map(function (option) {
-      return contact.skipOn.indexOf(option) === -1
-        ? leads.createChoice(option, page)
-        : leads.createChoice(option, FormApp.PageNavigationType.SUBMIT);
-    })
-  );
-
-  contact.fields.forEach(function (field) {
-    addQuestion(form, field);
+    addQuestion(form, q);
   });
 
   var answers = SpreadsheetApp.create(SURVEY.title + " (answers)");
@@ -289,13 +276,6 @@ function makeSurvey() {
   Logger.log("Send this link:   " + link);
   Logger.log("Change the form:  " + form.getEditUrl());
   Logger.log("Read the answers: " + answers.getUrl());
-}
-
-function questionById(id) {
-  for (var i = 0; i < SURVEY.questions.length; i++) {
-    if (SURVEY.questions[i].id === id) return SURVEY.questions[i];
-  }
-  throw new Error("No question called " + id);
 }
 
 function addQuestion(form, q) {

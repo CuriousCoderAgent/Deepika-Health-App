@@ -6,7 +6,8 @@
 // What it can tell you: the questions are well formed, and the script calls
 // only the Google Forms methods listed below, in an order that builds the form
 // described in docs/SURVEY.md. What it cannot tell you: that Google agrees
-// those methods exist and behave as written. Only running the script does.
+// those methods exist and behave as written. Only running the script does, and
+// that is how the second page was found to cost an extra click (28 Nov 2026).
 
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -25,7 +26,9 @@ function check(name, ok, detail = "") {
 const literal = source.match(/^var SURVEY = (\{[\s\S]*?^\});$/m);
 check("SURVEY is one object written as JSON", Boolean(literal));
 const survey = JSON.parse(literal[1]);
-const everything = [...survey.questions, ...survey.contact.fields];
+const everything = survey.questions;
+// The two that are a person's own, and so are asked last and never required.
+const PERSONAL = ["name", "phone"];
 
 const ids = everything.map((q) => q.id);
 check("every question has its own id", new Set(ids).size === ids.length, ids.join(" "));
@@ -49,7 +52,7 @@ for (const q of everything) {
   if (q.kind === "many") {
     check(`${q.id}: says how many to pick, and the title says the same`, q.max > 0 && q.title.includes(`pick up to ${q.max}`));
   }
-  if (q.kind === "one" && q.id !== survey.contact.after) {
+  if (q.kind === "one" && q.id !== "hear") {
     check(`${q.id}: the title says pick one`, q.title.includes("(pick one)"));
   }
   // An answer that looks like a date gets turned into one by a spreadsheet.
@@ -60,29 +63,27 @@ for (const q of everything) {
   );
 }
 
-const leads = survey.questions.find((q) => q.id === survey.contact.after);
-check("the question that leads to the contact page exists and is the last one", leads === survey.questions.at(-1));
-check("every answer that skips the contact page is one of its options", survey.contact.skipOn.every((o) => leads.options.includes(o)));
-check("the name and the number are both optional", survey.contact.fields.every((f) => f.required === false));
+const tail = survey.questions.slice(-3).map((q) => q.id);
+check("the name and the number come last, straight after the question that offers to keep in touch", tail.join() === ["hear", ...PERSONAL].join(), tail.join());
+const personal = survey.questions.filter((q) => PERSONAL.includes(q.id));
+check("the name and the number are both optional, and say who they are for", personal.length === 2 && personal.every((q) => q.required === false && /only if you said Yes or Maybe/.test(q.title)));
+check("the number says what it will be used for", /only to tell you about the programme/.test(personal[1].help ?? ""));
 
 // ── The script, run against a stand-in for Google ───────────────────────────
 
 const METHODS = {
   form: [
     "setDescription", "setConfirmationMessage", "setCollectEmail", "setShowLinkToRespondAgain", "setRequireLogin",
-    "addMultipleChoiceItem", "addCheckboxItem", "addTextItem", "addParagraphTextItem", "addPageBreakItem",
+    "addMultipleChoiceItem", "addCheckboxItem", "addTextItem", "addParagraphTextItem",
     "setDestination", "setPublished", "getPublishedUrl", "shortenFormUrl", "getEditUrl",
   ],
-  one: ["setChoiceValues", "showOtherOption", "setTitle", "setHelpText", "setRequired", "createChoice", "setChoices"],
+  one: ["setChoiceValues", "showOtherOption", "setTitle", "setHelpText", "setRequired"],
   many: ["setChoiceValues", "showOtherOption", "setValidation", "setTitle", "setHelpText", "setRequired"],
   line: ["setTitle", "setHelpText", "setRequired"],
   long: ["setTitle", "setHelpText", "setRequired"],
-  page: ["setTitle", "setHelpText"],
 };
 
 const built = { items: [], log: [] };
-// The script is handed stand-ins; this finds the stand-in for a record.
-const handles = new Map();
 
 function standIn(kind, record) {
   return new Proxy(record, {
@@ -91,9 +92,7 @@ function standIn(kind, record) {
       if (name in target) return target[name];
       if (!METHODS[kind].includes(name)) throw new Error(`${kind}.${name} is not a method this check knows`);
       return (...args) => {
-        if (name === "createChoice") return { value: args[0], goesTo: args[1] };
-        if (name === "setChoices") target.choices = args[0];
-        else if (name === "setChoiceValues") target.options = args[0];
+        if (name === "setChoiceValues") target.options = args[0];
         else if (name === "showOtherOption") target.other = args[0];
         else if (name === "setValidation") target.validation = args[0];
         else if (name === "setTitle") target.title = args[0];
@@ -108,8 +107,7 @@ function standIn(kind, record) {
 function item(kind) {
   const record = { kind };
   built.items.push(record);
-  handles.set(record, standIn(kind, record));
-  return handles.get(record);
+  return standIn(kind, record);
 }
 
 const form = standIn("form", {
@@ -117,7 +115,6 @@ const form = standIn("form", {
   addCheckboxItem: () => item("many"),
   addTextItem: () => item("line"),
   addParagraphTextItem: () => item("long"),
-  addPageBreakItem: () => item("page"),
   setDescription: (text) => void (built.description = text),
   setConfirmationMessage: (text) => void (built.thanks = text),
   setDestination: (type, id) => void (built.destination = { type, id }),
@@ -144,7 +141,6 @@ const context = {
       return builder;
     },
     DestinationType: { SPREADSHEET: "SPREADSHEET" },
-    PageNavigationType: { SUBMIT: "SUBMIT" },
   },
   SpreadsheetApp: {
     create: (name) => ({ getId: () => "sheet-stand-in", getUrl: () => "https://docs.google.com/spreadsheets/d/stand-in", name }),
@@ -160,38 +156,22 @@ try {
 }
 check("makeSurvey() runs to the end", threw === "", threw);
 
-const pageAt = built.items.findIndex((i) => i.kind === "page");
-const before = built.items.slice(0, pageAt);
-const after = built.items.slice(pageAt + 1);
-
 check("the form has the survey's title, opening and thank-you", built.title === survey.title && built.description === survey.intro && built.thanks === survey.thanks);
 check(
-  "the questions are made in order, each as the right kind",
-  before.length === survey.questions.length && before.every((i, n) => i.kind === survey.questions[n].kind && i.title === survey.questions[n].title),
+  "every question is made, in order, each as the right kind, and all on one page",
+  built.items.length === survey.questions.length && built.items.every((i, n) => i.kind === survey.questions[n].kind && i.title === survey.questions[n].title),
+  `${built.items.length} made`,
 );
 check(
-  "each has its options, Other where asked, and is required or not as written",
-  before.every((i, n) => {
+  "each has its options, Other where asked, its note if it has one, and is required or not as written",
+  built.items.every((i, n) => {
     const q = survey.questions[n];
-    const options = i.choices ? i.choices.map((c) => c.value) : i.options;
-    return JSON.stringify(options) === JSON.stringify(q.options) && Boolean(i.other) === Boolean(q.other) && i.required === q.required;
+    return JSON.stringify(i.options) === JSON.stringify(q.options) && Boolean(i.other) === Boolean(q.other) && i.required === q.required && i.help === q.help;
   }),
 );
 check(
   "each pick-up-to question refuses one more than its limit",
-  before.every((i, n) => survey.questions[n].kind !== "many" || i.validation?.atMost === survey.questions[n].max),
-);
-
-const leading = before.at(-1);
-const page = built.items[pageAt];
-check(
-  "\"No, thanks\" sends the form; every other answer opens the contact page",
-  Array.isArray(leading.choices) &&
-    leading.choices.every((c) => c.goesTo === (survey.contact.skipOn.includes(c.value) ? "SUBMIT" : handles.get(page))),
-);
-check(
-  "the contact page holds the name and the number, and nothing after it",
-  after.length === 2 && after.every((i, n) => i.title === survey.contact.fields[n].title && i.required === false),
+  built.items.every((i, n) => survey.questions[n].kind !== "many" || i.validation?.atMost === survey.questions[n].max),
 );
 check("the answers go to a spreadsheet", built.destination?.type === "SPREADSHEET" && built.destination?.id === "sheet-stand-in");
 check("the log gives three links", built.log.length === 3 && built.log.every((line) => line.includes("https://")));
@@ -201,14 +181,13 @@ check("the log gives three links", built.log.length === 3 && built.log.every((li
 if (process.argv.includes("--text")) {
   const lines = [survey.title, "", survey.intro, ""];
   survey.questions.forEach((q, n) => {
-    lines.push(`${n + 1}. ${q.title}`);
+    lines.push(PERSONAL.includes(q.id) ? `    ${q.title}` : `${n + 1}. ${q.title}`);
     if (q.options) for (const option of q.options) lines.push(`   - ${option}`);
     if (q.other) lines.push("   - Other");
-    lines.push("");
+    if (PERSONAL.includes(q.id) && q.help) lines.push(`    (${q.help})`);
+    if (!PERSONAL.includes(q.id) || q.id === "phone") lines.push("");
   });
-  lines.push(`If the answer is not "${survey.contact.skipOn.join('" or "')}":`);
-  for (const field of survey.contact.fields) lines.push(`   ${field.title}`);
-  lines.push(`   (${survey.contact.help})`, "", `After sending: ${survey.thanks}`);
+  lines.push(`After sending: ${survey.thanks}`);
   console.log(`\n${lines.join("\n")}`);
 }
 
