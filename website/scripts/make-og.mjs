@@ -3,14 +3,19 @@
  * WhatsApp or anywhere else that unfurls it.
  *
  * It deliberately carries no brand name — just the sprout and the line — so a
- * rename never leaves an old name stuck inside an image. Only needs re-running
- * if the tagline or the look changes:
+ * rename never leaves an old name stuck inside an image. It does name Deepika:
+ * she is the coach, not the brand, and that does not change with the name.
+ * Only needs re-running if the line or the look changes:
  *
  *   node scripts/make-og.mjs      (needs Playwright and Chromium available)
  */
-import { chromium } from "playwright";
+import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+
+// Loaded this way so that a copy of Playwright installed outside the project
+// (as it is in a Claude Code cloud session) is found too.
+const { chromium } = createRequire(import.meta.url)("playwright");
 
 const here = dirname(fileURLToPath(import.meta.url));
 const out = join(here, "..", "src", "og.png");
@@ -24,12 +29,12 @@ const html = `<!doctype html><meta charset="utf-8"><style>
   .in{position:relative;padding:0 96px}
   .mark{width:96px;height:96px;border-radius:50%;background:#E9F0EA;color:#3F6B57;display:grid;place-items:center}
   .mark svg{width:52px;height:52px}
-  h1{font-weight:400;font-size:84px;line-height:1.05;letter-spacing:-.015em;margin:40px 0 0;max-width:900px}
+  h1{font-weight:400;font-size:80px;line-height:1.06;letter-spacing:-.015em;margin:40px 0 0;max-width:960px}
   p{font:500 30px/1.4 system-ui,sans-serif;color:#3D4F60;margin:28px 0 0}
 </style><div class="a"></div><div class="b"></div>
 <div class="in"><div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg></div>
-<h1>Strength, energy and steadiness.</h1>
-<p>Health coaching built around your actual life.</p></div>`;
+<h1>You run a lot of projects. This one is you.</h1>
+<p>One-to-one health coaching for women, with Deepika.</p></div>`;
 
 const browser = await chromium.launch(
   process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}

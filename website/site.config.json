@@ -1,6 +1,8 @@
 {
   "BRAND": "Bharosa",
+  "PROGRAMME": "Project You",
   "APP_URL": "https://deepika-health-app.vercel.app",
+  "ENQUIRY_URL": "",
   "PUBLIC_URL": "",
   "PLAY_URL": "",
   "SUPPORT_EMAIL": "",

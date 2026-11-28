@@ -214,7 +214,38 @@ answers and says so.
 
 ---
 
-## 3. Small things waiting on the owner
+## 3. The website
+
+**Waiting on:** Deepika, to read it; Eshan, to say where "Ask for a place"
+leads.
+
+Redrawn on 28 November around her programme: her six promises, how the coaching
+runs from the first conversation on, then the app, with four real screens of
+it. It is a draft on the session branch. The live site does not change until
+the branch is merged.
+
+1. **Deepika reads the page.** Every line about what she does with a client is
+   a promise in her name, taken from notes she headed "Draft (to evolve)", and
+   one sentence is quoted as hers. `website/README.md` lists which lines.
+2. **Her own paragraph and a photograph** for "Meet Deepika". The photograph
+   goes in `website/src/` as `deepika.jpg` and appears on the next build.
+3. **Where "Ask for a place" leads:** a WhatsApp link, a form, a booking page.
+   It is one setting, `WEBSITE_ENQUIRY_URL`. Until it is set the page sends
+   everyone to the app, where anyone can create an account.
+4. **The names.** The page calls her programme "Project You" and the product by
+   its working name, each from one setting, and never in the same sentence.
+   Question A1 in section 1 decides both.
+5. **Merge**, which publishes it. The site stays `noindex` until the name is
+   final.
+
+Four things the page says are still open questions in section 1, and it
+changes if her answers differ: who it is for (A2, A3), three to six months
+beside a twelve-week journey in the app (B1), "two or three" habits (E1), and
+looking again at six weeks and three months (F3).
+
+---
+
+## 4. Small things waiting on the owner
 
 Not in `docs/LAUNCH-CHECKLIST.md`, or easy to lose there.
 
@@ -233,7 +264,7 @@ Not in `docs/LAUNCH-CHECKLIST.md`, or easy to lose there.
 
 ---
 
-## 4. Offered, not started
+## 5. Offered, not started
 
 Each needs a yes.
 

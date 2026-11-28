@@ -307,8 +307,13 @@ and the member must not see belongs there too.
 `website/` is the public launch site — a separate static project, not part of
 the Next app. Own deployment, own domain, no scripts or cookies. The product
 name lives in `website/site.config.json`, so the rename is a one-line change
-there. See `website/README.md` for the launch checklist. Its copy describes
-only what this app really does; if a feature changes, change the page.
+there; so does the name of Deepika's programme, and no sentence uses the two
+together. See `website/README.md` for the launch checklist. Its copy says two
+kinds of thing and keeps them apart: what Deepika does with a client, which is
+her method and hers to confirm line by line; and what the app does, which has
+to be true of the app today — if a feature changes, change the page. The four
+phone screens on it are photographs of the app (`website/scripts/make-shots.mjs`),
+never of a screen that shows the product's name or words written as hers.
 
 **Design tokens** live in `tailwind.config.ts` with comments explaining what
 each colour means semantically. Read those comments before adding a colour.

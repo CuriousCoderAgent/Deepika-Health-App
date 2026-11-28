@@ -3,9 +3,14 @@
  *
  * No dependencies and no framework on purpose. The site is one page of HTML and
  * one stylesheet, and the only things that change between "preview" and
- * "launch" are a handful of values — the brand name, the app's URL, the Play
- * Store link — which live in site.config.json and can be overridden per
- * deployment with WEBSITE_<KEY> environment variables (WEBSITE_PLAY_URL, ...).
+ * "launch" are a handful of values — the brand name, the programme's name, the
+ * app's URL, where "Ask for a place" leads, the Play Store link — which live
+ * in site.config.json and can be overridden per deployment with WEBSITE_<KEY>
+ * environment variables (WEBSITE_PLAY_URL, ...).
+ *
+ * One thing is not a value: a photograph of Deepika. Put it in src/ as
+ * deepika.jpg (or .webp or .png) and her section shows it; leave it out and
+ * the section has none.
  *
  *   node build.mjs
  *
@@ -14,7 +19,7 @@
  *   {{#KEY}}...{{/KEY}}  kept only when KEY is non-empty
  *   {{^KEY}}...{{/KEY}}  kept only when KEY is empty
  */
-import { readFileSync, writeFileSync, mkdirSync, rmSync, readdirSync, copyFileSync, statSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, rmSync, readdirSync, copyFileSync, statSync, existsSync } from "node:fs";
 import { join, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -28,6 +33,8 @@ for (const key of Object.keys(file)) {
   vars[key] = String(process.env[`WEBSITE_${key}`] ?? file[key] ?? "").trim();
 }
 vars.YEAR = String(new Date().getFullYear());
+const portrait = ["deepika.jpg", "deepika.webp", "deepika.png"].find((name) => existsSync(join(src, name)));
+vars.COACH_PHOTO = portrait ? `/${portrait}` : "";
 
 // ---- fail the build, not the launch -------------------------------------
 const problems = [];
@@ -37,6 +44,7 @@ const isHttps = (u) => {
 if (!vars.BRAND) problems.push("BRAND is empty.");
 if (!isHttps(vars.APP_URL)) problems.push("APP_URL must be an https:// URL.");
 if (vars.PUBLIC_URL && !isHttps(vars.PUBLIC_URL)) problems.push("PUBLIC_URL, when set, must be an https:// URL.");
+if (vars.ENQUIRY_URL && !isHttps(vars.ENQUIRY_URL)) problems.push("ENQUIRY_URL, when set, must be an https:// URL.");
 if (vars.PLAY_URL && !vars.PLAY_URL.startsWith("https://play.google.com/"))
   problems.push("PLAY_URL, when set, must be a https://play.google.com/ link.");
 if (vars.SUPPORT_EMAIL && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(vars.SUPPORT_EMAIL))
@@ -89,6 +97,9 @@ for (const name of readdirSync(src)) {
 // is still a working one, and a page indexed under a name that is about to
 // change is an old name that lingers in search results for months.
 if (!vars.INDEXABLE) console.log("Note: INDEXABLE is off — the site is marked noindex.");
+if (!vars.ENQUIRY_URL) console.log("Note: ENQUIRY_URL is empty — the buttons say \"Open the app\", not \"Ask for a place\".");
+if (!vars.PROGRAMME) console.log("Note: PROGRAMME is empty — the page does not name the programme.");
+if (!vars.COACH_PHOTO) console.log("Note: no src/deepika.jpg — her section has no photograph.");
 if (!vars.PLAY_URL) console.log("Note: PLAY_URL is empty — the page says the Android app is coming soon.");
 if (!vars.SUPPORT_EMAIL) console.log("Note: SUPPORT_EMAIL is empty — no contact address is shown.");
 console.log(`Built ${vars.BRAND} → ${out}`);
