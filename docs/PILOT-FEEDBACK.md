@@ -15,9 +15,18 @@ Sorted roughly by size, not by the order they were given.
 This is the first time her method has been said out loud end to end, so it is
 logged as what the practice *is*, not only as reactions to screens.
 
-Two things are deliberately not here: what the client said about himself, which
-was personal and is not product input, and a spreadsheet Deepika made for
-herself, which was mentioned and has not been seen. Items 3 and 5 wait on it.
+The workbook she ran the call from arrived later the same day: her intake
+form, the first-call worksheet, a physical assessment and the six lines of
+"Project You". Its structure is written up in `docs/COACHING-METHOD.md`, with a
+table of where the app differs. Where it adds to an item below, the item says
+"From the workbook". Item 12 comes from it alone.
+
+One thing is deliberately not here or there: what the client said about
+himself, in the call and on the sheets. It was personal and is not product
+input.
+
+What happens next is in `docs/NEXT-STEPS.md`: a set of questions for Deepika
+and Eshan, drafted from these items, to be answered before anything is built.
 
 Times in brackets are positions in the recording. Hindi is quoted as it was
 transcribed, which the transcript itself marks as close rather than exact.
@@ -63,6 +72,11 @@ are one cycle and a member goes round again with new goals; or the journey is
 one longer arc and the three phases stretch. The first needs almost no model
 change. Worth asking her which she means.
 
+**From the workbook.** The goal is headed "Health goal (3-6 months)", and the
+physical assessment has three columns: today, after a month and a half, after
+three months. A three-month round with a look at the halfway point is already
+on her own sheet, which leans towards the first reading. Still hers to say.
+
 ### 3. One primary goal, one secondary, three at most — and never a date
 
 > "Let's pick up a primary goal and a secondary goal… We can have three goals
@@ -95,6 +109,14 @@ and one secondary during the first call, each with a line in her own words
 for how they will know. The member sees them at the top of Journey. Once a
 month the Radar asks Deepika to look at them again.
 
+**From the workbook.** The worksheet has exactly this: "Primary goal" and
+"Secondary goal", one line each. They come after a table with a row for each of
+five dimensions — physical activity, nutrition, sleep, stress, lifestyle — and
+goals, pain points and barriers across. So the two goals are chosen from a
+wider set that she also writes down, and that set has no home in the app
+either. One difference from the call: the worked example gives the primary
+goal a period, where in the call she said she would not put a time on one.
+
 ### 4. Outcomes become behaviours: one to three a week
 
 > "Outcome driven goals can happen only when you add some behaviour goals."
@@ -114,6 +136,13 @@ until Deepika has made the plan hers).
 Follows item 3. Once goals have a primary and a secondary, the Journey builder
 can show them beside the week being planned.
 
+**From the workbook.** Behaviour goals are a grid: exercise, nutrition, sleep
+and lifestyle across, up to three down. That is up to twelve, where the call
+said two a week; which is the rule is worth asking. Nutrition is left open
+until the food log and the blood report are in (see item 10). Under the grid
+is a second table the app has nothing like: each barrier the client foresees,
+beside a way round it that uses one of the client's own strengths.
+
 ### 5. The intake form should be multiple choice, and goals should fall out of it
 
 > "The form that you have created needs to be in MCQ format, so that they are
@@ -121,17 +150,26 @@ can show them beside the week being planned.
 >
 > "Main bas multiple choice questions hi rakhungi." (34:34, Deepika)
 
-**Status:** waiting on her form.
+**Status:** her form has been seen. Waiting on which questions become
+multiple choice, and what the choices are.
 
 The app's first-run flow is already mostly multiple choice — life stage,
 goals, what gets in the way — but it is not her form. Hers lives outside the
 app: in the call she reads from "your intake form" and "the chart", and she
-reads the client's values back to him, which the app never asks for. Until
-her form has been seen there is nothing to map.
+reads the client's values back to him, which the app never asks for.
 
-Once it has: each option pointing at the goals it suggests is a table Deepika
-writes once, and the app reads it. That needs no AI (see item 6), and it keeps
-the choice hers — the form proposes, she confirms in the call.
+**From the workbook.** Twenty questions in seven sections, every one of them
+answered by typing: general, health, lifestyle, food, medical, values,
+strengths. The app asks three of the twenty the way she does (name, age,
+gender). Eight more have a field or a near-equivalent, and nine have nowhere to
+go — weight, height, relationship status, children, exercise enjoyed before,
+alcohol and smoking, habits to change, values, strengths. The full list, each
+beside what the app holds, is in `docs/COACHING-METHOD.md`.
+
+Once the questions have choices: each option pointing at the goals it suggests
+is a table Deepika writes once, and the app reads it. That needs no AI (see
+item 6), and it keeps the choice hers — the form proposes, she confirms in the
+call.
 
 ### 6. "The agent"
 
@@ -180,6 +218,11 @@ Journey and quietly on Today, visible to Deepika on Overview. Her words, never
 reworded by the app. The longer vision she is asked for in the call (one,
 five, ten years on) and her values could live beside it; worth asking Deepika
 whether she wants them kept or only spoken.
+
+**From the workbook.** It is on her list of what she asks for after the call,
+beside the food log and the blood report: "a note which you can narrate every
+day that reflects your health vision and goal. A vision board can also help."
+So it is homework she sets, not a passing remark.
 
 ### 8. Being answerable: a nudge at a time she chooses
 
@@ -242,6 +285,13 @@ In the app: the draft the Radar offers for a new member (R11, "Hello") says
 nothing about a first call. A second draft, "Before our first call", in her
 words, is copy and not a feature. And nothing about the wheel is built now.
 
+**From the workbook.** Her preferred way is the intake form filled in
+beforehand and a call of 30 to 45 minutes; without the form, 45 to 60. Before
+the call she wants one slide that says what she stands for — the six lines of
+"Project You". In the app that slide is a screen in the first-run flow, or a
+part of the "Before our first call" message. The wheel is on her own blueprint
+with a question mark after it.
+
 ### 10. What stays Deepika's and never becomes the software's
 
 Checked against the scope-of-practice section of `CLAUDE.md`, because three
@@ -259,6 +309,20 @@ moments in the call sit close to it:
   psychotherapist" (18:24). In the app that is a referral, not content. The
   referral network is already on the Pilot MVP gate in the brief.
 
+**From the workbook**, three more that sit on the same line:
+
+- Nutrition behaviour goals are "to be refined" after the food log and the
+  blood report. Hers to do in conversation; the app stores both and says
+  nothing about either.
+- The assessment sheet writes a reference beside two measurements, and has a
+  row for blood numbers "with concern". In the app a member's number is a
+  number. Whether a reference may ever sit beside it is a question for
+  whoever advises her on the certification, and "numbers only" is the default
+  until they answer.
+- "Verify any medical condition which might require clearance or modification
+  to plan." The app has no field for a doctor's go-ahead. If she needs one on
+  file before exercise starts, that is a small, real addition.
+
 ### 11. Who it is for
 
 > "I'm looking at women 30 plus or 40 plus… you might be struggling with
@@ -271,6 +335,33 @@ The brief says 38 to 50; she says 30 plus. And "postpartum" is not among the
 five answers to "Where you are right now" for a woman
 (`app/onboarding/page.tsx`), which are all about the cycle. The mock client
 was a man, which Round 1 already made workable.
+
+**From the workbook.** "Women life stage" is one of the six lines of Project
+You, and the blueprint names the two she means: post-partum and
+perimenopause.
+
+### 12. A physical assessment, measured three times
+
+From the workbook alone; it did not come up in the call.
+
+One sheet, three columns: today, after a month and a half, after three months.
+Four health measurements (BMI, waist, waist-to-hip ratio, resting heart rate),
+five tests (squats, a step test or brisk walk, sit and reach, the Apley
+scratch test, the Y balance test), static posture, six things the client
+reports (sleep, energy, gut, period regularity, pain, mood swings), and blood
+numbers of concern.
+
+**Status:** not built, and the second-largest item in the round after goals.
+
+The app has pieces of it and no whole. Sleep and energy are asked every day.
+Bloating, joint aches and low mood can be ticked in the daily check-in. Pain
+can be flagged on a session. A report takes any labelled value. Nothing holds
+the list, nothing prompts for it a second time, and nothing sets the three
+dates side by side — which is the point of her sheet.
+
+What it would be: a fixed list Deepika can edit, filled in by her or by the
+member, shown as three columns to both. Stored and set side by side, never
+scored. Who measures, and what the member sees, are hers to answer first.
 
 ---
 

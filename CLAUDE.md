@@ -379,3 +379,20 @@ feels wrong:
    wrong" reactions at V0 stage are about tone and content, not structure.
 
 Current backlog and priorities: `docs/PROJECT-BRIEF.md` §Backlog.
+
+## What is waiting (28 Nov 2026)
+
+`docs/NEXT-STEPS.md` is the one list of what is waiting, on whom, and for
+what. Read it at the start of a session and change it when something moves.
+
+The item at the top of it is not a build: it is a conversation. Deepika's
+method is now written down — her first call (`docs/PILOT-FEEDBACK.md`, Round
+2), her workbook (`docs/COACHING-METHOD.md`) and a survey of the women's groups
+she is in (`docs/SURVEY.md`) — and it differs from the app in ways that only
+she can settle. The questions are drafted in `docs/NEXT-STEPS.md`. Until they
+are answered, do not build onboarding, goals or an assessment from a guess at
+what she meant; read `docs/COACHING-METHOD.md` before touching any of them.
+
+Her workbook and the call's transcript hold a client's personal answers. They
+are not in this repository and must not be added to it: only her questions and
+the shape of her sheets belong here.
